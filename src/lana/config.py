@@ -1,0 +1,161 @@
+"""Configuration loading and validation (LANAAGNT-FR-01, IS-03). All validation at startup (IG-05)."""
+import json, os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Literal, Optional
+from pydantic import BaseModel, Field, ValidationError
+
+ENV_KEY_NAMES = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+
+
+class ConfigError(Exception):
+  pass
+
+
+# ----------------------------------------- START: Schema ---------------------------------------------------------------------
+
+class RoleSpec(BaseModel):
+  model_id: str
+  effort: str = "medium"
+
+
+class LanaConfig(BaseModel):
+  roles: dict[str, RoleSpec]
+  prompt_system_paths: list[str] = Field(default_factory=list)
+  rule_block_max_chars: int = 6000
+  max_tool_calls_per_prompt: int = 25
+  auto_continue: bool = False
+  tool_result_max_chars: int = 50000
+  compaction_threshold_fraction: float = 0.6
+  compaction_threshold_max_tokens: int = 150000
+  execution_policy: Literal["manual", "auto", "turbo"] = "manual"
+  command_denylist: list[str] = Field(default_factory=list)
+
+
+@dataclass
+class ResolvedRole:
+  name: str
+  model_id: str
+  provider: str  # openai | anthropic
+  method: str    # temperature | reasoning_effort | thinking | adaptive_thinking | effort
+  effort: str
+  max_input: int
+  max_output: int
+  params: dict = field(default_factory=dict)  # provider call params translated from effort
+  beta: Optional[str] = None
+
+
+@dataclass
+class AppConfig:
+  lana: LanaConfig
+  roles: dict[str, ResolvedRole]
+  pricing: dict           # provider -> model_id -> rate dict
+  keys: dict[str, str]    # provider -> api key (only for providers required at load)
+  workspace: Path
+  config_dir: Path
+  scripted: bool = False  # LANA_SCRIPTED_ADAPTER active (FR-14)
+
+# ----------------------------------------- END: Schema -----------------------------------------------------------------------
+
+
+# ----------------------------------------- START: Loading --------------------------------------------------------------------
+
+def read_json(path: Path) -> dict:
+  try:
+    return json.loads(path.read_text(encoding="utf-8"))
+  except FileNotFoundError:
+    raise ConfigError(f"Config file not found: '{path}'.\n  Fix: create it or pass --config <path> (env LANA_CONFIG).") from None
+  except json.JSONDecodeError as error:
+    raise ConfigError(f"Malformed JSON in '{path}' at line {error.lineno}, column {error.colno}: {error.msg}.\n  Fix: repair the JSON syntax at that position.") from None
+
+
+def parse_key_file(path: Path) -> dict[str, str]:
+  entries: dict[str, str] = {}
+  if not path.exists(): return entries
+  for line in path.read_text(encoding="utf-8").splitlines():
+    line = line.strip()
+    if not line or line.startswith("#") or "=" not in line: continue
+    key, _, value = line.partition("=")
+    entries[key.strip()] = value.strip()
+  return entries
+
+
+# Resolve API key for a provider: environment variable first, then key file (FR-01)
+def resolve_key(provider: str, key_file_entries: dict[str, str]) -> Optional[str]:
+  env_name = ENV_KEY_NAMES[provider]
+  return os.environ.get(env_name) or key_file_entries.get(env_name) or None
+
+
+# Translate effort level to provider call params per registry method (FR-01, TC-04)
+def translate_effort(method: str, effort: str, prefix_entry: dict, mapping: dict) -> dict:
+  factors = mapping.get("effort_mapping", {}).get(effort)
+  if factors is None:
+    valid = ", ".join(mapping.get("effort_levels", []))
+    raise ConfigError(f"Unknown effort level '{effort}' in 'lana-config.json'.\n  Fix: use one of: {valid}.")
+  if method == "temperature": return {"temperature": round(factors["temperature_factor"] * prefix_entry.get("temp_max", 1.0), 2)}
+  if method == "reasoning_effort":
+    value = factors["openai_reasoning_effort"]
+    allowed = prefix_entry.get("effort", [])
+    if allowed and value not in allowed: value = prefix_entry.get("default", allowed[-1])
+    return {"reasoning_effort": value}
+  if method == "thinking": return {"thinking_budget": int(factors["anthropic_thinking_factor"] * prefix_entry.get("thinking_max", 0))}
+  if method in ("adaptive_thinking", "effort"): return {"effort": factors["anthropic_adaptive_effort"]}
+  raise ConfigError(f"Unknown parameter method '{method}' in 'model-registry.json'.\n  Fix: expected temperature, reasoning_effort, thinking, adaptive_thinking, or effort.")
+
+
+def resolve_role(role_name: str, spec: RoleSpec, registry: dict, mapping: dict) -> ResolvedRole:
+  entry = None
+  for model in registry.get("models", []):
+    if model["model_id"] == spec.model_id: entry = model; break
+  if entry is None:
+    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' not found in 'config/model-registry.json'.\n  Fix: choose a registered model or add it to the registry.")
+  if not entry.get("enabled", False):
+    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' is disabled in 'config/model-registry.json' (enabled=false).\n  Fix: choose an enabled model or set \"enabled\": true in the registry.")
+  prefix_entry = None
+  for candidate in registry.get("model_id_startswith", []):
+    if spec.model_id.startswith(candidate["prefix"]): prefix_entry = candidate; break
+  if prefix_entry is None:
+    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' matches no 'model_id_startswith' prefix in 'config/model-registry.json'.\n  Fix: add a prefix entry for this model family.")
+  params = translate_effort(prefix_entry["method"], spec.effort, prefix_entry, mapping)
+  max_input = prefix_entry.get("max_input") or entry.get("context_window") or 128000
+  return ResolvedRole(name=role_name, model_id=spec.model_id, provider=entry["provider"], method=prefix_entry["method"], effort=spec.effort,
+                      max_input=max_input, max_output=prefix_entry.get("max_output") or 8192, params=params, beta=prefix_entry.get("beta"))
+
+
+def load_lana_config(workspace: Path, config_path: Optional[Path] = None, require_keys: bool = True) -> AppConfig:
+  """
+  Load and validate the full runtime configuration (fails at startup, never at first API call).
+
+  └── config_path default: <workspace>/config/lana-config.json (override via --config / LANA_CONFIG)
+  └── registry/mapping/pricing/.api-keys.txt are read from the config file's folder
+  └── require_keys=False skips API key resolution (scripted adapter mode, FR-14)
+  """
+  if config_path is None: config_path = workspace / "config" / "lana-config.json"
+  config_path = Path(config_path)
+  config_dir = config_path.parent
+  raw = read_json(config_path)
+  try:
+    lana = LanaConfig.model_validate(raw)
+  except ValidationError as error:
+    first = error.errors()[0]
+    location = ".".join(str(part) for part in first["loc"])
+    raise ConfigError(f"Invalid value in '{config_path}' at '{location}': {first['msg']}.\n  Fix: correct that key.") from None
+  registry = read_json(config_dir / "model-registry.json")
+  mapping = read_json(config_dir / "model-parameter-mapping.json")
+  pricing = read_json(config_dir / "model-pricing.json").get("pricing", {})
+  roles = {}
+  for role_name, spec in lana.roles.items(): roles[role_name] = resolve_role(role_name, spec, registry, mapping)
+  if "generator" not in roles:
+    raise ConfigError(f"Missing role 'generator' in '{config_path}'.\n  Fix: add a \"generator\" entry under \"roles\".")
+  keys: dict[str, str] = {}
+  if require_keys:
+    key_file = config_dir / ".api-keys.txt"
+    key_file_entries = parse_key_file(key_file)
+    for provider in sorted({role.provider for role in roles.values()}):
+      key = resolve_key(provider, key_file_entries)
+      if key is None:
+        raise ConfigError(f"No API key for provider '{provider}'.\n  Fix: set env var {ENV_KEY_NAMES[provider]} or add a line '{ENV_KEY_NAMES[provider]}=<key>' to '{key_file}'.")
+      keys[provider] = key
+  return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, workspace=Path(workspace), config_dir=config_dir)
+
+# ----------------------------------------- END: Loading ----------------------------------------------------------------------

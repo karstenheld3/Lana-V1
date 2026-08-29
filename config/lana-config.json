@@ -1,0 +1,16 @@
+{
+  "roles": {
+    "generator":  { "model_id": "claude-sonnet-4-5-20250929", "effort": "medium" },
+    "summarizer": { "model_id": "gpt-4.1-mini", "effort": "low" },
+    "websearch":  { "model_id": "gpt-4.1-mini", "effort": "low" }
+  },
+  "prompt_system_paths": ["e:/Dev/IPPS/DevSystemV4.2"],
+  "rule_block_max_chars": 6000,
+  "max_tool_calls_per_prompt": 25,
+  "auto_continue": false,
+  "tool_result_max_chars": 50000,
+  "compaction_threshold_fraction": 0.6,
+  "compaction_threshold_max_tokens": 150000,
+  "execution_policy": "manual",
+  "command_denylist": ["rm", "del", "rmdir", "erase", "ri", "Remove-Item", "Move-Item", "format", "kill", "pkill", "Stop-Process", "shutdown", "git push --force"]
+}

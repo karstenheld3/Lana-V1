@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lana"
+version = "0.1.0"
+description = "Lana MVP-1 - CLI agent running the DevSystemV4.2 prompt system on OpenAI/Anthropic backends"
+requires-python = ">=3.12"
+dependencies = [
+  "openai>=1.40",
+  "anthropic>=0.34",
+  "pydantic>=2",
+  "rich>=13",
+  "prompt_toolkit>=3",
+  "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-timeout>=2"]
+
+[project.scripts]
+lana = "lana.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: tests requiring real API keys (deselect with '-m \"not live\"')"]
+addopts = "-m 'not live'"
