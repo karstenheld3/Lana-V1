@@ -91,7 +91,7 @@ def make_compactor(app: AppConfig):
   async def compact(agent) -> AsyncIterator:
     threshold = compaction_threshold(app)
     projected = project_from_messages(agent.messages)
-    if projected <= threshold: return
+    if projected < threshold: return
     try:
       summary_text = await run_summarizer(agent)
     except Exception as error:  # EC-17: fail-safe, no truncation
