@@ -41,6 +41,7 @@ class ResumedState:
   todo_state: Optional[list[dict]] = None
   usage_by_role: dict[str, Usage] = field(default_factory=dict)
   cost_by_role: dict[str, float] = field(default_factory=dict)
+  turns_by_role: dict[str, int] = field(default_factory=dict)
   skipped_lines: int = 0
 
 
@@ -116,6 +117,7 @@ def resume(path: Path) -> ResumedState:
     if event.type == "turn_finished":
       usage = state.usage_by_role.setdefault(event.role, Usage())
       state.usage_by_role[event.role] = usage.add(Usage(input_tokens=event.input_tokens, output_tokens=event.output_tokens, cache_read_tokens=event.cache_read_tokens))
+      state.turns_by_role[event.role] = state.turns_by_role.get(event.role, 0) + 1
       if event.cost_usd is not None: state.cost_by_role[event.role] = state.cost_by_role.get(event.role, 0.0) + event.cost_usd
   projector.flush_assistant()
   state.messages = projector.messages

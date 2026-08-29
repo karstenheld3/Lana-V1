@@ -91,16 +91,17 @@ def build_runtime(args, workspace: Path, interactive: bool):
   for name, executor in EXECUTORS.items(): registry.register(name, executor)
   tool_context = ToolContext(workspace=workspace, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
   messages = []
+  cost_tracker = CostTracker(app)
   if args.resume:
     resumed = resume_session(Path(args.resume))
     messages = resumed.messages
     tool_context.todo_state = resumed.todo_state
+    cost_tracker.seed(resumed)  # IG-06: /cost totals survive resume (BG-0002)
     if resumed.skipped_lines: print(f"  WARNING: {resumed.skipped_lines} corrupt line" + ("s" if resumed.skipped_lines != 1 else "") + " skipped during resume.")
     print(f"Resumed session '{args.resume}': {len(messages)} messages.")
     session = SessionStore(Path(args.resume))
   else:
     session = SessionStore.create(workspace)
-  cost_tracker = CostTracker(app)
   if interactive:
     tool_context.ask_user = prompt_question
     approve_callback, continue_callback = prompt_approval, prompt_continue

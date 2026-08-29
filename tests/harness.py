@@ -80,6 +80,32 @@ class LanaProc:
     return None
 
 
+  # Non-blocking spawn with piped stdin for kill/resume scenarios (TP01-TC-06)
+  def start_piped(self, extra_args: list[str] | None = None) -> subprocess.Popen:
+    command = self.build_command(extra_args or [])
+    self.popen = subprocess.Popen(command, cwd=self.workspace, env=self.build_env(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
+    return self.popen
+
+  def send(self, line: str) -> None:
+    self.popen.stdin.write(line + "\n")
+    self.popen.stdin.flush()
+
+  def kill(self) -> None:
+    self.popen.kill()
+    self.popen.wait(timeout=10)
+
+  def wait_exit(self, timeout: int = 30) -> int:
+    return self.popen.wait(timeout=timeout)
+
+
+# NFR-01: key material must never appear in any observable output
+def assert_no_secret_leak(outputs: list[str], key_values: list[str]) -> None:
+  for secret in key_values:
+    if not secret: continue
+    for output in outputs:
+      assert secret not in (output or ""), f"secret value leaked into output (starts '{secret[:8]}...')"
+
+
 # Assert helper: event sequence contains the given types in order (gaps allowed)
 def assert_event_order(events: list, expected_types: list[str]) -> None:
   positions = []

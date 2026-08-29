@@ -48,6 +48,15 @@ class CostTracker:
     else: entry.cost_usd += cost
     return cost
 
+  # Restore totals from a resumed session log (IG-06, BG-0002)
+  def seed(self, resumed) -> None:
+    for role_name, usage in resumed.usage_by_role.items():
+      entry = self.by_role.setdefault(role_name, RoleCost())
+      entry.usage = entry.usage.add(usage)
+      entry.turns += resumed.turns_by_role.get(role_name, 0)
+      entry.cost_usd += resumed.cost_by_role.get(role_name, 0.0)
+      if role_name not in resumed.cost_by_role and resumed.turns_by_role.get(role_name): entry.priced = False
+
   def session_total(self) -> tuple[float, bool]:
     total, fully_priced = 0.0, True
     for entry in self.by_role.values():
