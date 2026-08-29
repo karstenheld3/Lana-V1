@@ -71,6 +71,31 @@ def workspace(tmp_path):
   return tmp_path
 
 
+# Build a prompt system folder: rules/workflows = {filename_or_name: content}, skills = {name: (frontmatter+body, {relpath: content})}
+def write_prompt_system(base_path, rules=None, workflows=None, skills=None):
+  base_path.mkdir(parents=True, exist_ok=True)
+  for filename, content in (rules or {}).items(): (base_path / "rules").mkdir(exist_ok=True); (base_path / "rules" / filename).write_text(content, encoding="utf-8")
+  for name, content in (workflows or {}).items(): (base_path / "workflows").mkdir(exist_ok=True); (base_path / "workflows" / f"{name}.md").write_text(content, encoding="utf-8")
+  for name, (skill_md, supporting) in (skills or {}).items():
+    folder = base_path / "skills" / name
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "SKILL.md").write_text(skill_md, encoding="utf-8")
+    for relative_path, content in (supporting or {}).items():
+      target = folder / relative_path
+      target.parent.mkdir(parents=True, exist_ok=True)
+      target.write_text(content, encoding="utf-8")
+  return base_path
+
+
+@pytest.fixture
+def fake_system(tmp_path):
+  base = write_prompt_system(tmp_path / "fake_system",
+    rules={"alpha.md": "---\ntrigger: always_on\n---\nAlpha rule body", "beta.md": "Beta rule body without frontmatter", "gamma.md": "---\ntrigger: model_decision\n---\nGamma body"},
+    workflows={"prime": "---\ndescription: Prime context\n---\n# Prime Workflow\n\nStep 1: read notes.", "verify": "---\ndescription: Verify work\n---\n# Verify Workflow\n\nStep 1: check."},
+    skills={"demo-skill": ("---\nname: demo-skill\ndescription: Demo skill\n---\n# Demo Skill\n\nUse wisely.", {"GUIDE.md": "guide", "sub/EXTRA.md": "extra"})})
+  return base
+
+
 @pytest.fixture
 def clean_key_env(monkeypatch):
   monkeypatch.delenv("OPENAI_API_KEY", raising=False)
