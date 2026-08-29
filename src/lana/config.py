@@ -53,7 +53,8 @@ class AppConfig:
   keys: dict[str, str]    # provider -> api key (only for providers required at load)
   workspace: Path
   config_dir: Path
-  scripted: bool = False  # LANA_SCRIPTED_ADAPTER active (FR-14)
+  scripted: bool = False              # LANA_SCRIPTED_ADAPTER active (FR-14)
+  debug_dir: Optional[Path] = None    # --debug: redacted API traffic target (NFR-04)
 
 # ----------------------------------------- END: Schema -----------------------------------------------------------------------
 

@@ -1,6 +1,14 @@
-"""Shared fixtures: temp config dir, temp workspace, fake prompt system (grows with IS-22)."""
-import json
+"""Shared fixtures: temp config dir, temp workspace, fake prompt system, in-process agent factory (IS-22)."""
+import asyncio, json, platform
 import pytest
+from lana.agent import Agent
+from lana.config import load_lana_config
+from lana.cost import CostTracker
+from lana.loader import load_prompt_systems
+from lana.prompt import build_system_prompt
+from lana.providers import reset_adapter_cache
+from lana.session import SessionStore
+from lana.tools import ToolContext, ToolRegistry
 
 TEST_REGISTRY = {
   "models": [
@@ -102,3 +110,55 @@ def clean_key_env(monkeypatch):
   monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
   monkeypatch.delenv("LANA_SCRIPTED_ADAPTER", raising=False)
   monkeypatch.delenv("LANA_CONFIG", raising=False)
+
+
+# Collect all events of one prompt run synchronously
+def collect_events(agent: Agent, text: str) -> list:
+  async def consume():
+    return [event async for event in agent.run_prompt(text)]
+  return asyncio.run(consume())
+
+
+# Consume events until predicate matches (returns consumed list); then the generator is closed (cancellation simulation)
+def collect_until(agent: Agent, text: str, predicate) -> list:
+  async def consume():
+    consumed = []
+    generator = agent.run_prompt(text)
+    async for event in generator:
+      consumed.append(event)
+      if predicate(event): await generator.aclose(); break
+    return consumed
+  return asyncio.run(consume())
+
+
+@pytest.fixture
+def agent_factory(tmp_path, monkeypatch, fake_system):
+  from lana.cli import EXECUTORS
+  from tests.scripted_adapter import write_script
+
+  def make(turns: list[dict], lana_overrides: dict = None, approve_callback=None, continue_callback=None, use_compactor=False) -> Agent:
+    workspace = tmp_path / "ws"
+    workspace.mkdir(exist_ok=True)
+    write_config_dir(workspace, lana_overrides=lana_overrides)
+    script = write_script(workspace / "script.jsonl", turns)
+    monkeypatch.setenv("LANA_SCRIPTED_ADAPTER", str(script))
+    reset_adapter_cache()
+    app = load_lana_config(workspace, require_keys=False)
+    app.scripted = True
+    prompt_system = load_prompt_systems([fake_system])
+    system_prompt = build_system_prompt(prompt_system, {"os": platform.system().lower(), "workspace": str(workspace), "git_root": ""})
+    registry = ToolRegistry(os_name="windows", shell="pwsh", skills=prompt_system.skills)
+    for name, executor in EXECUTORS.items(): registry.register(name, executor)
+    tool_context = ToolContext(workspace=workspace, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
+    session = SessionStore.create(workspace)
+    cost_tracker = CostTracker(app)
+    compactor = None
+    if use_compactor:
+      from lana.compaction import make_compactor
+      compactor = make_compactor(app)
+    agent = Agent(app, prompt_system, system_prompt, registry, tool_context, session, approve_callback=approve_callback, continue_callback=continue_callback, cost_fn=cost_tracker.record, compactor=compactor)
+    agent.cost_tracker = cost_tracker  # test convenience
+    return agent
+
+  yield make
+  reset_adapter_cache()

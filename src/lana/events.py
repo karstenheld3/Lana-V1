@@ -63,6 +63,7 @@ class CheckpointCreated(EventBase):
   type: Literal["checkpoint_created"] = "checkpoint_created"
   text: str  # full checkpoint text (resume replay requirement)
   truncated_messages: int = 0
+  kept_messages: int = 0  # tail messages kept after the checkpoint (resume projection)
 
 
 class TurnFinished(EventBase):
