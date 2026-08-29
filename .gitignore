@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.lana/
+*_gitignore.*
+*_gitignore/
+config/.api-keys.txt
