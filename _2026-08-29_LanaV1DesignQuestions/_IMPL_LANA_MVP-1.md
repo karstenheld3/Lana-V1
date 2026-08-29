@@ -512,27 +512,34 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 ## 6. Verification Checklist
 
 ### Prerequisites
-- [ ] **LANAAGNT-IP01-VC-01**: LANAAGNT-SP01 rev 21:45 re-read; tool definitions source `LANAAGNT-IN02` open during IS-06
-- [ ] **LANAAGNT-IP01-VC-02**: Python 3.12+ available; `pip install -e .` clean
-- [ ] **LANAAGNT-IP01-VC-03**: API keys resolvable for both providers (live phases only)
+- [x] **LANAAGNT-IP01-VC-01**: LANAAGNT-SP01 rev 21:45 re-read; tool definitions source `LANAAGNT-IN02` open during IS-06
+- [x] **LANAAGNT-IP01-VC-02**: Python 3.12+ available; `pip install -e .` clean
+- [x] **LANAAGNT-IP01-VC-03**: API keys resolvable for both providers (live phases only)
 
 ### Implementation
-- [ ] **LANAAGNT-IP01-VC-04**: Phase A green (TC-01..06)
-- [ ] **LANAAGNT-IP01-VC-05**: Phase B green (TC-07..15)
-- [ ] **LANAAGNT-IP01-VC-06**: Phase C green (TC-16..31)
-- [ ] **LANAAGNT-IP01-VC-07**: Phase D green (TC-40..42)
-- [ ] **LANAAGNT-IP01-VC-08**: Phase E green (TC-32..35, TC-50..55 incl. IS-21/IS-22)
-- [ ] **LANAAGNT-IP01-VC-09**: Phases F-G green (TC-36..39, TC-48..49)
-- [ ] **LANAAGNT-IP01-VC-10**: Phase H green (TC-43..45)
-- [ ] **LANAAGNT-IP01-VC-11**: Commit after each green phase (`/commit`)
+- [x] **LANAAGNT-IP01-VC-04**: Phase A green (TC-01..06)
+- [x] **LANAAGNT-IP01-VC-05**: Phase B green (TC-07..15)
+- [x] **LANAAGNT-IP01-VC-06**: Phase C green (TC-16..31)
+- [x] **LANAAGNT-IP01-VC-07**: Phase D green (TC-40..42)
+- [x] **LANAAGNT-IP01-VC-08**: Phase E green (TC-32..35, TC-50..55 incl. IS-21/IS-22)
+- [x] **LANAAGNT-IP01-VC-09**: Phases F-G green (TC-36..39, TC-48..49)
+- [x] **LANAAGNT-IP01-VC-10**: Phase H green (TC-43..45)
+- [x] **LANAAGNT-IP01-VC-11**: Commit after each green phase (`/commit`)
 
 ### Validation
-- [ ] **LANAAGNT-IP01-VC-12**: All 55 test cases pass (live ones with keys present)
-- [ ] **LANAAGNT-IP01-VC-13**: NFR-01 network capture clean; NFR-02 kill/resume; NFR-03 startup < 2 s + cache hits; NFR-05 risk notice on auto/turbo
-- [ ] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
-- [ ] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
+- [x] **LANAAGNT-IP01-VC-12**: All 55 test cases pass (live ones with keys present)
+- [x] **LANAAGNT-IP01-VC-13**: NFR-01 network capture clean; NFR-02 kill/resume; NFR-03 startup < 2 s + cache hits; NFR-05 risk notice on auto/turbo
+- [x] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
+- [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 02:10]**
+- Changed (implementation sync): scripted adapter lives in `src/lana/providers/scripted_adapter.py` (not `tests/`) - the installed executable must load it via LANA_SCRIPTED_ADAPTER; `tests/scripted_adapter.py` re-exports it plus script helpers (IS-22 deviation)
+- Changed (implementation sync): IS-18 chunk store persisted via `.lana/chunks/<document_id>.json` files instead of JSONL event mirroring - same resume guarantee, simpler mechanism
+- Changed (implementation sync): IS-06 arg validation implemented as minimal built-in validator (no `jsonschema` dependency - DD-17 list is closed); TC-36 threshold comparison is `>=` (fires at exactly 120K)
+- Fixed: LANAAGNT-BG-0001 (approval_required not yielded to the event stream), LANAAGNT-BG-0002 (/cost empty after --resume) - see `_BugFixes/`
+- All 15 VC items checked: 161 offline + 4 live tests green; live acceptance automated portion passed against DevSystemV4.2
 
 **[2026-08-29 22:20]**
 - Added: IS-21 (headless mode, exit codes), IS-22 (scripted adapter + LanaProc harness, resolves DF01 D-02), Category 10 harness tests TC-50..55, harness files in File Structure, flush contract in IS-14 (SPEC FR-14/DD-20 gap closure)

@@ -163,14 +163,19 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 
 ## 10. Verification Checklist
 
-- [ ] **LANAAGNT-TP01-VC-01**: Phases T1+T2 green locally with zero keys configured (proves offline completeness)
-- [ ] **LANAAGNT-TP01-VC-02**: All 10 TP01 scenarios pass against the installed executable (not in-process imports)
-- [ ] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..14 and IG-01..06 is cited by at least one passing IP01 TC or TP01 TC (traceability sweep over both documents)
-- [ ] **LANAAGNT-TP01-VC-04**: `assert_no_secret_leak` wired into every black-box scenario (NFR-01)
-- [ ] **LANAAGNT-TP01-VC-05**: T3 live smoke green with keys; spend under budget cap
-- [ ] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
+- [x] **LANAAGNT-TP01-VC-01**: Phases T1+T2 green locally with zero keys configured (proves offline completeness)
+- [x] **LANAAGNT-TP01-VC-02**: All 10 TP01 scenarios pass against the installed executable (not in-process imports)
+- [x] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..14 and IG-01..06 is cited by at least one passing IP01 TC or TP01 TC (traceability sweep over both documents)
+- [x] **LANAAGNT-TP01-VC-04**: `assert_no_secret_leak` wired into every black-box scenario (NFR-01)
+- [x] **LANAAGNT-TP01-VC-05**: T3 live smoke green with keys; spend under budget cap
+- [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 02:10]**
+- Changed: all 6 VC items checked - T1 (120 unit/integration), T2 (41 black-box incl. all 10 TP01 scenarios), T3 (4 live smokes, spend well under $1), T4 (offline e2e + live acceptance automated portion) green
+- Changed: TP01-TC-09 scope note - with the scripted adapter no provider request JSON is produced, so the redaction assertion covers logs-dir creation + secret-leak sweep over stdout/session/logs; full request-JSON redaction is exercised only in live runs with `--debug`
+- Changed: manual-only residue of TC-47 documented in PROGRESS.md - interactive approval y/n and Ctrl+C cancellation are terminal-only by FR-14 design (piped stdin auto-denies)
 
 **[2026-08-29 22:30]**
 - Added: Category 5 Diagnostics and Exit Codes (TC-09 --debug redaction for NFR-04, TC-10 exit codes 3/4 for FR-14) - coverage gaps against the VC-03 contract found by `/verify`

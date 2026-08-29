@@ -4,19 +4,8 @@
 
 ## To Do
 
-Implementation tasks from `TASKS_LANA_MVP-1.md [LANAAGNT-TK01]` (36 tasks, ~16 HHW, details + dependencies there):
-
-- [ ] Task 0 - Baseline: environment + input access check (MANDATORY, no keys needed)
-- [ ] Phase A Foundation: TK-001..004 (skeleton, models, events, config)
-- [ ] Phase B Prompt System: TK-005..007 (loader, prompt constants, assembly)
-- [ ] Phase C Tools: TK-008..014 (definitions transcription from IN02, executors, safety)
-- [ ] Phase D Adapters: TK-015..017 (protocol, OpenAI Responses, Anthropic + caching) - first keys needed
-- [ ] Phase E Loop/CLI: TK-018..025 (scripted adapter, loop, session, CLI, headless, harness)
-- [ ] Phases F-G: TK-026..027 (cost, compaction)
-- [ ] Phase H Web: TK-028..029 (fetch/chunk, provider-native search)
-- [ ] Scenarios + hardening: TK-030..033 (TP01-TC-01..10, NFR fixtures, live smoke)
-- [ ] TK-034 Live acceptance + Final Verification task (MANDATORY)
-- [ ] User confirmation gate before Task 0 (planning -> implementation transition)
+- [ ] Manual acceptance residue (terminal-only by FR-14 design, needs a human at a real terminal): interactive approval y/n prompt and Ctrl+C mid-turn cancellation in a live `lana` session - everything else is covered by automated tests
+- [ ] `/cleanup` when the user is ready: `__STRUT_LANAAGNT_IMPL.md`, `.tmp_generate_definitions.py` (kept for definitions regeneration until then), `TASKS_LANA_MVP-1_v1.md` and other `_vN` backups (user-only deletion per `/go` safety protocol)
 
 ## In Progress
 
@@ -47,12 +36,28 @@ Implementation tasks from `TASKS_LANA_MVP-1.md [LANAAGNT-TK01]` (36 tasks, ~16 H
 - [x] Re-read SP01/IP01/TP01 and created `TASKS_LANA_MVP-1.md [LANAAGNT-TK01]`: 36 tasks, PARTITION-DEPENDENCY, 15 parallel-marked, every task cites its IP01/TP01 test gate
 - [x] Ran `/verify` on LANAAGNT-TK01 (rev 22:42): fixed keys-needed task ID (TK-020 -> TK-016/017), corrected critical path to the longest chain (~6.5 HHW via TK-008/009/013); full IS/TC mapping confirmed (22 steps, 65 cases)
 - [x] Ran `/improve` run 3 on LANAAGNT-TK01 (rev 22:46): added Task Execution Protocol (context-reset-safe execution, motivated by FL-0002/FL-0003); backup `TASKS_LANA_MVP-1_v1.md`; D-03 deferred
+- [x] `/go` EXECUTION 2026-08-30: all 36 TK01 tasks complete - Lana MVP-1 fully implemented (22 source modules ~2600 lines, 24 test modules, 165 tests: 161 offline + 4 live smokes, all green)
+- [x] Task 0 + git init (repo was not initialized; planning baseline committed first); per-phase commits throughout
+- [x] Phases A-C: skeleton/models/events/config, loader + system prompt (real DevSystemV4.2 8/46/21 in < 2 s), 15 tool definitions GENERATED from IN02 via `.tmp_generate_definitions.py` (zero-diff guaranteed + regression diff test), executors, safety classifier
+- [x] Phases E-G before D (key-free corridor per DF01 D-03): scripted adapter, agent loop, session store/resume, CLI/renderer, headless + exit codes, LanaProc harness, cost engine, compaction
+- [x] Phase D: OpenAI Responses adapter (typed output parsing, reasoning resend, store=false) + Anthropic Messages adapter (thinking resend, cache_control breakpoints + automatic caching, usage normalization)
+- [x] Phase H + scenarios: web tools vs local fixture server, all 10 TP01 black-box scenarios, NFR fixtures (IG-01 byte identity on real system, IG-02 JSONL audit), offline e2e
+- [x] TK-033 live smokes green with real keys: TC-40 OpenAI round trip, TC-41 Anthropic cache_read > 0 on call 2, TC-42 reasoning-model tool call, TC-43 live web search
+- [x] TK-034 live acceptance (automated portion) PASSED: real `lana` + DevSystemV4.2 + claude-sonnet-4-5: /prime expansion, live tool calls, edit round trip applied, /cost totals, --resume restored state; temp workspace (incl. key-file copy) deleted immediately after
+- [x] Bugs filed and fixed via `/bugfix` (SESSION-MODE, `_BugFixes/`): LANAAGNT-BG-0001 approval_required event never yielded to the frontend stream (DD-06 violation); LANAAGNT-BG-0002 /cost empty after --resume (CostTracker not seeded, IG-06 violation)
+- [x] Deviations synced to IP01 Document History (rev 02:10): scripted adapter in package, chunk persistence via .lana/chunks files, built-in arg validator (DD-17 closed dependency list)
+- [x] [DECISION] Phase order E-G before D - key-free corridor already permitted by TK01 dependency graph; consulted TK01 Task 0 note + DF01 D-03 - risk isolation per IP01 Impact Analysis
+- [x] [DECISION] definitions.py generated from IN02 instead of hand-transcribed - guarantees the IS-06 zero-diff acceptance rule against invisible whitespace; consulted IN02 transcription rules + FL-0003 lesson
+- [x] [DECISION] `/bugfix` ceremony applied to defects surviving a task's green gate or crossing module boundaries (BG-0001/0002); first-pass red tests within a task's own implement-test cycle fixed directly - consulted bugfix.md Step 4 bug definition + TK01 small-cycles rule
 
 ## Tried But Not Used
 
 - (none)
 
 ## Progress Changes
+
+**[2026-08-30 02:15]**
+- Added: `/go` implementation execution complete - all 36 tasks, 165 tests green, live acceptance passed, 2 bugs fixed, deviations synced; To Do reduced to manual-terminal residue + /cleanup
 
 **[2026-08-29 22:46]**
 - Added: TK01 verify fixes + improve run 3 (Task Execution Protocol)
