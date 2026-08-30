@@ -2,10 +2,11 @@
 
 Lana is an ACP-compatible AI agent that runs in your terminal. You type requests, Lana reads your files, writes code, runs commands, and manages work sessions -- powered by OpenAI or Anthropic models.
 
-Lana loads a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS) (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.lana/` folder.
+Lana uses a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS) (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.lana/` folder.
 
 ## Prerequisites
 
+- **Windows x64** -- Lana currently targets Windows only (shell commands, binary distribution, path handling)
 - **Python 3.12+** (`python --version` to check)
 - **An API key** for at least one provider: [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/settings/keys)
 
@@ -15,15 +16,18 @@ Lana loads a **prompt system** called [IPPS](https://github.com/karstenheld3/IPP
 # 1. Install (editable mode, includes test dependencies)
 pip install -e .[dev]
 
-# 2. Set your API key (pick one or both)
-$env:OPENAI_API_KEY = "sk-..."
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-
-# 3. Run
+# 2. Run
 lana
 ```
 
-On first run, Lana creates any missing configuration (`config/lana-config.json`, `config/.api-keys.txt` template, `.lana-data/` for sessions and logs) and reports what it created. No setup commands needed.
+On first run, Lana creates `config/.api-keys.txt` (and `config/lana-config.json`, `.lana-data/`). Open the key file and uncomment your provider(s):
+
+```
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Why a key file instead of environment variables?** Environment variables are global to the user session -- every process can read them, including other tools, extensions, or scripts that happen to run alongside Lana. `config/.api-keys.txt` is read only by Lana's own startup code and is gitignored by default, so keys stay scoped to this workspace and never leak into child processes or other applications. If both exist, the environment variable wins per provider -- useful for temporary CI overrides. The startup banner shows where each key came from (`env` or `.api-keys.txt`).
 
 ## What Lana Can Do
 
@@ -31,11 +35,15 @@ Once running, you interact by typing at the `>` prompt:
 
 - **Free text** -- ask Lana to read code, fix bugs, write features, explain files
 - **`/workflow`** -- invoke a workflow (e.g. `/prime` to load project context, `/commit` to create git commits, `/verify` to check work against specs)
+- **Web research** -- Lana can search the web and read URLs to gather information, powering workflows like `/deep-research` and `/research`
+- **Session resume** -- every session is saved as a JSONL file; pick up where you left off with `--resume`
+- **Headless automation** -- run a single prompt (`-p "..."`) or a [queue of prompts](docs/PROMPT_FILE_FORMAT.md) (`--prompt-file`) for scripted workflows and CI pipelines
+- **`/selftest`** -- verify environment health: config, prompt system, model connectivity
 - **`/help`** -- list all loaded workflows
 - **`/cost`** -- show API spend for the current session
 - **`/exit`** or **Ctrl+C** -- stop
 
-Lana has 16 built-in tools: read/write/edit files, run shell commands, search code, manage todos, do web research, and more. Every destructive action (file writes, command execution) requires your approval in `manual` mode.
+Lana has 16 built-in tools: read/write/edit files, run shell commands, search code, manage todos, do web research, and more. Every destructive action (file writes, command execution) requires your approval in `manual` mode. Lana automatically manages context length via checkpoint compaction -- long sessions work without manual intervention.
 
 ## Configuration
 
@@ -49,7 +57,7 @@ Lana has 16 built-in tools: read/write/edit files, run shell commands, search co
   - `turbo` -- everything runs automatically (use only in trusted workspaces)
 - **`command_denylist`** -- commands that are always blocked (e.g. `rm`, `del`, `format`)
 
-**API keys** resolve in order: environment variables (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) first, then `config/.api-keys.txt`.
+**API keys** resolve in order: environment variables (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) first, then `config/.api-keys.txt`. The key file is recommended (see Quick Start).
 
 ## Project Structure
 
@@ -75,14 +83,17 @@ lana --acp                              # ACP mode (JSON-RPC over stdio, for IDE
 lana --version                          # print version and exit
 lana -p "fix the bug in auth.py"        # headless: run one prompt and exit
 lana -p "..." --output-format jsonl     # headless: output AgentEvents as JSON Lines
+lana --prompt-file PROMPTS.md           # headless: run a queue of prompts in one session
 ```
 
 **Exit codes** (headless mode): 0 = completed, 2 = config error, 3 = provider/API failure, 4 = stopped without completion.
 
+See [Prompt Queue File Format](docs/PROMPT_FILE_FORMAT.md) for the `--prompt-file` input format and [Standard Operating Procedures](SOPS.md) for versioning, building, and releasing.
+
 ## Tests
 
 ```powershell
-pytest                      # offline suite (~200 tests, no API keys needed)
+pytest                      # offline suite (~280 tests, no API keys needed)
 pytest -m live              # live smoke tests (requires API keys, budget-capped)
 ```
 
@@ -107,8 +118,51 @@ Then run `/project-release` to create release notes, tag the repo, and publish a
 - **Updates**: replace the `lana.exe` file
 - **Code signing**: set `LANA_SIGN_THUMBPRINT` to an installed certificate thumbprint before running `_build.bat`
 
+## ACP Integration (Devin Desktop)
+
+Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (or Devin Next). The IDE spawns `lana.exe --acp` as a subprocess and communicates via JSON-RPC over stdio.
+
+**Setup:**
+
+1. Add Lana to the local ACP registry. Use `Ctrl+Shift+P` > **`Open Local ACP Registry Config`** to create/open the file at the correct path. On macOS/Linux this is `~/.windsurf/acp/registry.json` (or `~/.windsurf-next/` for Next). On Windows the documented paths are wrong -- the actual location is `%APPDATA%\Code\User\acp\registry.json` (see note below):
+
+```json
+{
+  "version": "1.0.0",
+  "agents": [
+    {
+      "id": "lana",
+      "name": "Lana",
+      "version": "1.1.0",
+      "description": "CLI agent running IPPS prompt system on OpenAI/Anthropic backends",
+      "authors": ["Karsten Held"],
+      "license": "proprietary",
+      "distribution": {
+        "binary": {
+          "windows-x86_64": {
+            "archive": "",
+            "cmd": "C:/path/to/lana.exe",
+            "args": ["--acp"]
+          }
+        }
+      }
+    }
+  ],
+  "extensions": []
+}
+```
+
+2. Restart Devin Desktop (or run `Reload ACP Connections` from the Command Palette)
+3. Open `Ctrl+Shift+P` > **Devin User Settings** > **Agents** tab > enable **Lana**
+4. Start a new conversation and select **Lana** from the agent selector
+
+**Notes:**
+- `cmd` must be an absolute path to the built binary -- Devin Desktop does not download from `archive` URLs
+- Configure API keys for Lana via the `...` button next to the agent in the Agents tab, or place keys in `config/.api-keys.txt` relative to the workspace
+- **Windows registry path bug**: The Devin docs say `~/.windsurf/acp/registry.json` but the extension source (`getWindsurfConfigDirectory`) hardcodes `%APPDATA%\Code\User` on Windows, ignoring the product channel. Use `Open Local ACP Registry Config` from the Command Palette to get the correct path for your installation.
+
 ## Specifications
 
-- `specs/_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` -- CLI agent specification
-- `specs/_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]` -- ACP protocol specification
-- `_Sessions/_2026-08-30_LanaDistribution/_SPEC_LANADIST.md [LANADIST-SP01]` -- distribution pipeline specification
+- [`_SPEC_LANA_MVP-1.md`](specs/_SPEC_LANA_MVP-1.md) [LANAAGNT-SP01] -- CLI agent specification
+- [`_SPEC_LANA_MVP-2_ACP.md`](specs/_SPEC_LANA_MVP-2_ACP.md) [LANAACPB-SP01] -- ACP protocol specification
+- [`_SPEC_LANADIST.md`](_Sessions/_2026-08-30_LanaDistribution/_SPEC_LANADIST.md) [LANADIST-SP01] -- distribution pipeline specification
