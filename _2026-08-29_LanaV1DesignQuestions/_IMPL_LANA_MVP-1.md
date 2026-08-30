@@ -74,6 +74,7 @@ e:\Dev\Delphios-Lana-V1\
 │   ├── providers/
 │   │   ├── __init__.py               # get_adapter(model) via registry provider field (~20 lines) [NEW]
 │   │   ├── base.py                   # ProviderAdapter protocol: stream_turn(), count hints (~60 lines) [NEW]
+│   │   # (synced 2026-08-30: providers/ also holds scripted_adapter.py - the installed executable loads it via LANA_SCRIPTED_ADAPTER; tests/scripted_adapter.py re-exports + script helpers)
 │   │   ├── openai_adapter.py         # Responses API: items, reasoning passthrough, web_search side-call (~260 lines) [NEW]
 │   │   └── anthropic_adapter.py      # Messages API: thinking blocks, cache_control, automatic caching, web_search (~260 lines) [NEW]
 │   └── tools/
@@ -129,6 +130,7 @@ Estimated total: ~3,900 lines source + ~1,800 lines tests [ASSUMED - per-module 
 - **LANAAGNT-IP01-EC-23**: Generator emits invalid JSON args -> tool error with schema validation message
 - **LANAAGNT-IP01-EC-24**: Model absent from `model-pricing.json` -> cost rendered as `?`, tokens still shown (LANAAGNT-FR-09)
 - **LANAAGNT-IP01-EC-25**: `view_content_chunk` with unknown `document_id` or out-of-range position -> error naming valid range
+- **LANAAGNT-IP01-EC-26**: `read_file` on an image file -> refused with explanatory error (no visual presentation in a CLI); SVG stays readable as text (synced from implementation 2026-08-30)
 
 ## 3. Implementation Steps
 
@@ -228,7 +230,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Action**: Add executors: `read_file` (cat -n format, 1-indexed, offset/limit, 2000-char line truncation), `list_dir` (sizes, recursive item counts), `grep_search` (regex/fixed, includes, case flag, MatchPerLine; pure-Python line scan - no external rg dependency), `find_by_name` (glob, excludes, type, depth, 50-result cap)
 
-**Note**: All results pass through the shared `cap_result()` (EC-04). `read_file` success updates the ReadLedger. Pure-Python grep instead of bundling ripgrep [ASSUMED - adequate for workspace-scale scans; revisit if TC-12-scale folders show >1 s searches]
+**Note**: All results pass through the shared `cap_result()` (EC-04). `read_file` success updates the ReadLedger; image files refused with explanatory error (EC-26). Pure-Python grep instead of bundling ripgrep [TESTED - full suite + real-system scans green 2026-08-30]. grep_search/find_by_name skip a fixed IGNORED_DIRECTORIES set (.git, node_modules, __pycache__, .lana, ...) as a gitignore approximation - the tool descriptions promise rg/fd ignore semantics (synced 2026-08-30)
 
 ### LANAAGNT-IP01-IS-08: Edit tools with ReadLedger (LANAAGNT-FR-11)
 
@@ -293,7 +295,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Location**: `session.py`
 
-**Action**: Append-only JSONL writer (`user_message` flushed synchronously, every line flushed at write per FR-08 - the external tail contract); `resume(path)` projects events -> canonical messages: replay user/assistant/tool events, apply last `checkpoint_created` (truncate prior history, splice checkpoint text), skip corrupt lines with count (EC-21), inject cancellation notes for turns ending in cancellation
+**Action**: Append-only JSONL writer (`user_message` flushed synchronously, every line flushed at write per FR-08 - the external tail contract); `resume(path)` projects events -> canonical messages: replay user/assistant/tool events, apply last `checkpoint_created` (truncate prior history, splice checkpoint text; the event carries `kept_messages` so the retained tail reprojects exactly - synced 2026-08-30), skip corrupt lines with count (EC-21), inject cancellation notes for turns ending in cancellation; resume also restores usage/cost/turn totals per role for CostTracker seeding (BG-0002)
 
 ### LANAAGNT-IP01-IS-15: CLI frontend and renderer
 
@@ -301,7 +303,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `render.py`: subscribes to events; streams text; tool lines + approval y/n prompts + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
 
-**Note**: `--debug` writes redacted request/response JSON to `.lana/logs/` (NFR-04)
+**Note**: `--debug` writes redacted request/response JSON to `.lana/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only
 
 ### Phase F: Cost Tracking
 
@@ -309,7 +311,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Location**: `cost.py`
 
-**Action**: Per-turn cost from usage x pricing (input/output/cache-read rates); accumulate per role; `/cost` summary; unknown model -> `?` (EC-24)
+**Action**: Per-turn cost from usage x pricing (input/output/cache-read/cache-write rates); accumulate per role; `/cost` summary; unknown model -> `?` (EC-24). Usage normalization contract: adapters report input_tokens INCLUDING cache reads (Anthropic normalized up, OpenAI native) (synced 2026-08-30)
 
 ### Phase G: Compaction
 
@@ -325,7 +327,7 @@ def build_checkpoint(summary_sections, todo_json): ...         # SPEC section 10
 def compact(session, summarizer_adapter): ...                  # one call, 3 labeled sections; failure -> warn + no-op (EC-17)
 ```
 
-**Note**: Threshold = `min(fraction x generator max_input, max_tokens)`; checked post-turn in `agent.py`
+**Note**: Threshold = `min(fraction x generator max_input, max_tokens)`, fires at >= (TC-36 boundary); checked after EVERY turn in `agent.py` including between tool-loop turns (drift item 02). Truncation keeps the last 6 messages; leading orphan tool-result messages are trimmed from the tail so no tool_result survives without its tool_use partner (provider 400 guard) (synced 2026-08-30)
 
 ### Phase H: Web Tools
 
@@ -335,7 +337,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Action**: `search_web`: one-shot side-call via `websearch` role adapter with the provider-native web search tool; render Cascade's 5-result format. `read_url_content`: approval gate -> `urllib`/`httpx` GET (5 MB cap, text/HTML only, EC-18) -> HTML-to-text -> chunk (~5K chars) -> store per `document_id`. `view_content_chunk`: chunk lookup (EC-25)
 
-**Note**: Chunk store is session-scoped in-memory + mirrored to JSONL events for resume. Chunk size ~5K chars [ASSUMED - matches Cascade's observed 2-8 KB chunk cost range]
+**Note**: Chunk store is session-scoped in-memory + persisted as `.lana/chunks/<document_id>.json` files - view_content_chunk survives --resume by lazy disk load (implementation replaced the JSONL-mirroring idea; same guarantee, simpler - synced 2026-08-30). Chunk size ~5K chars [ASSUMED - matches Cascade's observed 2-8 KB chunk cost range]
 
 ### Phase I: Hardening
 
@@ -361,7 +363,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Location**: `cli.py`, `agent.py`
 
-**Action**: Add `-p/--prompt`, `--output-format text|jsonl`, `--config`/`LANA_CONFIG` override; exit codes 0/2/3/4 per FR-14; non-terminal stdin detection (`sys.stdin.isatty()`) switches to plain line input and auto-denies `approval_required`/`ask_user_question` with the FR-14 messages
+**Action**: Add `-p/--prompt`, `--output-format text|jsonl`, `--config`/`LANA_CONFIG` override; exit codes 0/2/3/4 per FR-14; non-terminal stdin detection (`sys.stdin.isatty()`) switches to plain line input and auto-denies `approval_required`/`ask_user_question` with the FR-14 messages; built-ins (/help /cost /exit) dispatched before slash expansion in headless mode too (synced 2026-08-30)
 
 **Note**: The jsonl output stream writes the same serialized AgentEvents as the session file - one serializer, two sinks
 
@@ -440,7 +442,7 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - **LANAAGNT-IP01-TC-09**: Malformed frontmatter (EC-02) -> body-only, warning
 - **LANAAGNT-IP01-TC-10**: Oversized rule (EC-03) -> truncation marker at limit
 - **LANAAGNT-IP01-TC-11**: Two paths, colliding workflow name -> later path wins
-- **LANAAGNT-IP01-TC-12**: Real DevSystemV4.2 (skip if absent) -> 8/46/21 in < 2 s
+- **LANAAGNT-IP01-TC-12**: Real DevSystemV4.2 (skip if absent) -> loader counts equal filesystem-derived counts (8/46/21 at analysis; the external system evolves - 23 skills by 2026-08-30) in < 2 s
 
 ### Category 3: System Prompt (3 tests)
 
@@ -509,6 +511,14 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - **LANAAGNT-IP01-TC-54**: `tail_session` observes each `tool_call_finished` within 1 s of stdout appearance (FR-08 flush contract)
 - **LANAAGNT-IP01-TC-55**: Piped stdin session (`echo /help | lana`) -> workflow list printed, clean exit (non-terminal fallback)
 
+### Category 11: Synced Regressions (5 tests, added from drift-correct/improve/bugfix runs 2026-08-30)
+
+- **LANAAGNT-IP01-TC-56**: Provider "too long" error (EC-20) -> advisory message (larger-window model or new session, not retried), single turn_started (no auto-retry)
+- **LANAAGNT-IP01-TC-57**: read_file on image (EC-26) -> refused with explanatory error; SVG readable
+- **LANAAGNT-IP01-TC-58**: Headless `-p "/help"` and `-p "/cost"` -> built-in output, exit 0, never sent to the Generator
+- **LANAAGNT-IP01-TC-59**: grep_search/find_by_name skip IGNORED_DIRECTORIES (.git, node_modules, ...); explicit search inside an ignored dir still works
+- **LANAAGNT-IP01-TC-60**: Renderer prints bracketed untrusted text verbatim - no markup swallowing, no MarkupError (BG-0004); plus mid-prompt compaction fire (FR-07 per-turn check, drift item 02)
+
 ## 6. Verification Checklist
 
 ### Prerequisites
@@ -527,12 +537,16 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - [x] **LANAAGNT-IP01-VC-11**: Commit after each green phase (`/commit`)
 
 ### Validation
-- [x] **LANAAGNT-IP01-VC-12**: All 55 test cases pass (live ones with keys present)
+- [x] **LANAAGNT-IP01-VC-12**: All 60 test cases pass (live ones with keys present; TC-56..60 synced 2026-08-30)
 - [x] **LANAAGNT-IP01-VC-13**: NFR-01 verified by code review (only api.openai.com/api.anthropic.com contacted; `urllib` fetch gated by approval) + secret-leak sweeps in every black-box scenario - a literal packet capture was NOT performed [ASSUMED clean]; NFR-02 kill/resume (TP01-TC-06); NFR-03 startup < 2 s + cache hits (TC-41 live); NFR-05 risk notice on auto/turbo
 - [x] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 04:15]**
+- Changed (`/sync` Code→IMPL, body sweep): File Structure notes scripted_adapter package location; IS-07 ignore-directories + image refusal + grep [ASSUMED]→[TESTED]; IS-14 kept_messages + cost seeding; IS-15 BG-0004 markup constraint; IS-16 cache-write rate + usage normalization contract; IS-17 >= threshold, per-turn check, 6-message tail + orphan-tool trim; IS-18 .lana/chunks persistence (replaces JSONL mirroring); IS-21 headless built-ins; TC-12 filesystem-derived counts
+- Added: EC-26 (image read refusal), Category 11 TC-56..60 (synced regressions); VC-12 count 55 → 60
 
 **[2026-08-30 03:58]**
 - Fixed: LANAAGNT-BG-0004 - renderer parsed untrusted event text as rich markup (Markdown links swallowed, MarkupError crash on `[/tag]`-like content); all payload prints now markup=False with style= parameters (IS-15 constraint: untrusted text never enters markup parsing). Verified non-bug: Anthropic auto-combines consecutive same-role messages (ANTAPI-IN08) - cancellation-note/checkpoint sequences safe

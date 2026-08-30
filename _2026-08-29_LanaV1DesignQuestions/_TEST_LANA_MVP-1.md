@@ -9,12 +9,12 @@
 
 **Depends on:**
 - `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` rev 22:20 for requirements (FR-14/DD-20 added for this plan)
-- `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]` rev 22:20 for the 55 unit/integration test cases (TC-01..55) and phases
+- `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]` rev 04:15 for the 60 unit/integration test cases (TC-01..60 incl. Category 11 synced regressions) and phases
 - `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` for tool contract assertions
 
 ## MUST-NOT-FORGET
 
-- IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..55); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
+- IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..60); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
 - Every black-box scenario runs the REAL `lana` executable via `tests/harness.py` - no in-process shortcuts
 - Scripted adapter = determinism; live-key tests are a separate, skippable phase
 - Test workspaces are temp folders with their own `--config` - the real `config/lana-config.json` and DevSystemV4.2 are never written
@@ -123,7 +123,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 ### Category 4: Real Prompt System Scenario (1 test)
 
-- **LANAAGNT-TP01-TC-08**: DevSystemV4.2 startup + `/help` via pipe (skip if folder absent) -> banner reports 8/46/21, workflow list contains `prime` and `verify`, startup under 2 s (FR-02, NFR-03)
+- **LANAAGNT-TP01-TC-08**: DevSystemV4.2 startup + `/help` via pipe (skip if folder absent) -> banner reports filesystem-derived counts (8/46/21 at analysis; the folder evolves - counts computed at test time), workflow list contains `prime` and `verify`, startup under 2 s (FR-02, NFR-03)
 
 ### Category 5: Diagnostics and Exit Codes (2 tests)
 
@@ -171,6 +171,9 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 04:15]**
+- Changed (`/sync` Code→TEST): IP01 case count 55 → 60 (Category 11 synced regressions TC-56..60), TC-08 asserts filesystem-derived counts instead of the 8/46/21 snapshot (DevSystemV4.2 evolved to 23 skills - the hardcoded assertion broke and was de-hardcoded during `/improve` run 1)
 
 **[2026-08-30 02:10]**
 - Changed: all 6 VC items checked - T1 (120 unit/integration), T2 (41 black-box incl. all 10 TP01 scenarios), T3 (4 live smokes, spend well under $1), T4 (offline e2e + live acceptance automated portion) green

@@ -68,7 +68,7 @@
 
 ### 2.1 Target Prompt System: DevSystemV4.2
 
-Analyzed at `e:\Dev\IPPS\DevSystemV4.2\` (397 files):
+Analyzed at `e:\Dev\IPPS\DevSystemV4.2\` (397 files; snapshot 2026-08-29 - the folder evolves, e.g. 23 skills by 2026-08-30; the loader derives counts from the filesystem at startup):
 
 - `rules/` - 8 Markdown files, ~59 KB total, largest 13.5 KB (`devsystem-core.md`). YAML frontmatter: `trigger: always_on`
 - `workflows/` - 46 Markdown files. YAML frontmatter: `description`, `auto_execution_mode`. Invoked by user as `/name`
@@ -214,7 +214,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Adapter selection by `provider` field of the resolved model in `model-registry.json` (OQ-03)
 
 **LANAAGNT-FR-07: Checkpoint Compaction**
-- Trigger: projected context tokens exceed `min(compaction_threshold_fraction x generator max_input, compaction_threshold_max_tokens)` (defaults 0.6 and 150000), checked after each turn (OQ-14), reactive only (OQ-15)
+- Trigger: projected context tokens reach or exceed `min(compaction_threshold_fraction x generator max_input, compaction_threshold_max_tokens)` (defaults 0.6 and 150000), checked after each turn - including between the turns of one tool loop (OQ-14), reactive only (OQ-15)
 - Projection is usage-anchored: last provider-reported input token count + chars/4 estimate of content added since that call (RV01 RF-05)
 - One Summarizer call producing three labeled sections: objective, conversation summary, code interaction history (OQ-12)
 - Last `todo_list` state extracted deterministically from the event log - never via the Summarizer (OQ-12)
@@ -230,7 +230,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Session files never auto-deleted
 
 **LANAAGNT-FR-09: Cost Tracking**
-- Per-turn: input/output/cache-read tokens and cost from `model-pricing.json`, rendered after each turn (OQ-42)
+- Per-turn: input/output/cache-read/cache-write tokens and cost from `model-pricing.json`, rendered after each turn (OQ-42)
 - `/cost`: session totals per role (generator, summarizer, websearch)
 - Unknown model in pricing file: show token counts with cost marked `?`
 
@@ -243,6 +243,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Prompt system: `skill`
 - Interaction: `ask_user_question`
 - Names, descriptions, parameter names, and JSON Schemas verbatim from the Cascade reference documented in `HowWindsurfCascadeWorks.md` chapters 8-9 (OQ-27, OQ-30); OS/shell placeholders in `run_command` filled per host
+- `read_file` refuses image files with an explanatory error - visual presentation is unavailable in a CLI; the capability notice states this limitation (synced from implementation 2026-08-30)
 - Dropped from Cascade's 27 with rationale recorded in LANAAGNT-DD-10
 
 **LANAAGNT-FR-11: Edit Enforcement Gates**
@@ -274,6 +275,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - `--config <path>` (or env `LANA_CONFIG`) overrides the default `config/lana-config.json` location - test isolation without touching the real config
 - When stdin is not a terminal, the interactive loop reads plain lines from stdin (no terminal-dependent input features) - pipe-driven sessions work
 - Scripted adapter (test infrastructure, NOT a third LLM backend): env `LANA_SCRIPTED_ADAPTER=<script.jsonl>` replaces both provider adapters with a deterministic replay adapter; never active without the env var; the startup banner marks the session SCRIPTED; no API keys required in this mode
+- Built-ins (`/help`, `/cost`, `/exit`) are dispatched in headless `-p` mode exactly like in the REPL - they never reach the Generator (synced from implementation 2026-08-30)
 
 ## 5. Non-Functional Requirements
 
@@ -309,9 +311,9 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-03:** Own thin adapter layer over the official `openai` and `anthropic` Python SDKs; no LiteLLM (OQ-03). Rationale: two providers is small N; a third-party abstraction adds a dependency, lags provider features, and obscures cache control.
 
-**LANAAGNT-DD-04:** OpenAI adapter uses the Responses API (OQ-04, matches the INFO leaning; revised per `LANAAGNT-SP01-RV01` RF-01) [VERIFIED]. Rationale: gpt-5.4+ models do not support tool calling with `reasoning_effort` above `none` on Chat Completions (all are enabled generator candidates in the registry); reasoning items persist across turns only on Responses; 40-80% better cache utilization. Source: OpenAI migration guide, checked 2026-08-29.
+**LANAAGNT-DD-04:** OpenAI adapter uses the Responses API (OQ-04, matches the INFO leaning; revised per `LANAAGNT-SP01-RV01` RF-01) [PROVEN - live round trips TC-40/TC-42 green 2026-08-30]. Rationale: gpt-5.4+ models do not support tool calling with `reasoning_effort` above `none` on Chat Completions (all are enabled generator candidates in the registry); reasoning items persist across turns only on Responses; 40-80% better cache utilization. Source: OpenAI migration guide, checked 2026-08-29.
 
-**LANAAGNT-DD-05:** Sequential tool execution (OQ-08, narrows the INFO leaning) [ASSUMED]. Rationale: parallel execution adds ordering and interleaved-output complexity for reads only; MVP-1 favors zero race conditions. The AgentEvent stream is order-preserving either way.
+**LANAAGNT-DD-05:** Sequential tool execution (OQ-08, narrows the INFO leaning) [TESTED - full offline suite + live acceptance green with sequential dispatch 2026-08-30]. Rationale: parallel execution adds ordering and interleaved-output complexity for reads only; MVP-1 favors zero race conditions. The AgentEvent stream is order-preserving either way.
 
 **LANAAGNT-DD-06:** Internal AgentEvent stream as the frontend contract (OQ-09, OQ-32). Rationale: the CLI renderer is the only MVP-1 consumer, but the ACP server in MVP-2 subscribes to the same stream - this is the one structural investment made for the future.
 
@@ -339,7 +341,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-18:** Deferred to MVP-2/3 with no MVP-1 implementation: ACP frontend (OQ-32 to OQ-37), MCP client (OQ-25, OQ-36), hooks (OQ-26), mid-session model switching (OQ-06), code_search subagent (OQ-28), proactive summarization (OQ-15). Rationale: user directive - simple but effective, avoid complexity and risk.
 
-**LANAAGNT-DD-19:** Web research tools included in MVP-1 via provider-native web search (revised from MVP-2 deferral per user directive and scan evidence) [VERIFIED]. Rationale: `search_web`/`read_url_content` are the most-referenced non-core tools in DevSystemV4.2 (14 + 17 refs), powering the flagship deep-research skill; OpenAI and Anthropic both offer native web search tools, so the two-backend constraint holds; `read_url_content` is plain HTTP fetching (no LLM backend involved), gated by Cascade-parity user approval.
+**LANAAGNT-DD-19:** Web research tools included in MVP-1 via provider-native web search (revised from MVP-2 deferral per user directive and scan evidence) [PROVEN - live web search TC-43 + Anthropic branch smoke green 2026-08-30]. Rationale: `search_web`/`read_url_content` are the most-referenced non-core tools in DevSystemV4.2 (14 + 17 refs), powering the flagship deep-research skill; OpenAI and Anthropic both offer native web search tools, so the two-backend constraint holds; `read_url_content` is plain HTTP fetching (no LLM backend involved), gated by Cascade-parity user approval.
 
 **LANAAGNT-DD-20:** Black-box CLI testing via three observable interfaces (FR-14): headless prompt injection, per-line-flushed session JSONL as the activity monitor, and the scripted replay adapter for deterministic turns. Rationale: tests exercise the real `lana` executable end-to-end without API cost, nondeterminism, or pseudo-terminal emulation (fragile on Windows); the AgentEvent stream (DD-06) stays the single observability surface for humans, tests, and the future ACP frontend alike.
 
@@ -488,6 +490,10 @@ Running workflow 'prime'...
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 15 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 15 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-08-30 04:10]**
+- Changed (`/sync` Code→SPEC): FR-07 trigger wording "reach or exceed" + per-tool-loop-turn checking (matches implementation), FR-09 cache-write tokens added, FR-10 image-refusal behavior added, FR-14 headless built-in dispatch added, section 2.1 marked as evolving snapshot (23 skills by 2026-08-30)
+- Changed: label promotions from live evidence - DD-04 [VERIFIED]→[PROVEN], DD-05 [ASSUMED]→[TESTED], DD-19 [VERIFIED]→[PROVEN]
 
 **[2026-08-29 22:20]**
 - Added: FR-14 headless mode and test interfaces (prompt injection, exit codes, non-interactive approval denial, config override, non-terminal stdin fallback, scripted adapter hook), FR-08 per-line flush guarantee, DD-20 testability design, headless User Actions (gap closure for `/write-test-plan`: automated CLI testing was unspecified)
