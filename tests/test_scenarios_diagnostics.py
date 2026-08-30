@@ -19,7 +19,11 @@ def test_tp01_tc08_devsystem_startup(tmp_path):
   proc = LanaProc(workspace, config_path=config_dir / "lana-config.json", script_path=write_script(workspace / "s.jsonl", []))
   result = proc.run_piped("/help\n/exit\n")
   assert result.returncode == 0, result.stdout + result.stderr
-  assert re.search(r"8 rules \(\d+ injected.*\), 46 workflows, 21 skills\.", result.stdout)
+  # Counts from the filesystem - DevSystemV4.2 evolves (8/46/21 at SPEC analysis; growing since)
+  rule_count = len(list((DEVSYSTEM_PATH / "rules").glob("*.md")))
+  workflow_count = len(list((DEVSYSTEM_PATH / "workflows").glob("*.md")))
+  skill_count = len(list((DEVSYSTEM_PATH / "skills").glob("*/SKILL.md")))
+  assert re.search(rf"{rule_count} rules \(\d+ injected.*\), {workflow_count} workflows, {skill_count} skills\.", result.stdout)
   assert "/prime:" in result.stdout and "/verify:" in result.stdout
   load_seconds = float(re.search(r"Loaded in ([\d.]+) secs", result.stdout).group(1))
   assert load_seconds < 2.0

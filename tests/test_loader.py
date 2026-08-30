@@ -72,11 +72,17 @@ def test_missing_path_warns(tmp_path):
   assert system.rules == [] and system.workflows == []
 
 
-# TC-12: real DevSystemV4.2 -> 8 rules / 46 workflows / 21 skills in < 2 s
+# TC-12: real DevSystemV4.2 -> loader finds EVERYTHING present on disk, in < 2 s
+# Counts computed from the filesystem, not hardcoded - DevSystemV4.2 is an external system that evolves
+# (was 8/46/21 at SPEC analysis 2026-08-29; 23 skills by 2026-08-30)
 def test_tc12_real_devsystem_counts_and_speed():
   if not DEVSYSTEM_PATH.is_dir(): pytest.skip("DevSystemV4.2 not present on this machine")
+  expected_rules = len(list((DEVSYSTEM_PATH / "rules").glob("*.md")))
+  expected_workflows = len(list((DEVSYSTEM_PATH / "workflows").glob("*.md")))
+  expected_skills = len(list((DEVSYSTEM_PATH / "skills").glob("*/SKILL.md")))
+  assert expected_rules >= 8 and expected_workflows >= 46 and expected_skills >= 21  # sanity: never shrinks below the analyzed baseline
   started = time.perf_counter()
   system = load_prompt_systems([DEVSYSTEM_PATH])
   elapsed = time.perf_counter() - started
-  assert len(system.rules) == 8 and len(system.workflows) == 46 and len(system.skills) == 21
+  assert (len(system.rules), len(system.workflows), len(system.skills)) == (expected_rules, expected_workflows, expected_skills)
   assert elapsed < 2.0, f"load took {elapsed:.2f} s"

@@ -1,5 +1,4 @@
 """TK-025: LanaProc harness selftest (IP01 TC-53..54)."""
-import time
 import pytest
 from tests.conftest import write_config_dir, write_prompt_system
 from tests.harness import LanaProc, assert_event_order
