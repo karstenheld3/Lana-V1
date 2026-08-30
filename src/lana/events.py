@@ -1,4 +1,4 @@
-"""AgentEvent union - the 11 event types from LANAAGNT-SP01 Domain Objects, JSONL serialization (IS-02, IS-24)."""
+"""AgentEvent union - the 11 event types from LANAAGNT-SP01 Domain Objects plus prompt_step (LANAACPB-FR-12), JSONL serialization (IS-02, IS-24)."""
 import datetime, json
 from typing import Annotated, Any, Literal, Optional, Union
 from pydantic import BaseModel, Field, TypeAdapter
@@ -90,7 +90,15 @@ class ErrorEvent(EventBase):
   message: str
 
 
-AgentEvent = Annotated[Union[SessionStarted, UserMessage, TurnStarted, TextDelta, ThinkingDelta, ToolCallRequested, ToolCallFinished, ApprovalRequired, CheckpointCreated, TurnFinished, ErrorEvent], Field(discriminator="type")]
+# Prompt queue boundary - one per queue entry, headless-only (LANAACPB-FR-12)
+class PromptStep(EventBase):
+  type: Literal["prompt_step"] = "prompt_step"
+  index: int  # 1-based queue position
+  total: int
+  digest: str = ""  # first 12 hex chars of SHA-256 over the prompt text
+
+
+AgentEvent = Annotated[Union[SessionStarted, UserMessage, TurnStarted, TextDelta, ThinkingDelta, ToolCallRequested, ToolCallFinished, ApprovalRequired, CheckpointCreated, TurnFinished, ErrorEvent, PromptStep], Field(discriminator="type")]
 EVENT_ADAPTER: TypeAdapter = TypeAdapter(AgentEvent)
 
 

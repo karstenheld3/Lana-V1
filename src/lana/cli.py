@@ -2,14 +2,15 @@
 
 Exit codes: 0 = turn completed | 2 = configuration error | 3 = provider/API failure | 4 = stopped without completion.
 """
-import argparse, asyncio, contextlib, importlib.metadata, os, platform, sys, time
+import argparse, asyncio, contextlib, hashlib, importlib.metadata, os, platform, sys, time
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from lana.agent import Agent, UnknownWorkflowError
 from lana.compaction import make_compactor
 from lana.config import ConfigError, load_lana_config, materialize_bundled_agent
 from lana.cost import CostTracker
-from lana.events import SessionStarted
+from lana.events import PromptStep, SessionStarted
+from lana.prompt_queue import PromptQueueError, parse_queue
 from lana.loader import BUILTIN_COMMANDS, compute_fingerprint, load_prompt_systems
 from lana.prompt import build_system_prompt
 from lana.providers import scripted_script_path
@@ -47,6 +48,7 @@ EXECUTORS = {
 def build_arg_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(prog="lana", description="Lana MVP-1 - CLI agent running a prompt system (rules/workflows/skills) on OpenAI/Anthropic backends.")
   parser.add_argument("-p", "--prompt", help="headless mode: run this single prompt and exit (FR-14)")
+  parser.add_argument("--prompt-file", metavar="PATH", help="headless prompt queue: fenced prompts executed sequentially in one session (LANAACPB-FR-12; format: docs/PROMPT_FILE_FORMAT.md)")
   parser.add_argument("--output-format", choices=["text", "jsonl"], default="text", help="headless output: final text (default) or AgentEvent JSON Lines")
   parser.add_argument("--resume", metavar="SESSION_FILE", help="resume a session from its JSONL file")
   parser.add_argument("--config", metavar="PATH", help="config file override (env LANA_CONFIG)")
@@ -216,6 +218,22 @@ def print_help(prompt_system) -> None:
   for workflow in prompt_system.workflows: print(f"  /{workflow.name}: {workflow.description}")
 
 
+# FR-12: run the parsed prompt queue as sequential turns of ONE session; abort on the first failed step
+def run_headless_queue(agent: Agent, cost_tracker: CostTracker, prompts: list[str], output_format: str) -> int:
+  jsonl_output = output_format == "jsonl"
+  total = len(prompts)
+  for index, prompt in enumerate(prompts, 1):
+    step = PromptStep(index=index, total=total, digest=hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:12])
+    agent.session.append(step)  # persisted like every event (FR-12)
+    if jsonl_output: print(step.to_jsonl(), flush=True)
+    else: print(f"[ {index} / {total} ] Prompt step (digest {step.digest})...")
+    exit_code = run_headless(agent, cost_tracker, prompt, output_format)
+    if exit_code != EXIT_OK:  # EC-26: remaining queue entries abandoned, completed turns stay persisted
+      print(f"Queue aborted at step {index} of {total} (exit code {exit_code}). Completed steps are persisted - continue with --resume.", file=sys.stderr)
+      return exit_code
+  return EXIT_OK
+
+
 # FR-16 BL-02/BL-06: terminate live tool child processes at exit; name what was stopped and what survived
 def report_process_cleanup(agent: Agent) -> None:
   terminated, survivors = terminate_tool_processes(agent.tool_context)
@@ -250,14 +268,30 @@ def repl(agent: Agent, cost_tracker: CostTracker, prompt_system) -> int:
 def main() -> int:
   args = build_arg_parser().parse_args()
   if args.acp:
-    if args.prompt is not None or args.resume:  # DD-09: one process serves either the CLI or ACP, never both
-      print("ERROR: --acp is mutually exclusive with -p and --resume (ACP sessions come from session/new and session/load).", file=sys.stderr)
+    if args.prompt is not None or args.resume or args.prompt_file:  # DD-09: one process serves either the CLI or ACP, never both
+      print("ERROR: --acp is mutually exclusive with -p, --resume, and --prompt-file (ACP sessions come from session/new and session/load).", file=sys.stderr)
       return EXIT_CONFIG
     from lana.acp.server import run_acp  # lazy: acp.server imports build_runtime lazily as well
     return asyncio.run(run_acp(args))
+  prompts = None
+  if args.prompt_file:
+    if args.prompt is not None or args.resume:  # FR-12 exclusivity (EC-28): the queue always starts a fresh session
+      print("ERROR: --prompt-file is mutually exclusive with -p and --resume (the queue always starts a fresh session).", file=sys.stderr)
+      return EXIT_CONFIG
+    try:
+      queue_text = Path(args.prompt_file).read_text(encoding="utf-8")
+    except OSError as error:
+      print(f"ERROR: cannot read prompt file '{args.prompt_file}': {error}.\n  HINT: pass an existing PROMPTS*.md file (format: docs/PROMPT_FILE_FORMAT.md).", file=sys.stderr)
+      return EXIT_CONFIG
+    try:  # EC-25: malformed file fails BEFORE any session is created
+      prompts = parse_queue(queue_text)
+    except PromptQueueError as error:
+      print(f"ERROR: invalid prompt file '{args.prompt_file}': {error}.\n  HINT: format rules in docs/PROMPT_FILE_FORMAT.md.", file=sys.stderr)
+      return EXIT_CONFIG
   workspace = Path.cwd()
-  interactive = args.prompt is None and sys.stdin.isatty()
-  jsonl_headless = args.prompt is not None and args.output_format == "jsonl"
+  headless = args.prompt is not None or prompts is not None
+  interactive = not headless and sys.stdin.isatty()
+  jsonl_headless = headless and args.output_format == "jsonl"
   try:
     if jsonl_headless:  # startup banner/warnings to stderr - stdout stays pure JSONL for machine consumers
       with contextlib.redirect_stdout(sys.stderr):
@@ -270,6 +304,7 @@ def main() -> int:
   except OSError as error:  # FR-16 CR-01: filesystem failures at startup are self-contained, never tracebacks
     print(f"ERROR: startup failed on a filesystem operation: {error}.\n  HINT: check that the workspace is writable and no path is locked by another process.", file=sys.stderr)
     return EXIT_CONFIG
+  if prompts is not None: return run_headless_queue(agent, cost_tracker, prompts, args.output_format)
   if args.prompt is not None: return run_headless(agent, cost_tracker, args.prompt, args.output_format)
   return repl(agent, cost_tracker, prompt_system)
 

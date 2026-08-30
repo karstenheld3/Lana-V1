@@ -2,19 +2,20 @@
 
 **Doc ID**: LANAACPB-SP01
 **Feature**: acp-frontend
-**Goal**: Specify a native Agent Client Protocol (v1) frontend so ACP clients (Zed, JetBrains, Neovim, Emacs) can drive Lana as their coding agent.
+**Goal**: Specify a native Agent Client Protocol (v1) frontend so ACP clients (Zed, JetBrains, Neovim, Emacs) can drive Lana as their coding agent, plus a headless prompt queue mode for multi-prompt sequences.
 **Timeline**: Created 2026-08-30
 **Target file(s)**:
 - `src/lana/acp/` (new package)
-- `src/lana/cli.py` (mode activation)
+- `src/lana/cli.py` (mode activation, prompt queue flag)
+- `src/lana/prompt_queue.py` (new module - queue file parsing)
 
 **Depends on:**
 - `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for the Agent core: AgentEvent stream (DD-06), full-recall sessions (FR-08, DD-22), slash expansion (FR-05, DD-13), ExecutionPolicy (FR-12, DD-15), cost tracking (FR-09), headless/test interfaces (FR-14, DD-20)
 - `_INFO_LANAACPB-IN01_AcpV1WireShapeVerification.md [LANAACPB-IN01]` for live-verified v1 wire shapes - OVERRIDES the local snapshots on every discrepancy
-- `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` [ACP-IN01..15] for protocol narrative (WARNING: 4 wire shapes in this set are hallucinated - see LANAACPB-IN01 section 2; wire shapes MUST be taken from LANAACPB-IN01)
+- `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` [ACP-IN01..15] for protocol narrative (WARNING: 4 wire shapes in this set are hallucinated - see LANAACPB-IN01 section 2; wire shapes MUST be taken from LANAACPB-IN01)
 
 **Does not depend on:**
-- `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/` (superseded snapshot - do not cite)
+- `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-06-12/` (superseded snapshot - do not cite)
 - ACP v2 Draft surfaces (published 2026-07-20, unstable - explicitly out of scope)
 
 ## MUST-NOT-FORGET
@@ -26,6 +27,7 @@
 - Recorded-environment authority (LANAAGNT-FR-08) applies to `session/load` identically to `--resume`
 - `elicitation/create` only when the client advertised `elicitation.form`; permission requests only via `session/request_permission`
 - `messageId` on every streamed chunk (optional in v1, required in v2 - forward compatibility)
+- `prompt_step` is a headless-only AgentEvent: persisted in the session JSONL, never emitted on the ACP wire
 - Cite only the 2026-08-30 ACP INFO docs
 
 ## Table of Contents
@@ -52,6 +54,7 @@
 - Native ACP server as a second frontend: `lana --acp` speaks JSON-RPC 2.0 over stdio, subscribing to the same AgentEvent stream the CLI renderer consumes (the structural investment LANAAGNT-DD-06 made for exactly this)
 - Hand-rolled protocol layer (no SDK dependency), targeting protocol v1 stable surfaces only
 - Lana sessions ARE ACP sessions: `session/new` creates a session JSONL, `session/load` resumes one under full-recall authority
+- Headless prompt queue: `lana --prompt-file` runs an ordered multi-prompt sequence as turns of ONE session (driver: external eval suite `_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]`)
 
 **What we don't want:**
 - The official Python SDK as a dependency (pre-1.0 at v0.12.x, breaks the LANAAGNT-DD-17 closed dependency list, abstraction between us and the wire)
@@ -105,6 +108,18 @@ The **ElicitationBroker** implements the `ask_user_question` tool over `elicitat
 
 A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), notification (`method`, no `id`), or response (`id` + `result`|`error`). Fields per JSON-RPC 2.0; ACP conventions: camelCase methods, absolute paths, 1-based lines (ACP-IN04).
 
+### PromptQueueFile
+
+A **PromptQueueFile** (`PROMPTS*.md`) is a markdown file carrying an ordered queue of prompts for headless execution (LANAACPB-FR-12). Format authority: `docs/PROMPT_FILE_FORMAT.md`.
+
+**Format rules:**
+- The first non-empty line MUST be an opening fence
+- Each prompt is one fenced block: opening fence of N backticks (3 <= N <= 9, optional info string), closed by a line of >= N backticks (CommonMark fence semantics)
+- Each prompt chooses its own N independently; a prompt containing M-backtick fences as content needs a fence of N > M
+- Consecutive prompts are separated by one `---` line (between closing fence and next opening fence)
+- Commentary (step labels, notes) may appear between the `---` and the next opening fence; it is never sent to the agent
+- Queue order = fence order in the file
+
 ## 4. Functional Requirements
 
 **LANAACPB-FR-01: ACP Mode Activation and Transport**
@@ -154,6 +169,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - `todo_list` tool results additionally → `plan` update (entries content/priority/status map 1:1 to Lana todo items)
 - `user_message` → not echoed (the client already owns the user's message) except during session/load replay
 - `checkpoint_created` → no ACP mapping in v1 (Session Compaction RFD is Draft); one stderr log line documents the omission
+- `prompt_step` → no ACP mapping (headless-only event, LANAACPB-FR-12; never occurs in ACP mode)
 - `error` → `agent_message_chunk` carrying the error text, so the client renders the failure inline [ASSUMED - v1 has no dedicated error update type]
 - `session_started` → never sent to the client (session-file-only environment record)
 
@@ -191,6 +207,15 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - Session methods before `initialized`, unknown `sessionId`, second concurrent prompt → structured JSON-RPC errors with self-contained messages (LANAAGNT-IG-05 discipline)
 - Errors never crash the connection; only stdin EOF or a fatal startup failure ends the process
 
+**LANAACPB-FR-12: Prompt Queue Headless Execution**
+- `lana --prompt-file <path>` parses the file as a PromptQueueFile and runs each prompt as one turn of ONE new session, in fence order
+- Fence lengths 3 through 9 backticks are accepted, chosen per prompt (PromptQueueFile format rules)
+- Extends the AgentEvent set (LANAAGNT-SP01 DD-06) by `prompt_step` with queue index (1-based), queue total, and a prompt digest; emitted before each turn, persisted in the session JSONL, printed under `--output-format jsonl`
+- Same output-format options as `-p` (LANAAGNT-FR-14)
+- Malformed file (not starting with a fence, unclosed fence, missing `---` between prompts, opening fence longer than 9 backticks, zero prompts) → self-contained error on stderr naming the violated rule, exit code 2
+- Turn failure (provider error, cancellation) → remaining queue entries are abandoned, non-zero exit; completed turns stay persisted and the session remains resumable
+- Mutually exclusive with `-p`, `--acp`, and `--resume` (MVP scope: queue always starts a fresh session)
+
 ## 5. Non-Functional Requirements
 
 **LANAACPB-NFR-01: Compatibility - Protocol Conformance**
@@ -227,13 +252,15 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 
 **LANAACPB-DD-09:** One process serves either the CLI or ACP, never both. Rationale: two interactive frontends on one Agent create input-routing ambiguity; ACP clients spawn a dedicated subprocess per connection anyway (ACP-IN04).
 
+**LANAACPB-DD-10:** Multi-prompt sequences arrive as one PromptQueueFile, not as repeated CLI invocations. Rationale: one invocation = one session by construction (no resume dependency for multi-step scenarios); per-prompt fence length (3..9 backticks) carries any inner fence material without escaping - the author picks a fence longer than the deepest inner fence; the mandatory leading fence and `---` separators make the format machine-detectable and visually unambiguous; `prompt_step` boundary events give external consumers (eval suite LANATEST-SP01) deterministic per-step event segmentation.
+
 ## 7. Implementation Guarantees
 
 **LANAACPB-IG-01:** In `--acp` mode, every byte on stdout belongs to a valid newline-delimited JSON-RPC message. No banner, no warning, no traceback - ever.
 
 **LANAACPB-IG-02:** The session JSONL produced by an ACP-driven session is indistinguishable from a CLI-driven one: same event types, same full-recall first line, replayable by either frontend.
 
-**LANAACPB-IG-03:** Every AgentEvent type has a defined ACP mapping or a documented omission (LANAACPB-FR-06 is exhaustive over the 11 event types).
+**LANAACPB-IG-03:** Every AgentEvent type has a defined ACP mapping or a documented omission (LANAACPB-FR-06 is exhaustive over the 12 event types incl. `prompt_step`).
 
 **LANAACPB-IG-04:** No denylisted command executes on any client response path without an explicit allow outcome (LANAAGNT-IG-03 extended through the permission bridge).
 
@@ -291,6 +318,34 @@ Client sends session/cancel (notification, any time during the turn)
 {"jsonrpc": "2.0", "id": 3, "result": {"stopReason": "end_turn"}}
 ```
 
+**PromptQueueFile (headless, LANAACPB-FR-12; full format: `docs/PROMPT_FILE_FORMAT.md`):**
+
+`````````text
+```
+Create `calc.py` with an `add(a, b)` function.
+```
+
+---
+
+## Step 2: docstring format uses nested fences, so this prompt needs a 5-backtick fence
+
+`````
+Add a `multiply(a, b)` function to `calc.py`. Use this docstring format:
+
+````markdown
+Example:
+```python
+multiply(2, 3)  # 6
+```
+````
+`````
+`````````
+
+**prompt_step event (JSONL, one per queue entry):**
+```json
+{"type": "prompt_step", "index": 1, "total": 2, "digest": "a1b2c3d4e5f6"}
+```
+
 ## 11. Logging Requirements
 
 **Applicable logging types:**
@@ -322,6 +377,19 @@ Client sends session/cancel (notification, any time during the turn)
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-30 19:35]**
+- Changed: PromptQueueFile format reworked [user decision] - per-prompt fence length 3..9 backticks (was fixed N >= 5), file MUST start with an opening fence, mandatory `---` separator between prompts, commentary only between `---` and next fence
+- Changed: FR-12 malformed-file error cases enumerated; DD-10 rationale updated; Data Structures example shows mixed fence lengths
+- Added: format authority reference `docs/PROMPT_FILE_FORMAT.md`; filename pattern `PROMPTS*.md`
+
+**[2026-08-30 19:20]**
+- Added: LANAACPB-FR-12 prompt queue headless execution (`--prompt-file`, PromptQueueFile fence format, `prompt_step` event)
+- Added: PromptQueueFile domain object; LANAACPB-DD-10 (queue file over repeated invocations)
+- Changed: FR-06 - `prompt_step` documented as headless-only omission (event set now 12 types)
+- Changed: Goal, Target files, Scenario Solution extended with the headless prompt queue
+- Added: PromptQueueFile + prompt_step examples in Data Structures; MNF line (prompt_step never on the ACP wire)
+- Driver: `_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]` multi-prompt test scenarios
 
 **[2026-08-30 16:55]**
 - Added: hardening per LANAAGNT-IN03 - FR-01 stdout writer thread (BL-01) + process cleanup at EOF (BL-06), FR-03 off-loop runtime construction (BL-04), FR-10 child process termination on cancel (BL-02)

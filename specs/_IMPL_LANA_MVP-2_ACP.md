@@ -2,7 +2,7 @@
 
 **Doc ID**: LANAACPB-IP01
 **Feature**: acp-frontend
-**Goal**: Implement the native ACP v1 frontend (LANAACPB-SP01) in six phases: jsonrpc core → method router → event translator → permission bridge → session/load → CLI flag.
+**Goal**: Implement the native ACP v1 frontend (LANAACPB-SP01) in seven phases: jsonrpc core → method router → event translator → permission bridge → session/load → CLI flag → prompt queue.
 **Timeline**: Created 2026-08-30
 
 **Target file(s)**:
@@ -13,14 +13,16 @@
 - `src/lana/acp/bridge.py` (NEW ~110 lines)
 - `src/lana/agent.py` (MODIFY - async-capable callback seam, ~10 lines changed)
 - `src/lana/tools/interact_tools.py` (MODIFY - awaitable passthrough, 2 lines)
-- `src/lana/cli.py` (EXTEND +25 lines - `--acp` flag, runtime builder reuse)
+- `src/lana/cli.py` (EXTEND +25 lines - `--acp` flag, runtime builder reuse; +20 lines - `--prompt-file` queue loop)
+- `src/lana/prompt_queue.py` (NEW ~60 lines - fence parser)
 - `tests/acp_harness.py` (NEW ~80 lines)
 - `tests/test_acp_*.py` (NEW, test cases below)
+- `tests/test_prompt_queue.py` (NEW, Category 9)
 
 **Depends on:**
 - `_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]` for all wire shapes, FRs, DDs, IGs
 - `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for Agent core contracts (FR-04 loop, FR-08 full recall, FR-12 approvals)
-- `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` [ACP-IN04..08, IN10, IN15] for JSON fixtures
+- `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` [ACP-IN04..08, IN10, IN15] for JSON fixtures
 
 **Does not depend on:**
 - The official ACP Python SDK (LANAACPB-DD-01: hand-rolled)
@@ -30,7 +32,7 @@
 
 - stdout purity (LANAACPB-IG-01): in `--acp` mode every stdout byte is a JSON-RPC message; wrap ALL runtime construction in `redirect_stdout(sys.stderr)`
 - Session JSONL frontend-neutrality (LANAACPB-IG-02): the ACP path emits/persists the same AgentEvents as the CLI - the translator CONSUMES events, never suppresses their persistence
-- FR-06 mapping is exhaustive over 11 event types incl. no-op mappings (`turn_started`, `approval_required`, `session_started`)
+- FR-06 mapping is exhaustive over 12 event types incl. no-op mappings (`turn_started`, `approval_required`, `session_started`, `prompt_step`)
 - Callbacks: CLI stays sync, ACP brokers are async - the Agent seam awaits awaitables, never wraps sync results
 - `messageId` on every chunk from day one (LANAACPB-DD-06)
 - One turn per session (FR-05); `session/cancel` is a NOTIFICATION - never respond to it
@@ -60,13 +62,15 @@ src/lana/
 │   └── bridge.py              # PermissionBroker, ElicitationBroker, continue-prompt bridge (~110 lines) [NEW]
 ├── agent.py                   # Async-capable callback seam in resolve_approval/dispatch_call/continue path [MODIFY ~10 lines]
 ├── tools/interact_tools.py    # ask_user callback may return an awaitable - pass it through [MODIFY 2 lines]
-└── cli.py                     # --acp flag, mutual exclusion, dispatch to run_acp [EXTEND +25 lines]
+├── prompt_queue.py            # PromptQueueFile fence parser: parse_queue(text) -> list[str] [NEW ~60 lines]
+└── cli.py                     # --acp flag, --prompt-file queue loop, mutual exclusions [EXTEND +45 lines]
 tests/
 ├── acp_harness.py             # Fake ACP client: spawn `lana --acp`, exchange JSON lines, assert wire shapes (~80 lines) [NEW]
 ├── test_acp_jsonrpc.py        # Category 1 unit tests [NEW]
 ├── test_acp_handshake.py      # Categories 2-3 [NEW]
 ├── test_acp_turn.py           # Categories 4-6 [NEW]
-└── test_acp_load.py           # Categories 7-8 [NEW]
+├── test_acp_load.py           # Categories 7-8 [NEW]
+└── test_prompt_queue.py       # Category 9 [NEW]
 ```
 
 ## 2. Edge Cases
@@ -101,6 +105,13 @@ Data anomalies:
 - **LANAACPB-IP01-EC-21**: Denylisted command under `turbo` policy -> `session/request_permission` still issued (agent-side classify unchanged, IG-04)
 - **LANAACPB-IP01-EC-22**: `session/cancel` arrives while a long sync tool executor runs (e.g., 30s `run_command`) -> read loop stays responsive (sync dispatch runs in the default executor); cancellation takes effect at the next event boundary, completed calls kept
 - **LANAACPB-IP01-EC-23**: Second `session/new` on the same connection -> second AcpSession in the registry; turns across sessions serialize (one active turn per CONNECTION in MVP-2 - runtime construction is workspace-scoped, concurrent cross-session turns are untested territory)
+
+Prompt queue (FR-12):
+- **LANAACPB-IP01-EC-24**: Prompt fenced with 5 backticks containing 4-backtick material with 3-backtick code inside -> parsed intact, inner fences are content (per-prompt fence length rule N > M)
+- **LANAACPB-IP01-EC-25**: Malformed file -> stderr error naming the file and the violated rule, exit 2, no session created. Cases: first non-empty line is not an opening fence, unclosed fence, missing `---` between prompts, opening fence longer than 9 backticks, zero prompts
+- **LANAACPB-IP01-EC-26**: Provider failure on queue entry 2 of 3 -> entry 3 never runs, non-zero exit, entries 1-2 persisted in the session JSONL
+- **LANAACPB-IP01-EC-27**: Mixed fence lengths in one file (3-backtick prompt, `---`, 6-backtick prompt) -> both parsed; a 5-backtick line inside the 6-fence stays content (closing fence >= opening length)
+- **LANAACPB-IP01-EC-28**: `--prompt-file` combined with `-p`, `--acp`, or `--resume` -> argparse error, exit 2 (FR-12 exclusivity)
 
 ## 3. Implementation Steps
 
@@ -329,6 +340,43 @@ def log(text: str): print(f"{now} {text}", file=sys.stderr, flush=True)
 # key operations: initialize, session new/load, prompt start/end, permission outcomes, ignored params, translation omissions
 ```
 
+### Phase 7: Prompt Queue (FR-12)
+
+#### LANAACPB-IP01-IS-14: PromptQueueFile parser
+
+**Location**: `src/lana/prompt_queue.py` (new)
+
+**Action**: Create fence parser
+
+**Code**:
+```python
+def parse_queue(text: str) -> list[str]: ...
+# first non-empty line MUST open a fence: 3 <= N <= 9 backticks (optional info string, ignored)
+# closing fence: next line of >= N backticks; each prompt chooses its own N (EC-24, EC-27)
+# after a closing fence: exactly one '---' line, then optional commentary, then the next opening fence
+# returns stripped prompt bodies in file order
+# PromptQueueError naming the violated rule: no leading fence, unclosed fence, missing '---',
+# fence > 9 backticks, zero prompts (EC-25)
+```
+
+**Note**: Pure function, stdlib-only (LANAAGNT-DD-17). Unclosed fence is an error, not an implicit close - silent truncation would corrupt eval prompts. Format documented for users in `docs/PROMPT_FILE_FORMAT.md` (keep in sync).
+
+#### LANAACPB-IP01-IS-15: --prompt-file activation and queue loop
+
+**Location**: `src/lana/cli.py` > `build_arg_parser()`, `main()`, headless runner; `src/lana/events.py` (prompt_step event type)
+
+**Action**: Extend - flag, mutual exclusions, sequential turn loop
+
+**Code**:
+```python
+parser.add_argument("--prompt-file", help="Headless prompt queue: fenced prompts executed sequentially in one session")
+# main(): mutually exclusive with -p/--acp/--resume (EC-28)
+# loop: for index, prompt in enumerate(queue, 1): emit prompt_step(index, total, digest) -> run one turn (existing headless turn path)
+# turn failure -> abort remaining entries, exit non-zero (EC-26); output-format handling identical to -p
+```
+
+**Note**: `prompt_step` is a new AgentEvent type - the FR-06 translator gets the documented no-op mapping and TC-44 grows to 12 types. Digest = first 12 hex chars of SHA-256 over the prompt text.
+
 ## 4. Logging Preview
 
 **ACP session with one ignored param and one permission round-trip (stderr):**
@@ -391,7 +439,7 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - **LANAACPB-IP01-TC-22**: Scripted provider error -> JSON-RPC error response on the prompt id; prior notifications intact (EC-13)
 - **LANAACPB-IP01-TC-23**: Session JSONL after ACP turn == event types of identical CLI-driven turn (IG-02 differential)
 - **LANAACPB-IP01-TC-43**: Prompt with `text` + `resource_link` blocks -> accepted; user message carries the text plus `[resource: name](uri)` line (LANA_SCRIPTED_CAPTURE oracle, FR-05 baseline)
-- **LANAACPB-IP01-TC-44**: Translator exhaustiveness (unit) - one instance of each of the 11 AgentEvent types fed through `EventTranslator.translate` -> every type yields its FR-06 mapping or documented no-op, none raises (IG-03)
+- **LANAACPB-IP01-TC-44**: Translator exhaustiveness (unit) - one instance of each of the 12 AgentEvent types (incl. `prompt_step`) fed through `EventTranslator.translate` -> every type yields its FR-06 mapping or documented no-op, none raises (IG-03)
 
 ### Category 5: Permission and Elicitation (7 tests)
 
@@ -424,6 +472,14 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - **LANAACPB-IP01-TC-39**: `lana --acp` startup -> zero stdout bytes before first request; EOF -> exit 0 (FR-01, FR-02)
 - **LANAACPB-IP01-TC-40**: Existing offline suite (179 tests) green after the agent.py callback seam - CLI behavior unchanged (IS-06 regression gate)
 
+### Category 9: Prompt Queue (unit + harness, scripted adapter) (5 tests)
+
+- **LANAACPB-IP01-TC-45**: `parse_queue` on a 2-prompt file (`---` separator, commentary after the separator) -> exactly 2 prompts, commentary and separator dropped, order preserved
+- **LANAACPB-IP01-TC-46**: `parse_queue` on mixed fence lengths (3-backtick prompt + 6-backtick prompt, EC-27) and nested-fence content (5/4/3 nesting, EC-24) -> inner fences intact as content
+- **LANAACPB-IP01-TC-47**: `parse_queue` malformed battery -> PromptQueueError for each: leading commentary before first fence, unclosed fence, missing `---` between prompts, 10-backtick opening fence, empty file (EC-25)
+- **LANAACPB-IP01-TC-48**: Harness: `--prompt-file` with 2 scripted prompts -> ONE session JSONL containing 2 `prompt_step` events (index 1/2, total 2) each followed by its turn events; exit 0; stdout jsonl carries the prompt_step lines (FR-12)
+- **LANAACPB-IP01-TC-49**: Harness: scripted provider error on entry 2 of 3 -> exit non-zero, no third `prompt_step` in the JSONL, entries 1-2 persisted (EC-26); `--prompt-file` with `-p` -> exit 2 (EC-28)
+
 ## 6. Verification Checklist
 
 ### Prerequisites
@@ -437,6 +493,7 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - [x] **LANAACPB-IP01-VC-06**: Phase 4 (IS-06..IS-10) complete, Categories 5-6 green + TC-40 regression (179 offline)
 - [x] **LANAACPB-IP01-VC-07**: Phase 5 (IS-11) complete, Category 7 green (tests/test_acp_load.py)
 - [x] **LANAACPB-IP01-VC-08**: Phase 6 (IS-12, IS-13) complete, Category 8 green (--acp wired early in Phase 2 for the harness; exclusivity + purity verified TC-38/39)
+- [x] **LANAACPB-IP01-VC-13**: Phase 7 (IS-14, IS-15) complete, Category 9 green (tests/test_prompt_queue.py, 15 tests incl. TP01-TC-12/13) + TC-44 re-run with 12 event types; full suite 265 offline green
 
 ### Validation
 - [x] **LANAACPB-IP01-VC-09**: All 44 test cases pass offline - full suite 227 green (179 MVP-1 + 48 ACP), no provider calls
@@ -445,6 +502,19 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - [x] **LANAACPB-IP01-VC-12**: SPEC sync: Technical Constraints (executor readline, callback seam) + FR-06 usage mapping + EC-10 race clarification reverse-updated into LANAACPB-SP01
 
 ## 7. Document History
+
+**[2026-08-30 20:05]**
+- Changed: VC-13 checked - Phase 7 implemented (prompt_queue.py parser, --prompt-file + run_headless_queue in cli.py, PromptStep in events.py, translator no-op); full suite 265 offline green
+- Note: pre-existing environment failures fixed during implementation (editable install pointed at renamed folder; `src/lana/bundled/` was empty after build cleanup - re-synced per _build.ps1 step 2). Unrelated to Phase 7, verified via stash bisect
+
+**[2026-08-30 19:40]**
+- Changed: IS-14 parser + EC-24/25/27 + TC-45..47 reworked to the new format [user decision]: per-prompt fence length 3..9, mandatory leading fence, `---` separators; malformed battery extended
+- Added: sync obligation with `docs/PROMPT_FILE_FORMAT.md` in IS-14 note
+
+**[2026-08-30 19:25]**
+- Added: Phase 7 Prompt Queue (SPEC FR-12) - IS-14 fence parser, IS-15 `--prompt-file` flag + queue loop + `prompt_step` event
+- Added: EC-24..28 (nested fences, zero fences, mid-queue failure, longer fences, flag exclusivity); Category 9 TC-45..49; VC-13
+- Changed: TC-44 and MNF event-type count 11 -> 12 (`prompt_step`); Goal six -> seven phases; target files + file structure extended
 
 **[2026-08-30 15:10]**
 - Changed: all VCs except VC-11 (manual client smoke) checked - 6 phases implemented, full suite 227 offline green

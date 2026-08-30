@@ -133,11 +133,16 @@ Black-box scenarios (Layer 3). Each drives the real executable end-to-end and ci
 
 - **LANAACPB-TP01-TC-11**: Zed drives Lana - register `lana --acp` in Zed `agent_servers` (with env for keys), run a live prompt with a file mention (resource_link), approve one command, cancel one turn → interactions render correctly, no client errors; results and any deviations recorded in PROGRESS.md (VC-11 of IP01; skippable when no Zed available - scripted replay documented instead)
 
+### Category 6: Prompt Queue End-to-End (2 tests)
+
+- **LANAACPB-TP01-TC-12**: Queue builds on prior step - real executable with `--prompt-file` (2 fenced prompts with different fence lengths (3 and 5), `---` separator, second prompt references the first's output file; nested 4-backtick/3-backtick content in prompt 2; scripted adapter) → exit 0, ONE session JSONL with `prompt_step` 1/2 and 2/2 each followed by its turn events, second turn's user message contains prompt 2 verbatim incl. inner fences (capture oracle), commentary and separator lines from the queue file appear NOWHERE in the session (FR-12, DD-10)
+- **LANAACPB-TP01-TC-13**: Queue abort and resume - 3-prompt queue, scripted provider error on entry 2 → non-zero exit, exactly 2 `prompt_step` events persisted, then `lana --resume <file> -p "continue"` succeeds on the aborted session (FR-12 abandon + resumable contract)
+
 ## 7. Test Phases
 
-1. **Phase T1: Unit** - IP01 TC-01..06 + TC-44 (Layer 1), on every change, no subprocess
-2. **Phase T2: Integration** - IP01 TC-07..43 (Layer 2), harness-driven, scripted adapter, no keys
-3. **Phase T3: Black-box scenarios** - TP01-TC-01..10 (Layer 3), requires `pip install -e .`
+1. **Phase T1: Unit** - IP01 TC-01..06 + TC-44 + TC-45..47 (Layer 1), on every change, no subprocess
+2. **Phase T2: Integration** - IP01 TC-07..43 + TC-48..49 (Layer 2), harness-driven, scripted adapter, no keys
+3. **Phase T3: Black-box scenarios** - TP01-TC-01..10 + TC-12..13 (Layer 3), requires `pip install -e .`
 4. **Phase T4: Regression + acceptance** - full MVP-1 suite (179 offline, IP01 TC-40 gate) + TP01-TC-11 manual
 
 Dependency: T2 requires T1 green; T3 requires T2 green; T4 requires T3 green. T1-T3 + the MVP-1 offline suite are the CI gate.
@@ -173,11 +178,17 @@ def assert_no_secret_leak(outputs, key_values): ...   # reused from MVP-1 harnes
 - [x] **LANAACPB-TP01-VC-01**: Phases T1-T3 green locally with zero keys configured (227 offline, harness pops key env)
 - [x] **LANAACPB-TP01-VC-02**: All 10 automated TP01 scenarios pass - mapping: TC-01/07/09/10 in test_acp_scenarios.py; TC-02 via structural equality asserts (TC-07/16/24/27 exact shapes); TC-03/04 in test_acp_load.py (tc35/tc36); TC-05 = turn TC-29; TC-06 = turn TC-27/28; TC-08 = turn TC-31
 - [x] **LANAACPB-TP01-VC-03**: Coverage contract - every SP01 FR-01..11, IG-01..05, NFR-01..03 cited by at least one passing case (NFR-04 dropped with reason, section 4)
+- [x] **LANAACPB-TP01-VC-07**: FR-12 coverage - TP01-TC-12..13 + IP01 Category 9 green (tests/test_prompt_queue.py: TC-12 = test_tp01_tc12_nested_fences_verbatim_commentary_excluded, TC-13 = abort+resume half of test_tc49_queue_abort_and_resume); coverage contract extended to FR-12
 - [x] **LANAACPB-TP01-VC-04**: `assert_stdout_pure` in purity-relevant scenarios + `assert_no_secret_leak` in the hostile battery (TC-10); every stdout line of every harness run parses via the AcpClient pump
 - [x] **LANAACPB-TP01-VC-05**: MVP-1 regression - full 179-test offline suite green after all ACP changes (IP01 TC-40 gate)
 - [ ] **LANAACPB-TP01-VC-06**: TC-11 acceptance executed (or scripted-replay fallback documented); deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 19:30]**
+- Added: Category 6 prompt queue scenarios TC-12 (queue builds on prior step, commentary exclusion) and TC-13 (abort + resume contract) per SPEC FR-12
+- Added: VC-07 FR-12 coverage gate
+- Changed: Phases T1-T3 extended with IP01 TC-45..49 and TP01-TC-12..13
 
 **[2026-08-30 15:10]**
 - Changed: VC-01..05 checked - 48 ACP tests green (8 unit + 9 handshake + 21 turn + 6 load + 4 scenarios), full suite 227 offline; TC-11 (real Zed client) remains the only open item

@@ -1,6 +1,6 @@
 """EventTranslator: AgentEvent -> session/update payloads (LANAACPB-IP01 IS-05, SP01 FR-06/07).
 
-Exhaustive over the 11 AgentEvent types (IG-03): every type yields its mapping or a documented
+Exhaustive over the 12 AgentEvent types (IG-03): every type yields its mapping or a documented
 no-op. Owns messageId rotation - one logical message per turn (DD-06, v2 forward compatibility).
 """
 import json
@@ -72,6 +72,9 @@ class EventTranslator:
     if kind == "checkpoint_created":  # no ACP mapping in v1 (Session Compaction RFD is Draft) - documented omission
       message_label = "1 message" if event.truncated_messages == 1 else f"{event.truncated_messages} messages"
       log(f"  checkpoint_created not forwarded - no v1 ACP mapping ({message_label} compacted).")
+      return []
+    if kind == "prompt_step":  # headless-only event (LANAACPB-FR-12) - never occurs in ACP mode; documented omission
+      log(f"  prompt_step not forwarded - headless-only event (step {event.index}/{event.total}).")
       return []
     return []  # session_started, approval_required: session-file-only / consumed by the PermissionBroker (FR-06)
 

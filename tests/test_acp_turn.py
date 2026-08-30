@@ -2,7 +2,7 @@
 (LANAACPB-IP01 Categories 4-6: TC-16..33, TC-41..44)."""
 import time
 import pytest
-from lana.events import (ApprovalRequired, CheckpointCreated, ErrorEvent, SessionStarted, TextDelta, ThinkingDelta,
+from lana.events import (ApprovalRequired, CheckpointCreated, ErrorEvent, PromptStep, SessionStarted, TextDelta, ThinkingDelta,
                          ToolCallFinished, ToolCallRequested, TurnFinished, TurnStarted, UserMessage, from_jsonl)
 from lana.acp.translator import EventTranslator, TOOL_KINDS
 from tests.acp_harness import AcpClient, assert_stdout_pure
@@ -12,7 +12,7 @@ from tests.scripted_adapter import write_script
 
 # ------------------------------------------- START: TC-44 unit -------------------------------------------------------
 
-# TC-44: one instance of each of the 11 AgentEvent types -> mapping or documented no-op, none raises (IG-03)
+# TC-44: one instance of each of the 12 AgentEvent types (incl. prompt_step) -> mapping or documented no-op, none raises (IG-03)
 def test_tc44_translator_exhaustive(capsys):
   translator = EventTranslator()
   events = [
@@ -23,14 +23,17 @@ def test_tc44_translator_exhaustive(capsys):
     ApprovalRequired(action="run_command", detail="x", approved=True),
     CheckpointCreated(text="cp", truncated_messages=3, kept_messages=1),
     TurnFinished(input_tokens=10, output_tokens=5), ErrorEvent(message="oops"),
+    PromptStep(index=1, total=2, digest="a1b2c3d4e5f6"),
   ]
   mapped = {event.type: translator.translate(event) for event in events}
-  assert len(mapped) == 11
-  no_ops = {"session_started", "user_message", "turn_started", "approval_required", "checkpoint_created"}
+  assert len(mapped) == 12
+  no_ops = {"session_started", "user_message", "turn_started", "approval_required", "checkpoint_created", "prompt_step"}
   for event_type, payloads in mapped.items():
     if event_type in no_ops: assert payloads == [], event_type
     else: assert payloads and all("sessionUpdate" in payload for payload in payloads), event_type
-  assert "checkpoint_created not forwarded" in capsys.readouterr().err  # documented omission
+  stderr_text = capsys.readouterr().err
+  assert "checkpoint_created not forwarded" in stderr_text  # documented omission
+  assert "prompt_step not forwarded" in stderr_text  # documented omission (headless-only, FR-12)
   assert len(TOOL_KINDS) == 16  # FR-07
 
 
