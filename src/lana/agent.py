@@ -105,11 +105,11 @@ class Agent:
   async def resolve_approval(self, call: ToolCall, args: dict) -> Optional[ApprovalRequired]:
     needs_approval, action, detail = self.approval_needed(call, args)
     if not needs_approval: return None
-    if self._approve_all:  # FR-12: approve-all active for this turn - skip the interactive prompt
+    if self._approve_all:  # FR-12: approve-all active for the session - skip the interactive prompt
       return ApprovalRequired(action=action, detail=detail, approved=True)
     if self.approve_callback:
       result = await _maybe_await(self.approve_callback(action, detail))
-      if result == "all":  # FR-12 [y/n/a]: "a" approves current + all remaining in this turn
+      if result == "all":  # FR-12 [y/n/a]: "a" approves current + all remaining in this session
         self._approve_all = True
         approved = True
       else:
