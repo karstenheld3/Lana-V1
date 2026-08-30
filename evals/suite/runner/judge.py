@@ -3,14 +3,21 @@ import json, subprocess
 from pathlib import Path
 
 
-def build_judge_input(workspace: Path, manifest: dict, judge_dir: Path) -> Path:
-  sections = []
+def build_judge_input(workspace: Path, manifest: dict, judge_dir: Path, golden_dir: Path | None) -> Path:
+  sections = ["# AGENT OUTPUT"]
   for pattern in manifest.get("required_files", []):
     for path in sorted(workspace.glob(pattern)):
       if ".lana-data" in path.parts: continue
       sections.append(f"## FILE: {path.relative_to(workspace)}\n\n{path.read_text(encoding='utf-8', errors='replace')}")
+  if len(sections) == 1: sections.append("(no output files found)")
+  if golden_dir and golden_dir.exists():  # reference-guided judging: golden calibrates, never dictates (see template Reference Handling)
+    golden_files = sorted(p for p in golden_dir.rglob("*") if p.is_file())
+    if golden_files:
+      sections.append("# GOLDEN REFERENCE")
+      for path in golden_files:
+        sections.append(f"## REFERENCE FILE: {path.relative_to(golden_dir)}\n\n{path.read_text(encoding='utf-8', errors='replace')}")
   input_path = judge_dir / "input.md"
-  input_path.write_text("\n\n".join(sections) or "(no output files found)", encoding="utf-8")
+  input_path.write_text("\n\n".join(sections), encoding="utf-8")
   return input_path
 
 
@@ -22,9 +29,9 @@ def build_judge_prompt(template_path: Path, rubric_path: Path, judge_dir: Path) 
 
 
 # Returns {"score": float|None, "dimensions": [...], "error": str|None}; transcripts land in judge_dir (FR-08 audit)
-def evaluate_quality(workspace: Path, manifest: dict, rubric_path: Path, judge_dir: Path, config: dict) -> dict:
+def evaluate_quality(workspace: Path, manifest: dict, rubric_path: Path, judge_dir: Path, config: dict, golden_dir: Path | None = None) -> dict:
   judge_dir.mkdir(parents=True, exist_ok=True)
-  input_path = build_judge_input(workspace, manifest, judge_dir)
+  input_path = build_judge_input(workspace, manifest, judge_dir, golden_dir)
   prompt_path = build_judge_prompt(Path(config["judge_prompt_template"]), rubric_path, judge_dir)
   response_path = judge_dir / "response.json"
   command = [config["judge_python"], config["call_llm_script"],
