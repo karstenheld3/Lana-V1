@@ -166,7 +166,68 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 ├─ Deliverables:
 │   └─ [x] P5-D1: Offline drive green (PASS and FAIL paths both proven)
 └─> Transitions:
-    - P5-D1 checked → [END] (live test-drive is the user's move)
+    - P5-D1 checked → P6 (extension phases added 2026-08-30 20:45 per user /go: "execute STRUT until we have everything")
+
+[x] P6 [ANALYZE]: Workflow inventory and bucket categorization
+├─ Objectives:
+│   └─ [x] Bucket 2 vs 3 catalog decided and recorded ← P6-D1
+├─ [x] P6-S1 [ANALYZE](categorize the 46 .lana workflows into Bucket 2 basics vs Bucket 3 special vs out-of-scope)
+├─ [x] P6-S2 [DOCUMENT](catalog into NOTES.md Important Findings)
+├─ Deliverables:
+│   └─ [x] P6-D1: Categorization in NOTES.md, PROGRESS inventory items closed
+└─> Transitions:
+    - P6-D1 checked → P7
+
+[x] P7 [IMPLEMENT]: Bucket 1 extension (difficulty ladder)
+├─ Objectives:
+│   └─ [x] Bucket 1 covers search/refactor and shell execution ← P7-D1, P7-D2
+├─ Strategy: runner fix first (prompt count via parse_queue), then one test + its offline drive at a time
+├─ [x] P7-S1 [FIX](run_evals.py: prompt count + early validation via lana.prompt_queue.parse_queue)
+├─ [x] P7-S2 [IMPLEMENT](01/T03_SearchAndRefactor: 3-file scaffold, rename across files)
+├─ [x] P7-S3 [TEST](T03 offline PASS drive: 1.00/1.00)
+├─ [x] P7-S4 [IMPLEMENT](01/T04_ShellExecution: count fixture files via run_command into count.txt)
+├─ [x] P7-S5 [TEST](T04 offline PASS drive: 1.00/1.00 - real command execution under scripted LLM)
+├─ Deliverables:
+│   ├─ [x] P7-D1: T03 green offline
+│   └─ [x] P7-D2: T04 green offline
+└─> Transitions:
+    - P7-D1, P7-D2 checked → P8
+
+[x] P8 [IMPLEMENT]: Bucket 2 workflow sequences
+├─ Objectives:
+│   └─ [x] Sequence tests exist for verify and critique chains ← P8-D1, P8-D2
+├─ Strategy: flawed input docs in scaffold; outcomes structural (violations gone, review file exists), not content-exact
+├─ [x] P8-S1 [IMPLEMENT](02/T02_VerifyFix: doc with rule violations, /verify fixes + FIXLOG summary prompt)
+├─ [2] P8-S2 [TEST](T02 offline PASS drive - first run found REAL Lana bug: cp1252 pipe crash on emoji in tool results; fixed in cli.py + regression test; second run 1.00/1.00)
+├─ [x] P8-S3 [IMPLEMENT](02/T03_CritiqueSequence: /critique → /reconcile → /implement on a flawed mini-spec)
+├─ [x] P8-S4 [TEST](T03 offline PASS drive: 1.00/1.00 across 3-prompt queue)
+├─ Deliverables:
+│   ├─ [x] P8-D1: T02 green offline
+│   └─ [x] P8-D2: T03 green offline
+└─> Transitions:
+    - P8-D1, P8-D2 checked → P9
+
+[x] P9 [IMPLEMENT]: Bucket 3 deep-research test
+├─ Objectives:
+│   └─ [x] Deep-research test defined with auditable-citation rubric ← P9-D1
+├─ Strategy: unambiguous headline question (CSRCMP CC-1 evidence); rubric per AUDITCITE-IN01; offline drive proves FAIL detection (PASS needs live web)
+├─ [x] P9-S1 [IMPLEMENT](03/T02_DeepResearch: Berlin Wall question, manifest, checks incl. search_web/read_url_content minimums, 4-dimension rubric)
+├─ [x] P9-S2 [TEST](offline sabotage drive: memorized answer passes Tier 1 (1.00) but Tier 2 = 0.33 catches missing research -> FAIL. Exactly the GRUC design intent)
+├─ Deliverables:
+│   └─ [x] P9-D1: T02 defined, FAIL path proven offline
+└─> Transitions:
+    - P9-D1 checked → P10
+
+[x] P10 [IMPLEMENT]: Golden references (Cascade + IPPS = this agent)
+├─ Objectives:
+│   └─ [x] Goldens for all tests producible without live web ← P10-D1
+├─ Strategy: execute each test's prompts as Cascade with IPPS discipline, store results in golden/; 03-T02 stays pending (needs real web research)
+├─ [x] P10-S1 [IMPLEMENT](goldens: 01-T01..T04 (6 files), 02-T01..T03 (5 files), 03-T01 (1 file))
+├─ [x] P10-S2 [TEST](01-T01 re-drive with golden present: PASS, no pending note; golden coverage verified 8/9; full pytest 266 green after cli.py fix)
+├─ Deliverables:
+│   └─ [x] P10-D1: golden/ populated for 8 of 9 tests, 03-T02 documented pending in its TEST.md
+└─> Transitions:
+    - P10-D1 checked → [END]
 ```
 
 ## 7. Test Cases
@@ -184,6 +245,12 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 - [x] **LANATEST-IP01-VC-04**: `/verify` run - IMPL structure (header, MNF, TOC, STRUT template compliance), REPORT.md + results.json inspected on both drive records, privacy scan (fixtures generic: fictional Acme Widgets), IG-03 (runner writes only under `evals/runs/`)
 
 ## 9. Document History
+
+**[2026-08-30 21:05]**
+- Changed: STRUT P6-P10 executed and checked - workflow categorization (NOTES.md), Bucket 1 T03/T04, Bucket 2 T02/T03 sequences, Bucket 3 T02 deep-research, goldens for 8/9 tests
+- Added: runner fixes - parse_queue-based validation + count, UTF-8 console output
+- Found + fixed: REAL Lana bug via 02-T02 drive - cp1252 pipe crash on non-ASCII tool results (cli.py UTF-8 stdio fix, regression test, suite 266 green)
+- Drive scripts: t03/t04/02_t02/02_t03 PASS + 03_t02 sabotage FAIL persisted in drive-scripts/
 
 **[2026-08-30 20:35]**
 - Changed: STRUT P1-P5 executed and checked; VC-01..03 checked

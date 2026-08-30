@@ -123,6 +123,14 @@ def test_bg0005_resume_missing_file_exit_2(cli_workspace):
   assert "Traceback" not in result.stderr
 
 
+# Regression (eval suite 02-T02 finding): non-ASCII in scripted text/tool results must not crash jsonl output on cp1252 pipes
+def test_jsonl_utf8_content_survives_piped_stdout(cli_workspace):
+  proc = make_proc(cli_workspace, [{"text": "status: \u2705 done, \u274c open, umlaut \u00e4", "usage": {"input": 10, "output": 5}}])
+  result = proc.run_headless("report status", output_format="jsonl")
+  assert result.returncode == 0, result.stderr
+  assert any(event.type == "text_delta" and "\u2705" in event.text for event in proc.events())
+
+
 # TC-55: piped stdin session -> workflow list printed, clean exit (non-terminal fallback)
 def test_tc55_piped_stdin_help(cli_workspace):
   proc = make_proc(cli_workspace, [])

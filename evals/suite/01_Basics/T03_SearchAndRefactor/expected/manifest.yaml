@@ -1,0 +1,18 @@
+required_files:
+  - "billing.py"
+  - "invoice.py"
+  - "test_billing.py"
+file_rules:
+  - glob: "billing.py"
+    patterns:
+      - {name: new_name_defined, regex: "def compute_invoice_total\\("}
+      - {name: discount_untouched, regex: "def apply_discount\\("}
+    forbid_content: ["calc_total"]
+  - glob: "invoice.py"
+    patterns:
+      - {name: new_name_imported, regex: "compute_invoice_total"}
+    forbid_content: ["calc_total"]
+  - glob: "test_billing.py"
+    patterns:
+      - {name: new_name_used, regex: "compute_invoice_total"}
+    forbid_content: ["calc_total"]

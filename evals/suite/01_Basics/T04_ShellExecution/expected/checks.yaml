@@ -1,0 +1,9 @@
+checks:
+  - id: shell_command_executed
+    action: "Agent ran a shell command to count the files"
+    severity: CRITICAL
+    assert: {type: tool_called, tool: run_command, min: 1}
+  - id: result_written_via_edit_tool
+    action: "Agent wrote count.txt via write_to_file"
+    severity: HIGH
+    assert: {type: tool_called, tool: write_to_file, min: 1, args_regex: "count\\.txt"}

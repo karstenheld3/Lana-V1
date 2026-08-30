@@ -77,6 +77,12 @@ That means the entire test suite must be designed so that we can produce the ref
 - RULES = verifiable from output alone (maps to structural evaluation); CHECKS = requires action evidence (maps to process evaluation over session logs)
 - Boundary Test: "Can I verify this by reading the delivered files?" Yes → RULES-style check; No → CHECKS-style audit
 
+**Workflow bucket categorization (P6, 2026-08-30):**
+- **Bucket 2 priority** (user-named sequence targets): `/verify`, `/improve`, `/critique`, `/reconcile`, `/implement`, `/drift-detect`, `/drift-correct`
+- **Bucket 2 basics** (single-workflow tests, expand over time): `/prime`, `/write-spec`, `/write-impl-plan`, `/write-test-plan`, `/write-info`, `/write-strut`, `/write-tasks-plan`, `/commit`, `/fix`, `/fail`, `/learn`, `/partition`, `/sync`, `/test`, `/rename`, `/solve`, `/build`, `/cleanup`, `/remove`, `/write-template`, session lifecycle (`/session-new`, `/session-save`, `/session-load`, `/session-finalize`, `/session-archive`)
+- **Bucket 3 special** (multi-step, external resources, own phase models): `/deep-research`, `/transcribe`, `/translate`, `/research`, `/propose-minto`, `/write-minto`
+- **Out of eval scope** (environment/IDE/external-service dependent): `/deploy`, `/switch-model`, `/project-release`, `/go` (meta), `/bugfix` (git-history heavy - revisit), `/conversation-*` (personal data flows)
+
 **Workspace facts:**
 - `tests/harness.py` `LanaProc` already runs headless Lana (`-p` + `--output-format jsonl`), captures AgentEvents, reads flushed `.lana-data/sessions/*.jsonl` → action evidence for process audits exists
 - `.lana/workflows/` has 46 workflows; `.lana/skills/` has 23 skills (deep-research fully populated: SKILL.md, RULES, strategies, templates)

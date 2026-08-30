@@ -266,6 +266,8 @@ def repl(agent: Agent, cost_tracker: CostTracker, prompt_system) -> int:
 
 
 def main() -> int:
+  for stream in (sys.stdout, sys.stderr):  # BG: piped stdio defaults to cp1252 on Windows - emoji in tool results crashed jsonl output (found by eval suite 02-T02)
+    if stream.encoding and stream.encoding.lower() not in ("utf-8", "utf8"): stream.reconfigure(encoding="utf-8")
   args = build_arg_parser().parse_args()
   if args.acp:
     if args.prompt is not None or args.resume or args.prompt_file:  # DD-09: one process serves either the CLI or ACP, never both

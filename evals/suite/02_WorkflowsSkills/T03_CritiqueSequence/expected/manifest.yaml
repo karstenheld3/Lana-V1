@@ -1,0 +1,13 @@
+required_files:
+  - "_REVIEW_GREETER.md"
+  - "_SPEC_GREETER.md"
+file_rules:
+  - glob: "_REVIEW_GREETER.md"
+    patterns:
+      - {name: finding_ids, regex: "RF-\\d{2}"}
+      - {name: vague_flaw_found, regex: "appropriately"}
+      - {name: reconcile_decisions, regex: "(?i)(accepted|rejected)"}
+  - glob: "_SPEC_GREETER.md"
+    patterns:
+      - {name: fr01_kept, regex: "GREETER-FR-01"}
+    forbid_content: ["handles errors appropriately", "The three supported languages"]

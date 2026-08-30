@@ -7,8 +7,12 @@ Usage:
 import argparse, datetime, json, os, re, shutil, subprocess, sys
 from pathlib import Path
 import yaml
+from lana.prompt_queue import PromptQueueError, parse_queue
 from evaluators import evaluate_process, evaluate_structure
 from judge import evaluate_quality
+
+sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")  # check ids may contain non-cp1252 chars (e.g. emoji forbid rules)
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 RUNNER_DIR = Path(__file__).resolve().parent
 SUITE_DIR = RUNNER_DIR.parent
@@ -52,6 +56,10 @@ def test_key(test_dir: Path) -> str:
 def validate_test(test_dir: Path, strict_golden: bool) -> str | None:
   for required in ("TEST.md", "PROMPTS.md", "workspace", "expected/manifest.yaml", "expected/checks.yaml"):
     if not (test_dir / required).exists(): return f"missing '{required}' (EC-03)"
+  try:  # malformed queue file fails BEFORE any agent run (mirrors Lana's own EC-25)
+    parse_queue((test_dir / "PROMPTS.md").read_text(encoding="utf-8"))
+  except PromptQueueError as error:
+    return f"PROMPTS.md invalid: {error}"
   if strict_golden and not any((test_dir / "golden").glob("*")): return "missing golden reference (IG-04)"
   return None
 
@@ -75,7 +83,7 @@ def run_lana(test_dir: Path, workdir: Path, record_dir: Path, metadata: dict, co
   env["LANA_CONFIG"] = config["lana_config"]  # config + keys stay OUTSIDE the workspace (NFR-03)
   if scripted: env["LANA_SCRIPTED_ADAPTER"] = str(Path(scripted).resolve())
   else: env.pop("LANA_SCRIPTED_ADAPTER", None)
-  prompt_count = max(1, (test_dir / "PROMPTS.md").read_text(encoding="utf-8").count("---") + 1)
+  prompt_count = len(parse_queue((test_dir / "PROMPTS.md").read_text(encoding="utf-8")))  # exact count (validated in validate_test)
   timeout = metadata["step_timeout_seconds"] * prompt_count  # DC-02: overall timeout, stall monitoring deferred
   command = [sys.executable, "-m", "lana", "--prompt-file", str(test_dir / "PROMPTS.md"), "--output-format", "jsonl", "--policy", metadata["policy"]]
   print(f"    Running lana ({prompt_count} step(s), timeout {timeout}s, policy {metadata['policy']}{', SCRIPTED' if scripted else ''})...")

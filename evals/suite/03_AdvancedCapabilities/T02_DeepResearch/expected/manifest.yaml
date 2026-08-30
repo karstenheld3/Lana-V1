@@ -1,0 +1,9 @@
+required_files:
+  - "_INFO_BERLINWALL.md"
+file_rules:
+  - glob: "_INFO_BERLINWALL.md"
+    required_sections: ["## Summary", "## Sources"]
+    patterns:
+      - {name: correct_fall_date, regex: "1989-11-09|November 9, 1989|9 November 1989"}
+      - {name: https_urls, regex: "https://"}
+      - {name: verification_labels, regex: "\\[(VERIFIED|ASSUMED)\\]"}
