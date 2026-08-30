@@ -17,8 +17,8 @@ Create a release with comprehensive release notes, git tag, and GitHub release.
 ## Pipeline Order
 
 ```
-_build.bat   -> builds dist\lana-{version}-win-x64.exe
-_ship.bat    -> bumps version in pyproject.toml based on commit types
+_ship.bat        -> bumps version in pyproject.toml based on commit types
+_build.bat       -> builds dist\lana-{version}-win-x64.exe (version must match)
 /project-release -> this workflow: release notes, tag, GitHub release
 ```
 
@@ -130,7 +130,8 @@ Ask: "Create GitHub release with these notes and attach the binary? (y/n)"
 
 ```powershell
 $version = "v[VERSION]"
-$binary = Get-ChildItem dist -Filter "lana-*-win-x64.exe" | Select-Object -First 1
+$binary = Get-ChildItem dist -Filter "lana-[VERSION]-win-x64.exe" | Select-Object -First 1
+if (-not $binary) { throw "Binary dist/lana-[VERSION]-win-x64.exe not found - run _build.bat first" }
 $checksums = Join-Path dist "SHA256SUMS.txt"
 gh release create $version --title "Lana $version" --notes-file "docs/ReleaseNotes/RELEASE_NOTES_$version.md" $binary.FullName $checksums
 ```

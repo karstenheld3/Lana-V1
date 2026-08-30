@@ -92,11 +92,13 @@ Build a standalone `lana.exe` that includes Python and all dependencies (no Pyth
 
 ```powershell
 _InstallAndCompileDependencies.bat   # once: creates .venv
-_build.bat                           # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
 _ship.bat                            # bumps version in pyproject.toml based on commit types
+_build.bat                           # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
 ```
 
 Then run `/project-release` to create release notes, tag the repo, and publish a GitHub release with the binary attached.
+
+**Pipeline order matters**: ship (bump version) before build (so the binary carries the new version).
 
 - **Build requirements**: Rust toolchain + MSVC Build Tools (the script offers to install Rust), network access
 - **Two modes**: `lana.exe` (interactive CLI) and `lana.exe --acp` (ACP agent for IDEs)
