@@ -4,7 +4,7 @@ Usage:
   python run_evals.py <scope> [--scripted <script.jsonl>] [--skip-judge] [--strict-golden]
   scope: test key (01-T01), bucket folder (01_Basics), or All
 """
-import argparse, datetime, difflib, json, os, re, shutil, subprocess, sys
+import argparse, datetime, difflib, importlib.metadata, json, os, re, shutil, subprocess, sys
 from pathlib import Path
 import yaml
 from lana.prompt_queue import PromptQueueError, parse_queue
@@ -185,8 +185,8 @@ def run_test(test_dir: Path, run_dir: Path, config: dict, args) -> dict:
   return result
 
 
-def write_report(run_dir: Path, scope: str, results: list[dict]) -> None:
-  lines = [f"# Eval Run Report: {scope}", "", f"**Run**: `{run_dir.name}`", f"**Executed**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}", ""]
+def write_report(run_dir: Path, scope: str, agent_tag: str, results: list[dict]) -> None:
+  lines = [f"# Eval Run Report: {scope}", "", f"**Run**: `{run_dir.name}`", f"**Agent**: {agent_tag}", f"**Executed**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}", ""]
   counts = {status: sum(1 for r in results if r["status"] == status) for status in ("pass", "fail", "invalid", "error")}
   lines += [f"**Result**: {counts['pass']} passed, {counts['fail']} failed, {counts['invalid']} invalid, {counts['error']} error", "", "## Tests", ""]
   for r in results:
@@ -221,7 +221,8 @@ def main() -> int:
   if not tests:
     print(f"ERROR: no tests match scope '{args.scope}'. Buckets live in '{SUITE_DIR}'.", file=sys.stderr)
     return 2
-  run_dir = RUNS_DIR / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # scope lives in results.json/REPORT.md, folder name stays aggregatable
+  agent_tag = f"Lana-{importlib.metadata.version('lana')}"  # agent under test + its installed version
+  run_dir = RUNS_DIR / f"{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{agent_tag}"  # scope lives in results.json/REPORT.md
   suffix = 1
   while run_dir.exists(): run_dir = run_dir.with_name(f"{run_dir.name}-{suffix}"); suffix += 1  # immutability (FR-05)
   run_dir.mkdir(parents=True)
@@ -230,8 +231,8 @@ def main() -> int:
   for position, test_dir in enumerate(tests, 1):
     print(f"  [ {position} / {len(tests)} ] {test_key(test_dir)} {test_dir.name}...")
     results.append(run_test(test_dir, run_dir, config, args))
-  (run_dir / "results.json").write_text(json.dumps({"run": run_dir.name, "scope": args.scope, "tests": results}, indent=2, ensure_ascii=False), encoding="utf-8")
-  write_report(run_dir, args.scope, results)
+  (run_dir / "results.json").write_text(json.dumps({"run": run_dir.name, "agent": agent_tag, "scope": args.scope, "tests": results}, indent=2, ensure_ascii=False), encoding="utf-8")
+  write_report(run_dir, args.scope, agent_tag, results)
   counts = {status: sum(1 for r in results if r["status"] == status) for status in ("pass", "fail", "invalid", "error")}
   print(f"Run recorded: {run_dir}")
   print(f"RESULT: {counts['pass']} passed, {counts['fail']} failed, {counts['invalid']} invalid, {counts['error']} error.")
