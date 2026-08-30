@@ -22,7 +22,7 @@ def test_tc02_disabled_model_names_model_role_file(tmp_path, clean_key_env):
   write_config_dir(tmp_path, lana_overrides={"roles": {"generator": {"model_id": "gpt-5.5-pro", "effort": "medium"}}})
   with pytest.raises(ConfigError) as error: load_lana_config(tmp_path)
   message = str(error.value)
-  assert "gpt-5.5-pro" in message and "generator" in message and "model-registry.json" in message and "Fix:" in message
+  assert "gpt-5.5-pro" in message and "generator" in message and "model-registry.json" in message and "HINT:" in message
 
 
 def test_tc02b_unknown_model_names_model_role_file(tmp_path, clean_key_env):

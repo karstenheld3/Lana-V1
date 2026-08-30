@@ -46,7 +46,7 @@ def test_tc51_missing_config_exit_2(tmp_path):
   proc = LanaProc(workspace, config_path=workspace / "config" / "lana-config.json", script_path=None)
   script_free_env_result = proc.run_headless("hello", output_format="text")
   assert script_free_env_result.returncode == 2
-  assert "lana-config.json" in script_free_env_result.stderr and "Fix:" in script_free_env_result.stderr
+  assert "lana-config.json" in script_free_env_result.stderr and "HINT:" in script_free_env_result.stderr
 
 
 # TC-52: denylisted run_command headless -> denial in result, loop continues, exit 0
@@ -119,7 +119,7 @@ def test_bg0005_resume_missing_file_exit_2(cli_workspace):
   proc = make_proc(cli_workspace, [{"text": "never reached"}])
   result = proc.run_headless("hi", extra_args=["--resume", "no-such-session.jsonl"])
   assert result.returncode == 2
-  assert "no-such-session.jsonl" in result.stderr and "Fix:" in result.stderr
+  assert "no-such-session.jsonl" in result.stderr and "HINT:" in result.stderr
   assert "Traceback" not in result.stderr
 
 

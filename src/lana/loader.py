@@ -62,14 +62,14 @@ def parse_frontmatter(text: str, source_name: str) -> tuple[dict, str, Optional[
   closing_index = None
   for index in range(1, len(lines)):
     if lines[index].strip() == "---": closing_index = index; break
-  if closing_index is None: return {}, text, f"Frontmatter in '{source_name}' has no closing '---' - treated as body-only"
+  if closing_index is None: return {}, text, f"Frontmatter in '{source_name}' has no closing '---' - treated as body-only."
   raw_meta = "".join(lines[1:closing_index])
   body = "".join(lines[closing_index + 1:])
   try:
     meta = yaml.safe_load(raw_meta)
   except yaml.YAMLError:
-    return {}, body, f"Malformed YAML frontmatter in '{source_name}' - treated as body-only"
-  if not isinstance(meta, dict): return {}, body, f"Frontmatter in '{source_name}' is not a mapping - treated as body-only"
+    return {}, body, f"Malformed YAML frontmatter in '{source_name}' - treated as body-only."
+  if not isinstance(meta, dict): return {}, body, f"Frontmatter in '{source_name}' is not a mapping - treated as body-only."
   return meta, body, None
 
 # ----------------------------------------- END: Frontmatter ------------------------------------------------------------------
@@ -122,14 +122,14 @@ def load_prompt_systems(paths: list[str | Path], rule_block_max_chars: int = 600
   skills_by_name: dict[str, SkillFolder] = {}
   for raw_path in paths:
     base = Path(raw_path)
-    if not base.is_dir(): system.warnings.append(f"Prompt system path not found: '{base}' - skipped"); continue
+    if not base.is_dir(): system.warnings.append(f"Prompt system path not found: '{base}' - skipped."); continue
     for rule_path in sorted((base / "rules").glob("*.md")): rule = load_rule(rule_path, rule_block_max_chars, system.warnings); rules_by_name[rule.filename] = rule
     for workflow_path in sorted((base / "workflows").glob("*.md")): workflow = load_workflow(workflow_path, system.warnings); workflows_by_name[workflow.name] = workflow
     skills_dir = base / "skills"
     if skills_dir.is_dir():
       for skill_md in sorted(skills_dir.glob("*/SKILL.md")): skill = load_skill(skill_md, system.warnings); skills_by_name[skill.name] = skill
   for name in BUILTIN_COMMANDS:
-    if name in workflows_by_name: system.warnings.append(f"Workflow '{name}.md' collides with built-in command /{name} - built-in wins (EC-06)")
+    if name in workflows_by_name: system.warnings.append(f"Workflow '{name}.md' collides with built-in command /{name} - the built-in wins.")
   system.rules = list(rules_by_name.values())
   system.workflows = list(workflows_by_name.values())
   system.skills = list(skills_by_name.values())

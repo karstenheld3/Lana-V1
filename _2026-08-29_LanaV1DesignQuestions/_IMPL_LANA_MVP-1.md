@@ -399,7 +399,7 @@ Policy: manual
 **Startup (error path - EC-14):**
 ```text
 ERROR: Role 'generator' model 'gpt-5.5-pro' is disabled in 'config/model-registry.json' (enabled=false).
-  Fix: choose an enabled model or set "enabled": true in the registry.
+  HINT: choose an enabled model or set "enabled": true in the registry.
 ```
 
 **Tool loop with approval and cap:**
@@ -559,6 +559,10 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 06:45]**
+- Changed (`/verify` logging audit): status keywords aligned with LOGGING-RULES - `Fix:` -> `HINT:` in all ConfigError messages and the preview, `NOTICE:` -> `WARNING:` + `HINT:` for the auto/turbo risk notice, loader warnings end with periods (LOG-GN-11); deviations from UF headers/timestamps documented in Logging Preview note below
+- Added (Logging Preview note): Lana's interactive chat stream intentionally deviates from LOG-UF-01 timestamps and LOG-UF-06 100-char headers - a conversational REPL is not a batch script; timestamps live in the session JSONL (every AgentEvent carries ts per NFR-04), and turn boundaries are visible via the prompt and Turn: lines. SPEC section 12 expected output is the binding format.
 
 **[2026-08-30 06:20]**
 - Added: IS-23 trajectory_search implementation step (FR-15/DD-21), EC-27 error paths, Category 12 TC-61..63, trajectory_tools.py in File Structure; VC-12 count 60 → 63

@@ -85,7 +85,8 @@ def build_runtime(args, workspace: Path, interactive: bool):
   for warning in prompt_system.warnings: print(f"  WARNING: {warning}")
   print(f"Policy: {app.lana.execution_policy}")
   if app.lana.execution_policy in ("auto", "turbo"):
-    print(f"  NOTICE: policy '{app.lana.execution_policy}' auto-executes commands - prompt-injection risk; recommended only for trusted workspaces (NFR-05).")
+    print(f"  WARNING: policy '{app.lana.execution_policy}' auto-executes commands - prompt-injection risk.")
+    print("  HINT: use this policy only in trusted workspaces; switch back with --policy manual.")
   git_root = find_git_root(workspace)
   workspace_info = {"os": platform.system().lower(), "workspace": str(workspace), "git_root": str(git_root) if git_root else ""}
   system_prompt = build_system_prompt(prompt_system, workspace_info)
@@ -97,7 +98,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
   if args.resume:
     resume_path = Path(args.resume)
     if not resume_path.is_file():  # IG-05: startup inputs fail with self-contained errors, never tracebacks (BG-0005)
-      raise ConfigError(f"Session file not found: '{resume_path}'.\n  Fix: pass an existing session JSONL from '<workspace>/.lana/sessions/' to --resume.")
+      raise ConfigError(f"Session file not found: '{resume_path}'.\n  HINT: pass an existing session JSONL from '<workspace>/.lana/sessions/' to --resume.")
     resumed = resume_session(resume_path)
     messages = resumed.messages
     tool_context.todo_state = resumed.todo_state

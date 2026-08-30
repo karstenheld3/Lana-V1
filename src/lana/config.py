@@ -65,9 +65,9 @@ def read_json(path: Path) -> dict:
   try:
     return json.loads(path.read_text(encoding="utf-8"))
   except FileNotFoundError:
-    raise ConfigError(f"Config file not found: '{path}'.\n  Fix: create it or pass --config <path> (env LANA_CONFIG).") from None
+    raise ConfigError(f"Config file not found: '{path}'.\n  HINT: create it or pass --config <path> (env LANA_CONFIG).") from None
   except json.JSONDecodeError as error:
-    raise ConfigError(f"Malformed JSON in '{path}' at line {error.lineno}, column {error.colno}: {error.msg}.\n  Fix: repair the JSON syntax at that position.") from None
+    raise ConfigError(f"Malformed JSON in '{path}' at line {error.lineno}, column {error.colno}: {error.msg}.\n  HINT: repair the JSON syntax at that position.") from None
 
 
 def parse_key_file(path: Path) -> dict[str, str]:
@@ -92,7 +92,7 @@ def translate_effort(method: str, effort: str, prefix_entry: dict, mapping: dict
   factors = mapping.get("effort_mapping", {}).get(effort)
   if factors is None:
     valid = ", ".join(mapping.get("effort_levels", []))
-    raise ConfigError(f"Unknown effort level '{effort}' in 'lana-config.json'.\n  Fix: use one of: {valid}.")
+    raise ConfigError(f"Unknown effort level '{effort}' in 'lana-config.json'.\n  HINT: use one of: {valid}.")
   if method == "temperature": return {"temperature": round(factors["temperature_factor"] * prefix_entry.get("temp_max", 1.0), 2)}
   if method == "reasoning_effort":
     value = factors["openai_reasoning_effort"]
@@ -101,7 +101,7 @@ def translate_effort(method: str, effort: str, prefix_entry: dict, mapping: dict
     return {"reasoning_effort": value}
   if method == "thinking": return {"thinking_budget": int(factors["anthropic_thinking_factor"] * prefix_entry.get("thinking_max", 0))}
   if method in ("adaptive_thinking", "effort"): return {"effort": factors["anthropic_adaptive_effort"]}
-  raise ConfigError(f"Unknown parameter method '{method}' in 'model-registry.json'.\n  Fix: expected temperature, reasoning_effort, thinking, adaptive_thinking, or effort.")
+  raise ConfigError(f"Unknown parameter method '{method}' in 'model-registry.json'.\n  HINT: expected temperature, reasoning_effort, thinking, adaptive_thinking, or effort.")
 
 
 def resolve_role(role_name: str, spec: RoleSpec, registry: dict, mapping: dict) -> ResolvedRole:
@@ -109,14 +109,14 @@ def resolve_role(role_name: str, spec: RoleSpec, registry: dict, mapping: dict) 
   for model in registry.get("models", []):
     if model["model_id"] == spec.model_id: entry = model; break
   if entry is None:
-    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' not found in 'config/model-registry.json'.\n  Fix: choose a registered model or add it to the registry.")
+    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' not found in 'config/model-registry.json'.\n  HINT: choose a registered model or add it to the registry.")
   if not entry.get("enabled", False):
-    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' is disabled in 'config/model-registry.json' (enabled=false).\n  Fix: choose an enabled model or set \"enabled\": true in the registry.")
+    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' is disabled in 'config/model-registry.json' (enabled=false).\n  HINT: choose an enabled model or set \"enabled\": true in the registry.")
   prefix_entry = None
   for candidate in registry.get("model_id_startswith", []):
     if spec.model_id.startswith(candidate["prefix"]): prefix_entry = candidate; break
   if prefix_entry is None:
-    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' matches no 'model_id_startswith' prefix in 'config/model-registry.json'.\n  Fix: add a prefix entry for this model family.")
+    raise ConfigError(f"Role '{role_name}' model '{spec.model_id}' matches no 'model_id_startswith' prefix in 'config/model-registry.json'.\n  HINT: add a prefix entry for this model family.")
   params = translate_effort(prefix_entry["method"], spec.effort, prefix_entry, mapping)
   max_input = prefix_entry.get("max_input") or entry.get("context_window") or 128000
   return ResolvedRole(name=role_name, model_id=spec.model_id, provider=entry["provider"], method=prefix_entry["method"], effort=spec.effort,
@@ -140,14 +140,14 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
   except ValidationError as error:
     first = error.errors()[0]
     location = ".".join(str(part) for part in first["loc"])
-    raise ConfigError(f"Invalid value in '{config_path}' at '{location}': {first['msg']}.\n  Fix: correct that key.") from None
+    raise ConfigError(f"Invalid value in '{config_path}' at '{location}': {first['msg']}.\n  HINT: correct that key.") from None
   registry = read_json(config_dir / "model-registry.json")
   mapping = read_json(config_dir / "model-parameter-mapping.json")
   pricing = read_json(config_dir / "model-pricing.json").get("pricing", {})
   roles = {}
   for role_name, spec in lana.roles.items(): roles[role_name] = resolve_role(role_name, spec, registry, mapping)
   if "generator" not in roles:
-    raise ConfigError(f"Missing role 'generator' in '{config_path}'.\n  Fix: add a \"generator\" entry under \"roles\".")
+    raise ConfigError(f"Missing role 'generator' in '{config_path}'.\n  HINT: add a \"generator\" entry under \"roles\".")
   keys: dict[str, str] = {}
   if require_keys:
     key_file = config_dir / ".api-keys.txt"
@@ -155,7 +155,7 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
     for provider in sorted({role.provider for role in roles.values()}):
       key = resolve_key(provider, key_file_entries)
       if key is None:
-        raise ConfigError(f"No API key for provider '{provider}'.\n  Fix: set env var {ENV_KEY_NAMES[provider]} or add a line '{ENV_KEY_NAMES[provider]}=<key>' to '{key_file}'.")
+        raise ConfigError(f"No API key for provider '{provider}'.\n  HINT: set env var {ENV_KEY_NAMES[provider]} or add a line '{ENV_KEY_NAMES[provider]}=<key>' to '{key_file}'.")
       keys[provider] = key
   return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, workspace=Path(workspace), config_dir=config_dir)
 
