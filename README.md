@@ -2,7 +2,7 @@
 
 Lana is an ACP-compatible AI agent that runs in your terminal. You type requests, Lana reads your files, writes code, runs commands, and manages work sessions -- powered by OpenAI or Anthropic models.
 
-Lana loads a **prompt system** called IPPS (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.lana/` folder.
+Lana loads a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS) (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.lana/` folder.
 
 ## Prerequisites
 
