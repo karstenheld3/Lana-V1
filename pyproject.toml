@@ -7,7 +7,7 @@ name = "lana"
 version = "1.1.0"
 description = "Lana MVP-1 - CLI agent running the IPPS prompt system on OpenAI/Anthropic backends"
 readme = "README.md"
-authors = [{name = "Delphios"}]
+authors = [{name = "Karsten Held"}]
 requires-python = ">=3.12"
 dependencies = [
   "openai>=1.40",

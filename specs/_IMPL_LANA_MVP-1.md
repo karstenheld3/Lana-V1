@@ -51,7 +51,7 @@
 ## 1. File Structure
 
 ```
-e:\Dev\Delphios-Lana-V1\
+e:\Dev\Lana-V1\
 ├── pyproject.toml                    # Package metadata, deps, entry point 'lana' (~40 lines) [NEW]
 ├── README.md                         # Install + quickstart (~60 lines) [NEW]
 ├── config/
@@ -187,8 +187,9 @@ def load_lana_config(workspace) -> LanaConfig: ...
 # 1. Parse config/lana-config.json (pydantic schema per SPEC section 10)
 # 2. Resolve each role model against model-registry.json: exists + enabled, else ConfigError
 # 3. Resolve provider params via model_id_startswith method + effort_mapping factors
-# 4. Keys: env var first (OPENAI_API_KEY / ANTHROPIC_API_KEY), then config/.api-keys.txt
+# 4. Keys: env var first (OPENAI_API_KEY / ANTHROPIC_API_KEY), then config/.api-keys.txt; track source per provider ("env" or ".api-keys.txt") in key_sources dict
 # 5. Load model-pricing.json into cost table (missing model tolerated, EC-24)
+# 6. Boot banner prints "Keys: provider (source), ..." line so user knows where keys come from (FR-01)
 ```
 
 **Note**: ALL validation at startup (IG-05); ConfigError messages name file, key, and corrective action. Never log key material
@@ -305,7 +306,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Location**: `cli.py`, `render.py`
 
-**Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `render.py`: subscribes to events; streams text; tool lines + approval y/n prompts + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
+**Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `render.py`: subscribes to events; streams text; tool lines + approval y/n/a prompts (FR-12: `a` sets an approve-all flag for the rest of the turn, resetting on next user prompt) + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
 
 **Note**: `--debug` writes redacted request/response JSON to `.lana-data/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only
 
@@ -434,10 +435,11 @@ Running workflow 'prime'...
   [tool] read_file '!NOTES.md'...
     OK. 34 lines.
   [tool] run_command 'git log -n 5 --oneline' (policy: manual)
-    Approve? [y/n] y
+    Approve? [y/n/a] y
     OK. Exit code 0.
   [tool] run_command 'Get-Content big.log'
-    Approve? [y/n] y
+    Approve? [y/n/a] a
+    [run_command] approved.
     OK. Output truncated: <truncated 412089 chars>.
   Turn: in=21050 (cache 18200) out=412 | $0.0164 | session $0.0164
 ```
@@ -600,6 +602,9 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 23:15]**
+- Changed: IS-15 approval prompt from `[y/n]` to `[y/n/a]` (FR-12: `a` sets approve-all for remainder of turn, resets on next user prompt); logging preview updated with approve-all example
 
 **[2026-08-30 03:50]**
 - Changed: IS-24 implemented and green - 179 offline tests (TC-64..67 in tests/test_full_recall.py, TC-46b + TP01-TC-01 session-log assertions extended by the leading session_started line); VC-12 checked

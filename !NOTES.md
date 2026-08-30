@@ -8,7 +8,7 @@
 
 ## Project
 
-- **Name**: Delphios Lana-V1
+- **Name**: Lana-V1
 - **Goal**: Python-only CLI agent named "Lana-V1" adapting the Windsurf Cascade architecture (multi-LLM pipeline, extensibility, internal tools) with ACP support and OpenAI/Anthropic backends only
 - **Scenario**: SINGLE-PROJECT, SINGLE-VERSION, SESSION-MODE
 
@@ -37,6 +37,24 @@
 
 10. Lana-V1 starts at version **1.1.0**. Only minor and patch versions are bumped (1.1.x, 1.2.0, ...). No major version bump in this repo.
 11. Lana 1.x supports ACP 1.x. Lana 2.x (separate repo) will support ACP 2.x.
+
+## Build
+
+- **NEVER run `_build.bat` or `_build.ps1` from an agent session.** The user builds manually via the batch file.
+- `dist\lana-acp.bat` is the ACP launcher used by Windsurf/Devin — points to `dist\lana-1.1.0-win-x64.exe`
+- After code changes that affect the exe, tell the user to rebuild — do not build yourself
+
+## Source Control Approach
+
+- `.lana/` and `.devin/` are mirrors - must stay in sync (same rules, workflows, skills)
+- `.lana/` is the authoritative source; `.devin/` is being synced from IPPS repo
+- `src/lana/bundled/agent/` and `src/lana/bundled/config/` are gitignored (build-time only, synced by `_build.ps1`)
+- `_Sessions/` tracked in git (session notes, specs, plans, bugfix backups are versioned history)
+- `_Sessions/.../backup/*.py` files are intentional pre-fix source snapshots (not redundant with git history)
+- `config/.api-keys.txt` gitignored (secrets); all other config files tracked
+- `evals/runs/` gitignored (test run output); `evals/suite/` tracked (test definitions, fixtures, drive scripts)
+- API keys: env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) take priority over `.api-keys.txt` (FR-01)
+- `knowledge/` tracked (reference docs for agent implementation); large JSON files accepted (e.g. `sdk_methods.json`)
 
 ## Design Constraints (from user, 2026-08-30)
 

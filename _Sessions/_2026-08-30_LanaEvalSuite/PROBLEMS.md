@@ -44,7 +44,7 @@
 
 **LANATEST-PR-0007: Test environment broken after workspace folder rename**
 - **History**: Added 2026-08-30 20:05, Resolved 2026-08-30 20:05
-- **Description**: 1) The venv's editable install pointed at the old folder (`__editable__.lana-0.1.0.pth` → `E:\Dev\Delphios-Lana-V1\src`) → `ModuleNotFoundError: lana`. 2) `src/lana/bundled/` was empty (cleaned by `_build.ps1` step 8) → 5 pre-existing failures in test_distribution.py/test_hardening.py.
+- **Description**: 1) The venv's editable install pointed at the old folder (`__editable__.lana-0.1.0.pth` → `E:\Dev\Lana-V1\src`) → `ModuleNotFoundError: lana`. 2) `src/lana/bundled/` was empty (cleaned by `_build.ps1` step 8) → 5 pre-existing failures in test_distribution.py/test_hardening.py.
 - **Resolution**: `pip install -e . --no-deps` re-anchored the editable install; bundle re-synced via robocopy per `_build.ps1` step 2 (config trio + `.lana/` mirror). Full suite 265 green.
 - **Prevention**: after renaming the workspace folder, re-run `pip install -e .`; before running distribution tests, ensure the bundle is synced.
 

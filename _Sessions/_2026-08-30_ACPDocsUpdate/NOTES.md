@@ -21,9 +21,9 @@ Follows `HOW_TO_UPDATE_API_DOCS.md` and `HOW_TO_CREATE_API_DOCS.md` from Karsten
 
 ## Paths
 
-- Old: `E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12`
-- New: `E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30`
-- Reference: `E:\Dev\Delphios-Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27`
+- Old: `E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12`
+- New: `E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30`
+- Reference: `E:\Dev\Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27`
 
 ## Notes
 
@@ -37,10 +37,10 @@ Follows `HOW_TO_UPDATE_API_DOCS.md` and `HOW_TO_CREATE_API_DOCS.md` from Karsten
 
 ```
 Read the TOC and all _INFO_*.md files in
-E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
+E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
 
 Also read python/README.md and javascript/README.md from
-E:\Dev\Delphios-Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27
+E:\Dev\Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27
 to understand the target dual-language test structure.
 
 Summarize: topic count, categories, highest INxx number,
@@ -107,7 +107,7 @@ Then run Python SDK verification:
 5. Fix any WRONG_PARAM or METHOD_NOT_FOUND issues in INFO files
 
 Model for python/ structure:
-E:\Dev\Delphios-Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27\python\README.md
+E:\Dev\Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27\python\README.md
 
 /go
 ```
@@ -131,7 +131,7 @@ Run JavaScript/TypeScript SDK verification:
 6. Fix any incorrect method names or parameters in INFO file TypeScript sections
 
 Model for javascript/ structure:
-E:\Dev\Delphios-Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27\javascript\README.md
+E:\Dev\Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27\javascript\README.md
 
 /go
 ```
@@ -140,11 +140,11 @@ E:\Dev\Delphios-Lana-V1\docs\Anthropic\Anthropic_API_2026-07-27\javascript\READM
 
 ```
 Compare the updated files in
-E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30
+E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30
 against the originals in
-E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
+E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
 using topic numbers for direct INxx-to-INxx mapping. Create in
-E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30
+E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30
 a version comparison document: __ACP_CHANGES.md
 
 Structure:
@@ -165,9 +165,9 @@ needs to know to update their integration.
 
 ```
 Compare file sizes between
-E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
+E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
 and
-E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30
+E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-08-30
 
 For each _INFO_*.md file that exists in BOTH folders (using INxx topic mapping):
 1. Count lines in old and new version

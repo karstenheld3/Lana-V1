@@ -17,7 +17,7 @@ What we copy:
 
 Differences:
 1. Python-only CLI implementation
-2. ACP support -> E:\Dev\Delphios-Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
+2. ACP support -> E:\Dev\Lana-V1\docs\AI-Standards\ACP-AgentClientProtocol_2026-06-12
 3. No backend except OpenAI and Anthropic backend (depending on model)
 4. Usage of \config folder with existing files
 

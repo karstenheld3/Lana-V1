@@ -177,7 +177,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 
 **LANAAGNT-FR-01: Configuration Loading**
 - Read `config/lana-config.json`; validate `model_id` values against `model-registry.json` (`enabled: true` required)
-- Resolve API keys: environment variables `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` first, then `config/.api-keys.txt` (OQ-41)
+- Resolve API keys: environment variables `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` first, then `config/.api-keys.txt` (OQ-41); report key source per provider at boot in the format `Keys: Provider (Environment variable: VAR)` or `Keys: Provider (.\config\.api-keys.txt: VAR)` so the user knows where keys come from
 - Translate per-role `effort` via `model-parameter-mapping.json` effort mapping to provider parameters
 - Fail at startup with a self-contained error naming the missing key/model - never at first API call
 
@@ -263,7 +263,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 
 **LANAAGNT-FR-12: Command Safety**
 - Generator self-classifies via `SafeToAutoRun` (schema kept verbatim); Lana runtime applies the ExecutionPolicy on top (OQ-29)
-- `manual` (default): every `run_command` requires interactive y/n approval showing the exact command line and working directory
+- `manual` (default): every `run_command` requires interactive y/n/a approval showing the exact command line and working directory; `a` (all) approves the current and all remaining approval-gated tool calls for the rest of the current user prompt's turn
 - `auto`: `SafeToAutoRun: true` commands run without prompt; denylist match overrides to approval
 - `turbo`: all run except denylist matches (always require approval)
 - Denylist matching: case-insensitive comparison of the command line's first token (multi-token entries prefix-match the command line); default: `rm`, `del`, `rmdir`, `erase`, `ri`, `Remove-Item`, `Move-Item`, `format`, `kill`, `pkill`, `Stop-Process`, `shutdown`, `git push --force` (RV01 RF-02)
@@ -457,7 +457,7 @@ User types "/prime"
 ```json
 {"ts": "2026-08-29 21:05:10", "type": "session_started", "system_prompt": "You are Lana, ...", "tool_definitions": [{"name": "read_file", "description": "...", "schema": {}}], "config_snapshot": {"roles": {"generator": {"model_id": "claude-sonnet-4-5-20250929", "effort": "medium", "provider": "anthropic"}}, "execution_policy": "manual"}, "prompt_system_fingerprint": {"paths": [".lana"], "counts": {"rules": 8, "workflows": 46, "skills": 23}, "content_hash": "sha256:..."}}
 {"ts": "2026-08-29 21:05:12", "type": "user_message", "content": "/prime", "expanded_workflow": "prime"}
-{"ts": "2026-08-29 21:05:14", "type": "tool_call_requested", "id": "tc_001", "tool": "read_file", "args": {"file_path": "e:/Dev/Delphios-Lana-V1/!NOTES.md"}}
+{"ts": "2026-08-29 21:05:14", "type": "tool_call_requested", "id": "tc_001", "tool": "read_file", "args": {"file_path": "e:/Dev/Lana-V1/!NOTES.md"}}
 {"ts": "2026-08-29 21:05:14", "type": "tool_call_finished", "id": "tc_001", "status": "ok", "result": "     1\t# Notes\n...", "result_chars": 1204}
 {"ts": "2026-08-29 21:05:18", "type": "turn_finished", "input_tokens": 21050, "output_tokens": 412, "cache_read_tokens": 18200, "cost_usd": 0.0164}
 ```
@@ -484,7 +484,7 @@ DO NOT ACKNOWLEDGE THIS CHECKPOINT MESSAGE.
 - **Headless**: `lana -p "<prompt>"` | `--output-format text|jsonl` - single prompt, exit code signals outcome (LANAAGNT-FR-14)
 - **Chat**: free text sends a user message; `/name` invokes a workflow
 - **Built-ins**: `/help` (workflows + built-ins), `/cost` (session usage), `/exit`
-- **Approve command**: y/n prompt showing command line + working directory when the safety gate requires it
+- **Approve command**: y/n/a prompt showing command line + working directory when the safety gate requires it; `a` approves all remaining approval-gated calls in the turn
 - **Answer question**: numbered choice prompt when the Generator calls `ask_user_question`
 - **Cancel**: Ctrl+C aborts the current turn, returns to input
 
@@ -503,6 +503,7 @@ DO NOT ACKNOWLEDGE THIS CHECKPOINT MESSAGE.
 **Expected user-facing output for startup and one turn:**
 ```text
 Lana MVP-1 | generator: claude-sonnet-4-5 (medium) | summarizer: gpt-4.1-mini (low)
+Keys: Anthropic (Environment variable: ANTHROPIC_API_KEY), OpenAI (Environment variable: OPENAI_API_KEY)
 Loading prompt system '.lana'...
   8 rules (7 injected, 1 skipped: empty), 46 workflows, 21 skills.
   OK. Loaded in 0.4 secs.
@@ -512,7 +513,7 @@ Running workflow 'prime'...
   [tool] read_file '!NOTES.md'...
     OK. 34 lines.
   [tool] run_command 'git log -n 5 --oneline' (policy: manual)
-    Approve? [y/n] y
+    Approve? [y/n/a] y
     OK. Exit code 0.
   Turn: in=21050 (cache 18200) out=412 | $0.0164 | session $0.0164
 ```
@@ -534,6 +535,12 @@ Running workflow 'prime'...
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-08-30 23:30]**
+- Changed: FR-01 key source format revised to verbose `Provider (Environment variable: VAR)` or `Provider (.\config\.api-keys.txt: VAR)`; added `PROVIDER_DISPLAY` mapping for correct casing (OpenAI, Anthropic); logging example updated
+
+**[2026-08-30 23:15]**
+- Changed: FR-12 approval prompt from `[y/n]` to `[y/n/a]` - `a` (all) approves the current and all remaining approval-gated tool calls for the rest of the current turn; updated User Actions (section 11) and logging example (section 12)
 
 **[2026-08-30 16:50]**
 - Added: FR-16 zero-setup startup and runtime resilience (auto-creation + reporting, CR/BL/UX hardening per LANAAGNT-IN03), DD-23 zero-setup philosophy, DD-24 severity-prefixed notice rendering
