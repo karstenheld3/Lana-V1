@@ -263,7 +263,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 
 **LANAAGNT-FR-12: Command Safety**
 - Generator self-classifies via `SafeToAutoRun` (schema kept verbatim); Lana runtime applies the ExecutionPolicy on top (OQ-29)
-- `manual` (default): every `run_command` requires interactive y/n/a approval showing the exact command line and working directory; `a` (all) approves the current and all remaining approval-gated tool calls for the rest of the current user prompt's turn
+- `manual` (default): every `run_command` requires interactive y/n/a approval showing the exact command line and working directory; `a` (all) approves the current and all remaining approval-gated tool calls for the rest of the session
 - `auto`: `SafeToAutoRun: true` commands run without prompt; denylist match overrides to approval
 - `turbo`: all run except denylist matches (always require approval)
 - Denylist matching: case-insensitive comparison of the command line's first token (multi-token entries prefix-match the command line); default: `rm`, `del`, `rmdir`, `erase`, `ri`, `Remove-Item`, `Move-Item`, `format`, `kill`, `pkill`, `Stop-Process`, `shutdown`, `git push --force` (RV01 RF-02)
@@ -535,6 +535,9 @@ Running workflow 'prime'...
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-08-31 01:27]**
+- Changed: FR-12 approve-all scope from turn-scoped to session-scoped (`a` persists for the entire session, not just the current turn)
 
 **[2026-08-30 23:30]**
 - Changed: FR-01 key source format revised to verbose `Provider (Environment variable: VAR)` or `Provider (.\config\.api-keys.txt: VAR)`; added `PROVIDER_DISPLAY` mapping for correct casing (OpenAI, Anthropic); logging example updated

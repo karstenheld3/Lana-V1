@@ -115,7 +115,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 - **LANAAGNT-TP01-TC-04**: Destructive command blocked end-to-end - script requests `Remove-Item x` under `--policy auto` headless -> denied result event, no file deleted, agent continues, exit 0 (FR-12, FR-14, IG-03)
 - **LANAAGNT-TP01-TC-05**: Out-of-workspace write blocked - script requests `write_to_file` outside temp workspace headless -> denied, target absent (FR-12)
-- **LANAAGNT-TP01-TC-12**: Approve-all (`a`) skips subsequent prompts - in-process integration (approval prompts are terminal-only per FR-14; no piped-stdin path) with scripted 3 consecutive `run_command` calls under `--policy manual`; callback returns `"all"` on first call -> first `approval_required` event shows `approved: true`, remaining 2 `approval_required` events also show `approved: true` with callback not called again; next `run_prompt` call resets the flag (callback called again) (FR-12)
+- **LANAAGNT-TP01-TC-12**: Approve-all (`a`) skips subsequent prompts - in-process integration (approval prompts are terminal-only per FR-14; no piped-stdin path) with scripted 3 consecutive `run_command` calls under `--policy manual`; callback returns `"all"` on first call -> first `approval_required` event shows `approved: true`, remaining 2 `approval_required` events also show `approved: true` with callback not called again; next `run_prompt` call does NOT reset the flag (session-scoped) (FR-12)
 
 ### Category 3: Robustness Scenarios (2 tests)
 
@@ -176,6 +176,9 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-31 01:27]**
+- Changed: TP01-TC-12 approve-all scope from turn-scoped to session-scoped (flag persists across prompts, callback NOT called again on next `run_prompt`)
 
 **[2026-08-30 23:30]**
 - Changed: TP01-TC-08 now asserts `Keys:` line with per-provider source (`Environment variable:` or key file path, FR-01)

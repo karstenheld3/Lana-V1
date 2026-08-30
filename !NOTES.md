@@ -48,6 +48,7 @@
 
 - `.lana/` and `.devin/` are mirrors - must stay in sync (same rules, workflows, skills)
 - `.lana/` is the authoritative source; `.devin/` is being synced from IPPS repo
+- When files in `.lana/` change, immediately mirror to `dist\.lana\` (the runtime copy used by the built binary and `lana-acp.bat`)
 - `src/lana/bundled/agent/` and `src/lana/bundled/config/` are gitignored (build-time only, synced by `_build.ps1`)
 - `_Sessions/` tracked in git (session notes, specs, plans, bugfix backups are versioned history)
 - `_Sessions/.../backup/*.py` files are intentional pre-fix source snapshots (not redundant with git history)

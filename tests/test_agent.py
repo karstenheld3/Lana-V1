@@ -154,8 +154,8 @@ def test_tp01_tc12_approve_all_skips_subsequent_prompts(agent_factory, tmp_path)
   assert agent.final_text == "all done"
 
 
-# TP01-TC-12 part 2: approve-all resets on next user prompt
-def test_tp01_tc12_approve_all_resets_on_next_prompt(agent_factory, tmp_path):
+# TP01-TC-12 part 2: approve-all persists across prompts (session-scoped, NOT turn-scoped)
+def test_tp01_tc12_approve_all_persists_across_prompts(agent_factory, tmp_path):
   workspace = tmp_path / "ws"
   workspace.mkdir(exist_ok=True)
   turns = [
@@ -165,7 +165,7 @@ def test_tp01_tc12_approve_all_resets_on_next_prompt(agent_factory, tmp_path):
       {"name": "run_command", "args": {"CommandLine": "echo second", "SafeToAutoRun": False}},
     ], "usage": {"input": 500, "output": 20}},
     {"text": "done one", "usage": {"input": 600, "output": 10}},
-    # Turn 2: 1 command, flag should be reset -> callback called again
+    # Turn 2: 1 command, flag should persist -> callback NOT called again
     {"text": "turn two", "tool_calls": [
       {"name": "run_command", "args": {"CommandLine": "echo third", "SafeToAutoRun": False}},
     ], "usage": {"input": 500, "output": 20}},
@@ -175,7 +175,7 @@ def test_tp01_tc12_approve_all_resets_on_next_prompt(agent_factory, tmp_path):
 
   def fake_approval(action, detail):
     call_count["n"] += 1
-    return "all" if call_count["n"] == 1 else "yes"  # first prompt: all; second prompt: yes
+    return "all"
 
   agent = agent_factory(turns, approve_callback=fake_approval)
   # First prompt
@@ -183,11 +183,11 @@ def test_tp01_tc12_approve_all_resets_on_next_prompt(agent_factory, tmp_path):
   approvals1 = [event for event in events1 if event.type == "approval_required"]
   assert len(approvals1) == 2 and all(event.approved for event in approvals1)
   assert call_count["n"] == 1  # only called once in first prompt (approve-all)
-  # Second prompt: flag must have reset
+  # Second prompt: flag persists (session-scoped) - callback NOT called again
   events2 = collect_events(agent, "turn two")
   approvals2 = [event for event in events2 if event.type == "approval_required"]
   assert len(approvals2) == 1 and approvals2[0].approved is True
-  assert call_count["n"] == 2  # callback called again in second prompt (flag reset)
+  assert call_count["n"] == 1  # callback NOT called again - approve-all persists
 
 
 # TP01-TC-12 part 3: 'yes' answer does NOT set approve-all (backward compat)

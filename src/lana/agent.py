@@ -68,7 +68,7 @@ class Agent:
     self.session = session
     self.messages: list[Message] = messages or []
     self.approve_callback = approve_callback    # (action, detail) -> bool | str; None = non-interactive auto-deny (FR-14); str "all" = approve-all
-    self._approve_all = False                    # FR-12: set by "a" answer, resets per user prompt
+    self._approve_all = False                    # FR-12: set by "a" answer, persists for the entire session
     self.continue_callback = continue_callback  # (calls_done) -> bool; None = stop at limit (EC-11)
     self.cost_fn = cost_fn                      # (role_name, usage) -> float | None (FR-09; EC-24 -> None)
     self.compactor = compactor                  # post-turn compaction hook (FR-07, wired in Phase G)
@@ -140,7 +140,7 @@ class Agent:
     self.stop_reason = None
     self.current_turn_completed_calls = 0
     self.final_text = ""
-    self._approve_all = False  # FR-12: reset approve-all at the start of each user prompt
+    # _approve_all is session-scoped: once the user answers "a", it stays active for the entire session
     content, workflow_name = expand_slash_command(user_input, self.prompt_system)  # UnknownWorkflowError propagates (EC-05)
     yield self.emit(UserMessage(content=user_input, expanded_workflow=workflow_name))
     self.messages.append(self.build_user_message(content))
