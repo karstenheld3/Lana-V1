@@ -21,6 +21,7 @@ from lana.tools.interact_tools import execute_ask_user_question
 from lana.tools.shell_tools import execute_command_status, execute_run_command
 from lana.tools.skill_tool import execute_skill
 from lana.tools.state_tools import execute_todo_list
+from lana.tools.trajectory_tools import execute_trajectory_search
 from lana.tools.web_tools import execute_read_url_content, execute_search_web, execute_view_content_chunk
 
 EXIT_OK, EXIT_CONFIG, EXIT_PROVIDER, EXIT_STOPPED = 0, 2, 3, 4
@@ -31,6 +32,7 @@ EXECUTORS = {
   "run_command": execute_run_command, "command_status": execute_command_status,
   "todo_list": execute_todo_list, "skill": execute_skill, "ask_user_question": execute_ask_user_question,
   "search_web": execute_search_web, "read_url_content": execute_read_url_content, "view_content_chunk": execute_view_content_chunk,
+  "trajectory_search": execute_trajectory_search,
 }
 
 

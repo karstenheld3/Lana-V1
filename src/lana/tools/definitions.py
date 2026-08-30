@@ -22,6 +22,7 @@ DESCRIPTION_TEMPLATES = {
   "search_web": "Performs a web search to get a list of relevant web documents for the given query and optional domain filter.",
   "read_url_content": "Read content from a URL. URL must be an HTTP or HTTPS URL that points to a valid internet resource accessible via web browser.\nNote that the user will have to approve the web request before it is fetched. The user may reject it if it is not to their liking.\nThe actual fetch will NOT execute until the user approves it. The user may not approve it immediately.",
   "view_content_chunk": "View a specific chunk of a web or knowledge base document content using its DocumentId and chunk position. The DocumentId must have already been read by the read_url_content tool before this can be used on that particular DocumentId.",
+  "trajectory_search": "Semantic search or retrieve trajectory. Trajectories are one of conversations. Returns chunks from the trajectory, scored, sorted, and filtered by relevance. Maximum number of chunks returned is 50. Call this tool when the user @mentions a @conversation. Do NOT call this tool with SearchType: 'user'. IGNORE @activity mentions.",
 }
 
 SCHEMAS = {
@@ -40,6 +41,7 @@ SCHEMAS = {
   "search_web": {'type': 'object', 'additionalProperties': False, 'properties': {'query': {'type': 'string'}, 'domain': {'type': 'string'}}, 'required': ['query']},
   "read_url_content": {'type': 'object', 'additionalProperties': False, 'properties': {'Url': {'type': 'string'}}, 'required': ['Url']},
   "view_content_chunk": {'type': 'object', 'additionalProperties': False, 'properties': {'document_id': {'type': 'string'}, 'position': {'type': 'integer'}}, 'required': ['document_id', 'position']},
+  "trajectory_search": {'type': 'object', 'additionalProperties': False, 'properties': {'ID': {'type': 'string', 'description': 'The ID of the trajectory to search or retrieve: cascade ID for conversations, trajectory ID for user activities.'}, 'Query': {'type': 'string', 'description': 'The query string to search for within the trajectory. An empty query will return all trajectory steps.'}, 'SearchType': {'type': 'string', 'enum': ['cascade', 'user'], 'description': "The type of item to search or retrieve: 'cascade' for conversations, or 'user' for user activities."}}, 'required': ['ID', 'Query', 'SearchType']},
 }
 
 

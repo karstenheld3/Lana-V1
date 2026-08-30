@@ -6,7 +6,7 @@ from lana.tools.definitions import DESCRIPTION_TEMPLATES, SCHEMAS, TOOL_NAMES, s
 
 IN02_PATH = Path(__file__).parent.parent / "_2026-08-29_LanaV1DesignQuestions" / "_INFO_CASCADE_TOOL_DEFINITIONS.md"
 
-EXPECTED_TOOLS = ["read_file", "list_dir", "grep_search", "find_by_name", "edit", "multi_edit", "write_to_file", "run_command", "command_status", "todo_list", "skill", "ask_user_question", "search_web", "read_url_content", "view_content_chunk"]
+EXPECTED_TOOLS = ["read_file", "list_dir", "grep_search", "find_by_name", "edit", "multi_edit", "write_to_file", "run_command", "command_status", "todo_list", "skill", "ask_user_question", "search_web", "read_url_content", "view_content_chunk", "trajectory_search"]
 
 
 def extract_in02_descriptions() -> dict:
@@ -19,7 +19,7 @@ def extract_in02_descriptions() -> dict:
   return descriptions
 
 
-def test_all_15_tools_present():
+def test_all_16_tools_present():
   assert TOOL_NAMES == EXPECTED_TOOLS
 
 

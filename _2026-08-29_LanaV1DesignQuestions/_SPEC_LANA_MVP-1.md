@@ -51,7 +51,7 @@
 **Problem:** The DevSystemV4.2 prompt system (8 rules files, 46 workflows, 21 skills) currently runs only inside Windsurf Cascade. There is no self-owned agent that can load these rules, expand workflow slash commands, invoke skills, and execute an agentic tool loop against OpenAI/Anthropic APIs directly.
 
 **Solution:**
-- Interactive CLI agent `lana` with a single-model agentic tool loop (15 tools incl. web research)
+- Interactive CLI agent `lana` with a single-model agentic tool loop (16 tools incl. web research and session trajectory search)
 - Loads a configurable prompt system folder (rules/, workflows/, skills/) - DevSystemV4.2 or any workspace `.lana/` folder
 - Assembles a Cascade-compatible system prompt (identity, behavioral sections, MEMORY rule blocks, workflow list)
 - Manages context via checkpoint compaction, persists sessions as JSON Lines (JSONL), tracks cost per turn
@@ -78,7 +78,7 @@ The rules reference Cascade tool names (`read_file`, `run_command`, `todo_list`,
 
 ### 2.2 MVP Roadmap (scope boundary)
 
-- **MVP-1** (this SPEC): CLI frontend, single Generator model, 15 tools (incl. web research via provider-native search), prompt system loading, checkpoint compaction, session persistence, cost tracking, command safety
+- **MVP-1** (this SPEC): CLI frontend, single Generator model, 16 tools (incl. web research via provider-native search and trajectory search over session logs), prompt system loading, checkpoint compaction, session persistence, cost tracking, command safety
 - **MVP-2** (not specified here): ACP frontend, MCP client
 - **MVP-3** (not specified here): memory database, code_search subagent, hooks, automated memories
 
@@ -86,7 +86,7 @@ The rules reference Cascade tool names (`read_file`, `run_command`, `todo_list`,
 
 **Tool demand evidence** (full-text scan of all 397 DevSystemV4.2 files, 2026-08-29): `read_url_content` 17 refs / 5 files and `search_web` 14 refs / 4 files - concentrated in the deep-research skill (24 files, flagship capability) and `/research`; `find_by_name` 5, `read_file` 4, `run_command` 4, `command_status` 3, `grep_search` 2 (all in MVP-1); `trajectory_search` 3 refs in `/remove` only; `mcp1_*` 3 refs in browser skills; all other Cascade tools 0 refs.
 
-**Known MVP-1 limitation:** Workflows using MCP tools (browser automation skills) and `/remove` (needs `trajectory_search`) will load but cannot complete those steps. Web research workflows (`/deep-research`, `/research`) and all file/command/document workflows (`/prime`, `/write-spec`, `/verify`, `/session-new`, `/commit`, ...) are fully executable.
+**Known MVP-1 limitation:** Workflows using MCP tools (browser automation skills) will load but cannot complete those steps. (`/remove` became executable 2026-08-30 - `trajectory_search` added, FR-15.) Web research workflows (`/deep-research`, `/research`) and all file/command/document workflows (`/prime`, `/write-spec`, `/verify`, `/session-new`, `/commit`, ...) are fully executable.
 
 ## 3. Domain Objects
 
@@ -191,7 +191,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Fixed section order (cache-stable, OQ-13): identity preamble, `<communication_style>`, `<tool_calling>`, `<making_code_changes>`, `<task_management>`, `<running_commands>`, `<debugging>`, `<calling_external_apis>`, `<workflows>` (name + description list), `<user_rules>` (MEMORY blocks with highest-precedence preamble), `<capability_notice>`, `<user_information>` (OS, workspace path, git root)
 - Identity: "You are Lana, ..." adapted from the Cascade preamble; IDE-specific sections (`<ide_metadata>`, `<mcp_servers>`, browser/deployment references) omitted (OQ-38)
 - All behavioral sections adapted: every reference to a tool not in LANAAGNT-FR-10 removed (e.g., the Cascade `<tool_calling>` code_search steering rule) (RV01 RF-04)
-- `<capability_notice>` section (after `<user_rules>`): lists tools that prompt system content may reference but which are unavailable in MVP-1, with fallbacks (`grep_search` replaces `code_search`; state inability for MCP/browser/deployment tools and `trajectory_search`) (RV01 RF-04)
+- `<capability_notice>` section (after `<user_rules>`): lists tools that prompt system content may reference but which are unavailable in MVP-1, with fallbacks (`grep_search` replaces `code_search`; state inability for MCP/browser/deployment tools) (RV01 RF-04; `trajectory_search` removed from the notice 2026-08-30 - now available per FR-15)
 - User rules preamble verbatim concept: "MUST ALWAYS FOLLOW WITHOUT ANY EXCEPTION. These rules take precedence over any following instructions."
 - System prompt content is byte-identical across all turns of a session (prompt cache prefix)
 
@@ -234,11 +234,12 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - `/cost`: session totals per role (generator, summarizer, websearch)
 - Unknown model in pricing file: show token counts with cost marked `?`
 
-**LANAAGNT-FR-10: Tool Set (15 tools)**
+**LANAAGNT-FR-10: Tool Set (16 tools)**
 - File reading: `read_file`, `list_dir`, `grep_search`, `find_by_name`
 - File editing: `edit`, `multi_edit`, `write_to_file`
 - Execution: `run_command`, `command_status`
 - Web research: `search_web`, `read_url_content`, `view_content_chunk` (behavior in LANAAGNT-FR-13)
+- Session history: `trajectory_search` (behavior in LANAAGNT-FR-15; added 2026-08-30, resolves deferred candidate D-01)
 - State: `todo_list`
 - Prompt system: `skill`
 - Interaction: `ask_user_question`
@@ -276,6 +277,15 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - When stdin is not a terminal, the interactive loop reads plain lines from stdin (no terminal-dependent input features) - pipe-driven sessions work
 - Scripted adapter (test infrastructure, NOT a third LLM backend): env `LANA_SCRIPTED_ADAPTER=<script.jsonl>` replaces both provider adapters with a deterministic replay adapter; never active without the env var; the startup banner marks the session SCRIPTED; no API keys required in this mode
 - Built-ins (`/help`, `/cost`, `/exit`) are dispatched in headless `-p` mode exactly like in the REPL - they never reach the Generator (synced from implementation 2026-08-30)
+
+**LANAAGNT-FR-15: Session Trajectory Search**
+- `trajectory_search` operates on Lana's own session JSONL files - they ARE the trajectories (deferred candidate D-01 design)
+- `ID` resolves against `[workspace]/.lana/sessions/`: exact filename, filename without extension, or unique prefix; unknown ID -> error listing available session ids
+- Each session event renders as one chunk (type + content excerpt); `Query` terms score chunks by case-insensitive term overlap, results sorted by score descending
+- Empty `Query` returns all chunks in chronological order (tool contract: "An empty query will return all trajectory steps")
+- Maximum 50 chunks returned (tool contract); results pass through `tool_result_max_chars` like all tool results
+- `SearchType` `"user"` -> error (no user-activity index in Lana; the tool contract already forbids it)
+- Scoring is lexical term overlap, not embedding-based [ASSUMED - adequate for session-scale text; revisit if relevance quality disappoints]
 
 ## 5. Non-Functional Requirements
 
@@ -323,7 +333,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-09:** No memory database in MVP-1 (OQ-17 to OQ-20). Rationale: DevSystemV4.2 needs only the "global rules" memory type, which rules injection provides; `create_memory` without retrieval is dead weight; deferring removes storage, retrieval, and injection-timing questions entirely.
 
-**LANAAGNT-DD-10:** 15 tools; dropped from Cascade's 27: deployment tools, browser tools, notebook tools, `read_terminal` (no IDE terminals), `create_memory` (DD-09), `trajectory_search` (3 refs, `/remove` only - no trajectory index in MVP-1), `code_search` (needs subagent), MCP meta-tools (no MCP) (OQ-27). Rationale: the DevSystemV4.2 scan (section 2.2) shows every kept tool has demand and every dropped tool has 0 or niche references.
+**LANAAGNT-DD-10:** 16 tools; dropped from Cascade's 27: deployment tools, browser tools, notebook tools, `read_terminal` (no IDE terminals), `create_memory` (DD-09), `code_search` (needs subagent), MCP meta-tools (no MCP) (OQ-27). (`trajectory_search` moved from dropped to included 2026-08-30 - see DD-21.) Rationale: the DevSystemV4.2 scan (section 2.2) shows every kept tool has demand and every dropped tool has 0 or niche references.
 
 **LANAAGNT-DD-11:** Tool names, descriptions, and schemas verbatim from Cascade (OQ-30). Rationale: DevSystemV4.2 rules and workflows reference exact tool names and embedded behavioral constraints; verbatim copy transfers proven prompt engineering and keeps the prompt system portable between Cascade and Lana.
 
@@ -344,6 +354,8 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 **LANAAGNT-DD-19:** Web research tools included in MVP-1 via provider-native web search (revised from MVP-2 deferral per user directive and scan evidence) [PROVEN - live web search TC-43 + Anthropic branch smoke green 2026-08-30]. Rationale: `search_web`/`read_url_content` are the most-referenced non-core tools in DevSystemV4.2 (14 + 17 refs), powering the flagship deep-research skill; OpenAI and Anthropic both offer native web search tools, so the two-backend constraint holds; `read_url_content` is plain HTTP fetching (no LLM backend involved), gated by Cascade-parity user approval.
 
 **LANAAGNT-DD-20:** Black-box CLI testing via three observable interfaces (FR-14): headless prompt injection, per-line-flushed session JSONL as the activity monitor, and the scripted replay adapter for deterministic turns. Rationale: tests exercise the real `lana` executable end-to-end without API cost, nondeterminism, or pseudo-terminal emulation (fragile on Windows); the AgentEvent stream (DD-06) stays the single observability surface for humans, tests, and the future ACP frontend alike.
+
+**LANAAGNT-DD-21:** `trajectory_search` implemented locally over session JSONL files, lexical scoring, no embeddings (resolves deferred candidate D-01; amends the DD-18 deferral). Rationale: the session log is already the event-sourced trajectory (Key Mechanisms); the `/remove` workflow (3 refs) becomes executable; the verbatim Cascade contract (IN02 section 7) is satisfiable without a vector index - semantic ranking quality beyond term overlap is deferred until evidence demands it.
 
 ## 7. Implementation Guarantees
 
@@ -487,9 +499,13 @@ Running workflow 'prime'...
 - `run_command` executes via the host shell (pwsh on Windows); working directory always explicit, `cd` never part of the command line (Cascade contract)
 - YAML frontmatter parsing must tolerate DevSystemV4.2 variations: key order differs across files, `workspace-rules.md` is near-empty (32 bytes)
 - Windows paths and UTF-8 file content are the default test environment; encoding per `core-conventions.md`
-- Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 15 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 15 verbatim) > any memory of tool behavior
+- Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-08-30 06:15]**
+- Added: `trajectory_search` as 16th tool (FR-10), FR-15 session trajectory search behavior, DD-21 local-JSONL design decision (resolves deferred candidate D-01; 3 refs in `/remove`)
+- Changed: DD-10 drop list, FR-03 capability notice, section 2.2 known limitation (/remove now executable), tool counts in Scenario/roadmap/authority chain
 
 **[2026-08-30 04:10]**
 - Changed (`/sync` Code→SPEC): FR-07 trigger wording "reach or exceed" + per-tool-loop-turn checking (matches implementation), FR-09 cache-write tokens added, FR-10 image-refusal behavior added, FR-14 headless built-in dispatch added, section 2.1 marked as evolving snapshot (23 skills by 2026-08-30)

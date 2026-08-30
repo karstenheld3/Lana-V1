@@ -6,7 +6,7 @@ from lana.cost import CostTracker
 
 # Compact one-line summary of tool arguments for the [tool] line
 def summarize_args(tool: str, args: dict) -> str:
-  for key in ("CommandLine", "file_path", "TargetFile", "DirectoryPath", "SearchPath", "SearchDirectory", "Url", "SkillName", "query", "document_id"):
+  for key in ("CommandLine", "file_path", "TargetFile", "DirectoryPath", "SearchPath", "SearchDirectory", "Url", "SkillName", "query", "document_id", "ID"):
     if key in args: return str(args[key])[:120]
   return ""
 

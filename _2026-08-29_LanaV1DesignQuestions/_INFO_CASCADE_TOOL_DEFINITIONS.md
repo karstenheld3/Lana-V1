@@ -293,18 +293,35 @@ The actual fetch will NOT execute until the user approves it. The user may not a
 View a specific chunk of a web or knowledge base document content using its DocumentId and chunk position. The DocumentId must have already been read by the read_url_content tool before this can be used on that particular DocumentId.
 ```
 
-## 7. Next Steps
+## 7. Session Trajectory Tools (added 2026-08-30)
+
+### 7.1 trajectory_search
+
+**Parameters:** `ID` (string, required) | `Query` (string, required) | `SearchType` (string, enum: cascade/user, required)
+
+**Description [LITERAL]:**
+```text
+Semantic search or retrieve trajectory. Trajectories are one of conversations. Returns chunks from the trajectory, scored, sorted, and filtered by relevance. Maximum number of chunks returned is 50. Call this tool when the user @mentions a @conversation. Do NOT call this tool with SearchType: 'user'. IGNORE @activity mentions.
+```
+
+Parameter descriptions (for the JSON Schema): `ID` = "The ID of the trajectory to search or retrieve: cascade ID for conversations, trajectory ID for user activities."; `Query` = "The query string to search for within the trajectory. An empty query will return all trajectory steps."; `SearchType` = "The type of item to search or retrieve: 'cascade' for conversations, or 'user' for user activities."
+
+## 8. Next Steps
 
 1. LANAAGNT-IP01-IS-06 transcribes from this document (primary) with the ebook chapters 8-9 as cross-check for the 12 tools both sources cover
 2. During IS-06: verify each `required` array against provider acceptance in the Phase D smoke tests (schemas are transcriptions; provider round trips upgrade them to [TESTED])
 
-## 8. Sources
+## 9. Sources
 
 **Primary Sources:**
 - `LANAAGNT-IN02-SC-CSCD-LIVSSN`: Live Cascade session tool definitions (2026-08-29, same system family as the V2.3.15 wire capture) - all 15 descriptions and parameter contracts
 - `LANAAGNT-IN02-SC-CSMP-EBK`: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` chapters 8-9 - cross-check source; confirms 12 of 15 verbatim, documents the gap for `multi_edit`, `command_status`, `skill`
 
-## 9. Document History
+## 10. Document History
+
+**[2026-08-30 06:10]**
+- Added: section 7 trajectory_search (16th tool) - transcribed verbatim from the same live Cascade session family; consumed by LANAAGNT-SP01 FR-15 / LANAAGNT-IP01 IS-23
+- Changed: section numbering (Next Steps/Sources/History shifted by one)
 
 **[2026-08-29 22:08]**
 - Initial document created from `/improve` run 2 on LANAAGNT-IP01: 15 verbatim tool descriptions + parameter contracts, substitution points marked

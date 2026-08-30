@@ -84,6 +84,7 @@ e:\Dev\Delphios-Lana-V1\
 │       ├── edit_tools.py             # edit, multi_edit, write_to_file + ReadLedger (~240 lines) [NEW]
 │       ├── shell_tools.py            # run_command, command_status; background process table (~200 lines) [NEW]
 │       ├── web_tools.py              # search_web (websearch role side-call), read_url_content, view_content_chunk (~220 lines) [NEW]
+│       ├── trajectory_tools.py       # trajectory_search over .lana/sessions JSONL (lexical scoring, 50-chunk cap) (~80 lines) [NEW 2026-08-30]
 │       ├── state_tools.py            # todo_list (full-replace, event emission) (~60 lines) [NEW]
 │       ├── skill_tool.py             # skill: SKILL.md + supporting file listing (~60 lines) [NEW]
 │       └── interact_tools.py         # ask_user_question (blocks on frontend response) (~60 lines) [NEW]
@@ -131,6 +132,7 @@ Estimated total: ~3,900 lines source + ~1,800 lines tests [ASSUMED - per-module 
 - **LANAAGNT-IP01-EC-24**: Model absent from `model-pricing.json` -> cost rendered as `?`, tokens still shown (LANAAGNT-FR-09)
 - **LANAAGNT-IP01-EC-25**: `view_content_chunk` with unknown `document_id` or out-of-range position -> error naming valid range
 - **LANAAGNT-IP01-EC-26**: `read_file` on an image file -> refused with explanatory error (no visual presentation in a CLI); SVG stays readable as text (synced from implementation 2026-08-30)
+- **LANAAGNT-IP01-EC-27**: `trajectory_search` with unknown `ID`, ambiguous prefix, `SearchType: "user"`, or no sessions folder -> error naming available session ids / the contract violation (FR-15)
 
 ## 3. Implementation Steps
 
@@ -339,6 +341,14 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Note**: Chunk store is session-scoped in-memory + persisted as `.lana/chunks/<document_id>.json` files - view_content_chunk survives --resume by lazy disk load (implementation replaced the JSONL-mirroring idea; same guarantee, simpler - synced 2026-08-30). Chunk size ~5K chars [ASSUMED - matches Cascade's observed 2-8 KB chunk cost range]
 
+### LANAAGNT-IP01-IS-23: Session trajectory search tool (LANAAGNT-FR-15, added 2026-08-30)
+
+**Location**: `tools/trajectory_tools.py`, `tools/definitions.py`, `prompt.py`, `cli.py`
+
+**Action**: Transcribe the `trajectory_search` definition verbatim from IN02 section 7 (hand-transcription guarded by the diff test). Executor: resolve `ID` against `[workspace]/.lana/sessions/` (exact name, stem, or unique prefix); render each event line as one chunk `[NNN] type: excerpt`; score by case-insensitive query-term overlap, sort descending (stable by position); empty query -> chronological; cap 50 chunks; `SearchType: "user"` -> error. Register executor; REMOVE trajectory_search from the `prompt.py` capability notice
+
+**Note**: Lexical scoring only (DD-21); the current session's own file is searchable too (it is flushed per line, FR-08)
+
 ### Phase I: Hardening
 
 ### LANAAGNT-IP01-IS-19: NFR verification fixtures
@@ -519,6 +529,12 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - **LANAAGNT-IP01-TC-59**: grep_search/find_by_name skip IGNORED_DIRECTORIES (.git, node_modules, ...); explicit search inside an ignored dir still works
 - **LANAAGNT-IP01-TC-60**: Renderer prints bracketed untrusted text verbatim - no markup swallowing, no MarkupError (BG-0004); plus mid-prompt compaction fire (FR-07 per-turn check, drift item 02)
 
+### Category 12: Trajectory Search (3 tests, added 2026-08-30)
+
+- **LANAAGNT-IP01-TC-61**: Query-term scoring - matching chunks returned sorted by overlap descending; 50-chunk cap enforced on a 60-event session
+- **LANAAGNT-IP01-TC-62**: Empty query returns all chunks chronologically (contract); ID resolution by exact name, stem, and unique prefix
+- **LANAAGNT-IP01-TC-63**: Error paths (EC-27) - unknown ID lists available sessions, ambiguous prefix rejected, SearchType "user" rejected, definitions diff test covers the 16th tool
+
 ## 6. Verification Checklist
 
 ### Prerequisites
@@ -537,12 +553,15 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - [x] **LANAAGNT-IP01-VC-11**: Commit after each green phase (`/commit`)
 
 ### Validation
-- [x] **LANAAGNT-IP01-VC-12**: All 60 test cases pass (live ones with keys present; TC-56..60 synced 2026-08-30)
+- [x] **LANAAGNT-IP01-VC-12**: All 63 test cases pass (live ones with keys present; TC-56..60 synced, TC-61..63 trajectory search added 2026-08-30)
 - [x] **LANAAGNT-IP01-VC-13**: NFR-01 verified by code review (only api.openai.com/api.anthropic.com contacted; `urllib` fetch gated by approval) + secret-leak sweeps in every black-box scenario - a literal packet capture was NOT performed [ASSUMED clean]; NFR-02 kill/resume (TP01-TC-06); NFR-03 startup < 2 s + cache hits (TC-41 live); NFR-05 risk notice on auto/turbo
 - [x] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 06:20]**
+- Added: IS-23 trajectory_search implementation step (FR-15/DD-21), EC-27 error paths, Category 12 TC-61..63, trajectory_tools.py in File Structure; VC-12 count 60 → 63
 
 **[2026-08-30 04:55]**
 - Changed (`/improve` run 3): IS-21 jsonl stdout purity - diagnostics to stderr in headless jsonl mode (evidence: tests/harness.py carried a skip-non-JSON workaround for the contamination); purity regression tests added; 4 unused test imports removed

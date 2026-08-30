@@ -9,12 +9,12 @@
 
 **Depends on:**
 - `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` rev 22:20 for requirements (FR-14/DD-20 added for this plan)
-- `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]` rev 04:15 for the 60 unit/integration test cases (TC-01..60 incl. Category 11 synced regressions) and phases
+- `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]` rev 06:20 for the 63 unit/integration test cases (TC-01..63 incl. Categories 11-12) and phases
 - `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` for tool contract assertions
 
 ## MUST-NOT-FORGET
 
-- IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..60); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
+- IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..63); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
 - Every black-box scenario runs the REAL `lana` executable via `tests/harness.py` - no in-process shortcuts
 - Scripted adapter = determinism; live-key tests are a separate, skippable phase
 - Test workspaces are temp folders with their own `--config` - the real `config/lana-config.json` and DevSystemV4.2 are never written
@@ -103,7 +103,7 @@ Four test layers verify Lana MVP-1: unit (pure functions), integration (agent lo
 
 ## 6. Test Cases
 
-Black-box scenarios (Layer 3). Each drives the real CLI and cites the requirements it proves. Unit/integration inventory stays in `LANAAGNT-IP01` section 5 (TC-01..60).
+Black-box scenarios (Layer 3). Each drives the real CLI and cites the requirements it proves. Unit/integration inventory stays in `LANAAGNT-IP01` section 5 (TC-01..63).
 
 ### Category 1: Conversation Scenarios (3 tests)
 
@@ -132,7 +132,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 ## 7. Test Phases
 
-1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..60 (Layers 1-2), run on every change, no keys, no network
+1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..63 (Layers 1-2), run on every change, no keys, no network
 2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58 + TP01-TC-01..10 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
 3. **Phase T3: Live smoke** - IP01 TC-40..45 (Layer 4), keys present, marker `live`, budget-capped
 4. **Phase T4: Acceptance** - IP01 TC-46 offline end-to-end + TC-47 manual live run against DevSystemV4.2; results recorded in PROGRESS.md
@@ -171,6 +171,9 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 06:20]**
+- Changed: IP01 case count 60 → 63 (Category 12 trajectory search TC-61..63 for the 16th tool, SP01 FR-15); T1 range extended
 
 **[2026-08-30 04:15]**
 - Changed (`/sync` Code→TEST): IP01 case count 55 → 60 (Category 11 synced regressions TC-56..60), TC-08 asserts filesystem-derived counts instead of the 8/46/21 snapshot (DevSystemV4.2 evolved to 23 skills - the hardcoded assertion broke and was de-hardcoded during `/improve` run 1)

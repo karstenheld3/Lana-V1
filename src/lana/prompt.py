@@ -9,7 +9,6 @@ from lana.loader import PromptSystem
 UNAVAILABLE_TOOLS = [
   ("code_search", "use grep_search with targeted patterns instead"),
   ("create_memory", "state that memories are unavailable; important context belongs in workspace files"),
-  ("trajectory_search", "state that conversation history search is unavailable"),
   ("read_terminal", "state that IDE terminal access is unavailable"),
   ("browser_preview", "state that browser tools are unavailable"),
   ("read_url_content is available; mcp1_* / mcp2_* browser and MCP tools", "state that MCP server tools are unavailable"),

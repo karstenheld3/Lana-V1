@@ -6,7 +6,7 @@ from lana.prompt import build_capability_notice, build_system_prompt
 WORKSPACE_INFO = {"os": "windows", "workspace": "e:/Dev/Sample", "git_root": "e:/Dev/Sample"}
 
 # Tools dropped from Cascade's set (DD-10) - must not appear outside <capability_notice> (RV01 RF-04)
-DROPPED_TOOL_NAMES = ["code_search", "create_memory", "trajectory_search", "read_terminal", "browser_preview", "deploy_web_app", "read_deployment_config", "check_deploy_status", "edit_notebook", "read_notebook", "list_resources", "read_resource", "mcp1_", "mcp2_"]
+DROPPED_TOOL_NAMES = ["code_search", "create_memory", "read_terminal", "browser_preview", "deploy_web_app", "read_deployment_config", "check_deploy_status", "edit_notebook", "read_notebook", "list_resources", "read_resource", "mcp1_", "mcp2_"]  # trajectory_search available since 2026-08-30 (FR-15)
 
 FR03_SECTION_ORDER = ["You are Lana", "<communication_style>", "<tool_calling>", "<making_code_changes>", "<task_management>", "<running_commands>", "<debugging>", "<calling_external_apis>", "<workflows>", "<user_rules>", "<capability_notice>", "<user_information>"]
 

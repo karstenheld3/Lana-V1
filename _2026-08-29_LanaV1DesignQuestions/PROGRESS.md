@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 06:30]**
+- Added: tool completeness confirmed (15/15/15: FR-10 = definitions = executors), then 16th tool `trajectory_search` added through the full chain - IN02 section 7 (verbatim live-session transcription) -> SP01 FR-15/DD-21 (resolves deferred D-01, `/remove` now executable) -> IP01 IS-23/EC-27/TC-61..63 -> implementation (`trajectory_tools.py`, registry, capability notice removal) -> 175 offline tests green first pass
+
 **[2026-08-30 03:35]**
 - Added: `/improve` + `/go` runs 1-2 on the code: APPLIED rg/fd ignore-directory parity for grep_search/find_by_name (real issue - workspace contains node_modules + .git; commits 68da12c/6138f5e); violations fixed (enforce_read_gate rename per MC-PR-03, unused import); brittle DevSystemV4.2 count assertions de-hardcoded (external system evolved 21 -> 23 skills - discovered mid-run); DF01 dispositioned (D-01 MVP-3, D-03 obsolete); 5 code candidates deferred with per-question rationale in `__lana_DEFERRED_IMPROVEMENTS.md [LANAAGNT-DF02]` - no APPLY-able candidates remain; suite 166 offline green. Process note: one chained commit fired on red (fixed and re-verified immediately) - lesson: never chain `pytest; git commit`
 
