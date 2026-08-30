@@ -17,7 +17,7 @@
 - IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..67); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
 - Every black-box scenario runs the REAL `lana` executable via `tests/harness.py` - no in-process shortcuts
 - Scripted adapter = determinism; live-key tests are a separate, skippable phase
-- Test workspaces are temp folders with their own `--config` - the real `config/lana-config.json` and DevSystemV4.2 are never written
+- Test workspaces are temp folders with their own `--config` - the real `config/lana-config.json` and IPPS are never written
 - All scenario fixtures use generic content (Privacy Gate) - no real names, keys, or personal data in scripts or fake prompt systems
 
 ## Table of Contents
@@ -78,7 +78,7 @@ Four test layers verify Lana MVP-1: unit (pure functions), integration (agent lo
 ### SHOULD TEST (important, automated where cheap)
 
 - **Provider adapters** - Testability: MEDIUM (live keys), Effort: Medium - round trips, cache hits, Responses reasoning regression
-- **Prompt system loader against real DevSystemV4.2** - Testability: EASY (skip-if-absent), Effort: Low
+- **Prompt system loader against real IPPS** - Testability: EASY (skip-if-absent), Effort: Low
 - **Cost math** - Testability: EASY, Effort: Low
 - **Web tools** - Testability: MEDIUM (network), Effort: Medium - fetch/chunk against a local HTTP fixture server where possible, live search in smoke only
 
@@ -123,7 +123,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 ### Category 4: Real Prompt System Scenario (1 test)
 
-- **LANAAGNT-TP01-TC-08**: DevSystemV4.2 startup + `/help` via pipe (skip if folder absent) -> banner reports filesystem-derived counts (8/46/21 at analysis; the folder evolves - counts computed at test time), workflow list contains `prime` and `verify`, startup under 2 s (FR-02, NFR-03)
+- **LANAAGNT-TP01-TC-08**: IPPS startup + `/help` via pipe (skip if folder absent) -> banner reports filesystem-derived counts (8/46/21 at analysis; the folder evolves - counts computed at test time), workflow list contains `prime` and `verify`, startup under 2 s (FR-02, NFR-03)
 
 ### Category 5: Diagnostics and Exit Codes (2 tests)
 
@@ -139,7 +139,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..64, TC-66..67 (Layers 1-2), run on every change, no keys, no network
 2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58, TC-65 + TP01-TC-01..11 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
 3. **Phase T3: Live smoke** - IP01 TC-40..45 (Layer 4), keys present, marker `live`, budget-capped
-4. **Phase T4: Acceptance** - IP01 TC-46 offline end-to-end + TC-47 manual live run against DevSystemV4.2; results recorded in PROGRESS.md
+4. **Phase T4: Acceptance** - IP01 TC-46 offline end-to-end + TC-47 manual live run against IPPS; results recorded in PROGRESS.md
 
 Dependency: T2 requires T1 green; T3/T4 require T2 green. T1+T2 are the continuous integration (CI) gate (VC below).
 
@@ -187,7 +187,7 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 - Changed: IP01 case count 60 → 63 (Category 12 trajectory search TC-61..63 for the 16th tool, SP01 FR-15); T1 range extended
 
 **[2026-08-30 04:15]**
-- Changed (`/sync` Code→TEST): IP01 case count 55 → 60 (Category 11 synced regressions TC-56..60), TC-08 asserts filesystem-derived counts instead of the 8/46/21 snapshot (DevSystemV4.2 evolved to 23 skills - the hardcoded assertion broke and was de-hardcoded during `/improve` run 1)
+- Changed (`/sync` Code→TEST): IP01 case count 55 → 60 (Category 11 synced regressions TC-56..60), TC-08 asserts filesystem-derived counts instead of the 8/46/21 snapshot (IPPS evolved to 23 skills - the hardcoded assertion broke and was de-hardcoded during `/improve` run 1)
 
 **[2026-08-30 02:10]**
 - Changed: all 6 VC items checked - T1 (120 unit/integration), T2 (41 black-box incl. all 10 TP01 scenarios), T3 (4 live smokes, spend well under $1), T4 (offline e2e + live acceptance automated portion) green

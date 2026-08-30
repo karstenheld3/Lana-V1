@@ -18,7 +18,7 @@
 - [x] Ran `/reconcile`: 8 confirmed (2 reduced scope), 2 sub-recommendations dismissed (pre-call compaction, network-command list)
 - [x] Ran `/implement`: all 10 accepted findings folded into LANAAGNT-SP01 (rev 21:35); FL-0002 resolved; post-implement verify sweep fixed 2 residual inconsistencies (ProviderAdapter, FR-03 section order)
 - [x] Ran `/cleanup`: deleted addressed `_SPEC_LANA_MVP-1_REVIEW.md`
-- [x] Ran `/improve` run 1 on LANAAGNT-SP01 (rev 21:45): DevSystemV4.2 tool demand scan -> added web research tools (FR-10 now 15 tools, FR-13, DD-19, websearch role); D-01 deferred
+- [x] Ran `/improve` run 1 on LANAAGNT-SP01 (rev 21:45): IPPS tool demand scan -> added web research tools (FR-10 now 15 tools, FR-13, DD-19, websearch role); D-01 deferred
 - [x] Created `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: 10 phases (A-J), 20 implementation steps, 25 edge cases, 49 test cases, 15 verification items
 - [x] Ran `/verify` on LANAAGNT-IP01: added Category 9 Cost tests, phase flow diagram, [ASSUMED] labels; full SPEC coverage matrix confirmed
 - [x] Ran `/improve` run 2 on LANAAGNT-IP01: created `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (15 verbatim definitions); FL-0003 recorded
@@ -32,7 +32,7 @@
 - [x] Phase D: OpenAI Responses adapter + Anthropic Messages adapter
 - [x] Phase H + scenarios: web tools, all 10 TP01 black-box scenarios, NFR fixtures, offline e2e
 - [x] TK-033 live smokes green: TC-40 OpenAI, TC-41 Anthropic cache, TC-42 reasoning tool call, TC-43 web search
-- [x] TK-034 live acceptance PASSED: real `lana` + DevSystemV4.2 + claude-sonnet-4-5
+- [x] TK-034 live acceptance PASSED: real `lana` + IPPS + claude-sonnet-4-5
 - [x] Bugs filed and fixed: BG-0001 through BG-0005 (all resolved)
 - [x] Full-recall session log: SP01 FR-08 + SessionStarted event + thinking payloads + fingerprint + resume authority; 179 offline green
 - [x] 16th tool `trajectory_search` added through the full chain; 175 offline green

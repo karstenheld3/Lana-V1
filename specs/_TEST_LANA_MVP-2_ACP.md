@@ -166,7 +166,7 @@ def assert_no_secret_leak(outputs, key_values): ...   # reused from MVP-1 harnes
 
 - Surviving `lana --acp` subprocesses (stdin close → EOF exit; kill after grace period)
 - Temp workspaces and session files (pytest `tmp_path` auto-removal)
-- No global state; the real `config/lana-config.json` and DevSystemV4.2 never touched
+- No global state; the real `config/lana-config.json` and IPPS never touched
 
 ## 10. Verification Checklist
 

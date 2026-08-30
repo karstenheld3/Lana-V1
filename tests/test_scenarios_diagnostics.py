@@ -7,22 +7,22 @@ from tests.harness import LanaProc, assert_no_secret_leak
 from tests.scenario_utils import build_scenario_proc
 from tests.scripted_adapter import write_script
 
-DEVSYSTEM_PATH = Path("e:/Dev/IPPS/DevSystemV4.2")
+IPPS_PATH = Path(__file__).resolve().parent.parent / ".lana"
 
 
-# TP01-TC-08: DevSystemV4.2 startup + /help via pipe -> 8/46/21, prime + verify listed, load < 2 s (FR-02, NFR-03)
-def test_tp01_tc08_devsystem_startup(tmp_path):
-  if not DEVSYSTEM_PATH.is_dir(): pytest.skip("DevSystemV4.2 not present on this machine")
+# TP01-TC-08: IPPS startup + /help via pipe -> 8/46/21, prime + verify listed, load < 2 s (FR-02, NFR-03)
+def test_tp01_tc08_ipps_startup(tmp_path):
+  if not IPPS_PATH.is_dir(): pytest.skip("IPPS not present on this machine")
   workspace = tmp_path / "tc08"
   workspace.mkdir()
-  config_dir = write_config_dir(workspace, lana_overrides={"agent_folder": str(DEVSYSTEM_PATH)}, key_lines=None)
+  config_dir = write_config_dir(workspace, lana_overrides={"agent_folder": str(IPPS_PATH)}, key_lines=None)
   proc = LanaProc(workspace, config_path=config_dir / "lana-config.json", script_path=write_script(workspace / "s.jsonl", []))
   result = proc.run_piped("/help\n/exit\n")
   assert result.returncode == 0, result.stdout + result.stderr
-  # Counts from the filesystem - DevSystemV4.2 evolves (8/46/21 at SPEC analysis; growing since)
-  rule_count = len(list((DEVSYSTEM_PATH / "rules").glob("*.md")))
-  workflow_count = len(list((DEVSYSTEM_PATH / "workflows").glob("*.md")))
-  skill_count = len(list((DEVSYSTEM_PATH / "skills").glob("*/SKILL.md")))
+  # Counts from the filesystem - IPPS evolves (8/46/21 at SPEC analysis; growing since)
+  rule_count = len(list((IPPS_PATH / "rules").glob("*.md")))
+  workflow_count = len(list((IPPS_PATH / "workflows").glob("*.md")))
+  skill_count = len(list((IPPS_PATH / "skills").glob("*/SKILL.md")))
   assert re.search(rf"{rule_count} rules \(\d+ injected.*\), {workflow_count} workflows, {skill_count} skills\.", result.stdout)
   assert "/prime:" in result.stdout and "/verify:" in result.stdout
   load_seconds = float(re.search(r"Loaded in ([\d.]+) secs", result.stdout).group(1))

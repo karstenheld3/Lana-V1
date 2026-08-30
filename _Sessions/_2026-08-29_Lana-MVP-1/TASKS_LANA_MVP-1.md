@@ -20,7 +20,7 @@
 
 Run before starting any implementation:
 - [x] Record environment baseline: Python version (3.12+ required), `pip --version`, empty `src/` confirmed, no pre-existing tests (greenfield - baseline is the clean state)
-- [x] Confirm read access to `e:\Dev\IPPS\DevSystemV4.2` and the 4 `config/*.json` inputs
+- [x] Confirm read access to `e:\Dev\IPPS\IPPS` and the 4 `config/*.json` inputs
 - [x] Note: API keys NOT required until TK-016/TK-017 (Phase D live smokes); all of A-C and the scripted-adapter path through E-G run key-free
 
 ## Task Execution Protocol
@@ -80,7 +80,7 @@ Applies to every task. Purpose: a ~16-HHW implementation spans sessions and cont
 
 - [x] **LANAAGNT-TK-005** - PromptSystem loader
   - Files: `src/lana/loader.py`
-  - Done when: IP01 TC-07..12 green (frontmatter tolerance, empty/oversized rules, precedence, real DevSystemV4.2 8/46/21 in < 2 s) (IS-04)
+  - Done when: IP01 TC-07..12 green (frontmatter tolerance, empty/oversized rules, precedence, real IPPS 8/46/21 in < 2 s) (IS-04)
   - Verify: `pytest tests/test_loader.py`
   - Depends: TK-001
   - Parallel: [P]
@@ -291,7 +291,7 @@ Applies to every task. Purpose: a ~16-HHW implementation spans sessions and cont
 
 - [x] **LANAAGNT-TK-031** - TP01 scenarios 6-10 (robustness + real system + diagnostics)
   - Files: `tests/test_scenarios_robustness.py`, `tests/test_scenarios_diagnostics.py`
-  - Done when: TP01-TC-06..10 green (kill/resume, output cap, DevSystemV4.2 startup, --debug redaction, exit codes 3/4)
+  - Done when: TP01-TC-06..10 green (kill/resume, output cap, IPPS startup, --debug redaction, exit codes 3/4)
   - Verify: `pytest tests/test_scenarios_*.py`
   - Depends: TK-030, TK-027
   - Est: 0.5 HHW
@@ -312,7 +312,7 @@ Applies to every task. Purpose: a ~16-HHW implementation spans sessions and cont
 
 - [x] **LANAAGNT-TK-034** - Live acceptance run (IP01 TC-47)
   - Files: none (manual per IS-20 script)
-  - Done when: /prime + edit round trip + approval + /cost + Ctrl+C + --resume all pass against DevSystemV4.2; results in PROGRESS.md
+  - Done when: /prime + edit round trip + approval + /cost + Ctrl+C + --resume all pass against IPPS; results in PROGRESS.md
   - Verify: manual checklist from IS-20
   - Depends: TK-032, TK-033
   - Est: 0.5 HHW

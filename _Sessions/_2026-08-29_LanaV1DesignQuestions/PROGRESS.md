@@ -12,7 +12,7 @@
 - [x] Read `config/` files (model-registry, model-parameter-mapping)
 - [x] Created `_INFO_OPEN_DESIGN_QUESTIONS.md [LANAAGNT-IN01]`
 - [x] Ran `/verify` on LANAAGNT-IN01: fixed 2 stale cross-refs, Timeline format, arrow spacing, acronym expansion, source ID format
-- [x] Analyzed DevSystemV4.2 (397 files: 8 rules with trigger frontmatter, 46 workflows, 21 skills)
+- [x] Analyzed IPPS (397 files: 8 rules with trigger frontmatter, 46 workflows, 21 skills)
 
 ## Progress Changes
 

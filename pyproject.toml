@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lana"
 version = "0.1.0"
-description = "Lana MVP-1 - CLI agent running the DevSystemV4.2 prompt system on OpenAI/Anthropic backends"
+description = "Lana MVP-1 - CLI agent running the IPPS prompt system on OpenAI/Anthropic backends"
 requires-python = ">=3.12"
 dependencies = [
   "openai>=1.40",

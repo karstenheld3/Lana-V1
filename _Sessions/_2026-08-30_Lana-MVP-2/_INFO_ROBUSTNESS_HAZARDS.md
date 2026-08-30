@@ -178,7 +178,7 @@ Expected waits that look like hangs because nothing tells the user.
 ### UX-06: Skill folder scan can stretch startup invisibly [LOW]
 
 - **Evidence**: `loader.load_skill` runs `folder.rglob("*")` per skill; a skill folder containing a dependency tree (e.g., an accidental `node_modules`) scans everything inside the 2 s NFR-03 budget assumption
-- **Mitigation**: none needed today (DevSystemV4.2 max 160 files); if startup regressions appear, cap the listing with a `<truncated>` marker like tool results
+- **Mitigation**: none needed today (IPPS max 160 files); if startup regressions appear, cap the listing with a `<truncated>` marker like tool results
 - **Effort**: defer
 
 ## 5. Non-Findings

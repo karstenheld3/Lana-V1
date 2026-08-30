@@ -1,8 +1,8 @@
-# SPEC: Lana MVP-1 - CLI Agent Running DevSystemV4.2
+# SPEC: Lana MVP-1 - CLI Agent Running IPPS
 
 **Doc ID**: LANAAGNT-SP01
 **Feature**: lana-mvp-1
-**Goal**: Specify a minimal Python command-line interface (CLI) agent that runs the DevSystemV4.2 prompt system (rules, workflows, skills) with an agentic tool loop on OpenAI/Anthropic backends
+**Goal**: Specify a minimal Python command-line interface (CLI) agent that runs the IPPS prompt system (rules, workflows, skills) with an agentic tool loop on OpenAI/Anthropic backends
 **Timeline**: Created 2026-08-29, Updated 0 times
 **Target file(s)**:
 - `src/lana/` (new package)
@@ -14,7 +14,7 @@
 - `config/model-parameter-mapping.json` for effort level translation
 - `config/model-pricing.json` for cost tracking
 - `config/.api-keys.txt` for API keys
-- `e:\Dev\IPPS\DevSystemV4.2\` as the reference prompt system to run
+- `.lana/` as the reference prompt system to run
 
 **Does not depend on:**
 - ACP (Agent Client Protocol) research docs (ACP deferred to MVP-2, only the event abstraction prepares for it)
@@ -25,7 +25,7 @@
 - Every design decision cites its OQ-NN from LANAAGNT-IN01 - no undocumented deviations
 - Only OpenAI and Anthropic backends - no other LLM providers, no external search APIs
 - Existing `config/` files are read as-is, never duplicated or rewritten
-- Tool names, descriptions, and schemas copied verbatim from the Cascade reference (OQ-30) - the DevSystemV4.2 rules reference these exact names
+- Tool names, descriptions, and schemas copied verbatim from the Cascade reference (OQ-30) - the IPPS rules reference these exact names
 - SPEC defines WHAT, not HOW - no code, line numbers, or function signatures
 - Deferred scope (ACP, MCP, memory database, web tools) must not leak requirements into MVP-1
 
@@ -48,11 +48,11 @@
 
 ## 1. Scenario
 
-**Problem:** The DevSystemV4.2 prompt system (8 rules files, 46 workflows, 21 skills) currently runs only inside Windsurf Cascade. There is no self-owned agent that can load these rules, expand workflow slash commands, invoke skills, and execute an agentic tool loop against OpenAI/Anthropic APIs directly.
+**Problem:** The IPPS prompt system (8 rules files, 46 workflows, 21 skills) currently runs only inside Windsurf Cascade. There is no self-owned agent that can load these rules, expand workflow slash commands, invoke skills, and execute an agentic tool loop against OpenAI/Anthropic APIs directly.
 
 **Solution:**
 - Interactive CLI agent `lana` with a single-model agentic tool loop (16 tools incl. web research and session trajectory search)
-- Loads a configurable prompt system folder (rules/, workflows/, skills/) - DevSystemV4.2 or any workspace `.lana/` folder
+- Loads a configurable prompt system folder (rules/, workflows/, skills/) - IPPS or any workspace `.lana/` folder
 - Assembles a Cascade-compatible system prompt (identity, behavioral sections, MEMORY rule blocks, workflow list)
 - Manages context via checkpoint compaction, persists sessions as JSON Lines (JSONL), tracks cost per turn
 
@@ -66,9 +66,9 @@
 
 ## 2. Context
 
-### 2.1 Target Prompt System: DevSystemV4.2
+### 2.1 Target Prompt System: IPPS
 
-Analyzed at `e:\Dev\IPPS\DevSystemV4.2\` (397 files; snapshot 2026-08-29 - the folder evolves, e.g. 23 skills by 2026-08-30; the loader derives counts from the filesystem at startup):
+Analyzed at `.lana/` (397 files; snapshot 2026-08-29 - the folder evolves, e.g. 23 skills by 2026-08-30; the loader derives counts from the filesystem at startup):
 
 - `rules/` - 8 Markdown files, ~59 KB total, largest 13.5 KB (`devsystem-core.md`). YAML frontmatter: `trigger: always_on`
 - `workflows/` - 46 Markdown files. YAML frontmatter: `description`, `auto_execution_mode`. Invoked by user as `/name`
@@ -84,7 +84,7 @@ The rules reference Cascade tool names (`read_file`, `run_command`, `todo_list`,
 
 **Workspace definition:** the workspace is the current working directory at `lana` launch. All `[workspace]` paths, the file-write safety boundary (LANAAGNT-FR-12), and `<user_information>` derive from it.
 
-**Tool demand evidence** (full-text scan of all 397 DevSystemV4.2 files, 2026-08-29): `read_url_content` 17 refs / 5 files and `search_web` 14 refs / 4 files - concentrated in the deep-research skill (24 files, flagship capability) and `/research`; `find_by_name` 5, `read_file` 4, `run_command` 4, `command_status` 3, `grep_search` 2 (all in MVP-1); `trajectory_search` 3 refs in `/remove` only; `mcp1_*` 3 refs in browser skills; all other Cascade tools 0 refs.
+**Tool demand evidence** (full-text scan of all 397 IPPS files, 2026-08-29): `read_url_content` 17 refs / 5 files and `search_web` 14 refs / 4 files - concentrated in the deep-research skill (24 files, flagship capability) and `/research`; `find_by_name` 5, `read_file` 4, `run_command` 4, `command_status` 3, `grep_search` 2 (all in MVP-1); `trajectory_search` 3 refs in `/remove` only; `mcp1_*` 3 refs in browser skills; all other Cascade tools 0 refs.
 
 **Known MVP-1 limitation:** Workflows using MCP tools (browser automation skills) will load but cannot complete those steps. (`/remove` became executable 2026-08-30 - `trajectory_search` added, FR-15.) Web research workflows (`/deep-research`, `/research`) and all file/command/document workflows (`/prime`, `/write-spec`, `/verify`, `/session-new`, `/commit`, ...) are fully executable.
 
@@ -322,7 +322,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 
 **LANAAGNT-NFR-03: Performance - Prompt Cache Utilization**
 - After turn 1 of a session, Anthropic cache-read tokens cover the system prompt + tool definitions (verified via API usage fields)
-- Startup (config + prompt system load) under 2 seconds for DevSystemV4.2 (397 files)
+- Startup (config + prompt system load) under 2 seconds for IPPS (397 files)
 
 **LANAAGNT-NFR-04: Observability - Debuggable API Traffic**
 - `--debug` flag writes full request/response JSON (keys redacted) to `[workspace]/.lana-data/logs/`
@@ -353,11 +353,11 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-08:** Compaction threshold relative to the generator's `max_input` with an absolute cap (OQ-14). Rationale: registry windows span 200K to 1.05M tokens; a fixed 100K wastes large windows; the cap bounds Summarizer cost.
 
-**LANAAGNT-DD-09:** No memory database in MVP-1 (OQ-17 to OQ-20). Rationale: DevSystemV4.2 needs only the "global rules" memory type, which rules injection provides; `create_memory` without retrieval is dead weight; deferring removes storage, retrieval, and injection-timing questions entirely.
+**LANAAGNT-DD-09:** No memory database in MVP-1 (OQ-17 to OQ-20). Rationale: IPPS needs only the "global rules" memory type, which rules injection provides; `create_memory` without retrieval is dead weight; deferring removes storage, retrieval, and injection-timing questions entirely.
 
-**LANAAGNT-DD-10:** 16 tools; dropped from Cascade's 27: deployment tools, browser tools, notebook tools, `read_terminal` (no IDE terminals), `create_memory` (DD-09), `code_search` (needs subagent), MCP meta-tools (no MCP) (OQ-27). (`trajectory_search` moved from dropped to included 2026-08-30 - see DD-21.) Rationale: the DevSystemV4.2 scan (section 2.2) shows every kept tool has demand and every dropped tool has 0 or niche references.
+**LANAAGNT-DD-10:** 16 tools; dropped from Cascade's 27: deployment tools, browser tools, notebook tools, `read_terminal` (no IDE terminals), `create_memory` (DD-09), `code_search` (needs subagent), MCP meta-tools (no MCP) (OQ-27). (`trajectory_search` moved from dropped to included 2026-08-30 - see DD-21.) Rationale: the IPPS scan (section 2.2) shows every kept tool has demand and every dropped tool has 0 or niche references.
 
-**LANAAGNT-DD-11:** Tool names, descriptions, and schemas verbatim from Cascade (OQ-30). Rationale: DevSystemV4.2 rules and workflows reference exact tool names and embedded behavioral constraints; verbatim copy transfers proven prompt engineering and keeps the prompt system portable between Cascade and Lana.
+**LANAAGNT-DD-11:** Tool names, descriptions, and schemas verbatim from Cascade (OQ-30). Rationale: IPPS rules and workflows reference exact tool names and embedded behavioral constraints; verbatim copy transfers proven prompt engineering and keeps the prompt system portable between Cascade and Lana.
 
 **LANAAGNT-DD-12:** Single prompt system folder configurable via `agent_folder`, Cascade folder layout (`rules/`, `workflows/`, `skills/`) (OQ-21). Rationale: one agent has one prompt system folder, matching the Cascade architecture; pointing `agent_folder` at any folder with the standard layout requires zero content changes. Relative path resolves against the workspace; absolute path used as-is.
 
@@ -373,7 +373,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-18:** Deferred to MVP-2/3 with no MVP-1 implementation: ACP frontend (OQ-32 to OQ-37), MCP client (OQ-25, OQ-36), hooks (OQ-26), mid-session model switching (OQ-06), code_search subagent (OQ-28), proactive summarization (OQ-15). Rationale: user directive - simple but effective, avoid complexity and risk.
 
-**LANAAGNT-DD-19:** Web research tools included in MVP-1 via provider-native web search (revised from MVP-2 deferral per user directive and scan evidence) [PROVEN - live web search TC-43 + Anthropic branch smoke green 2026-08-30]. Rationale: `search_web`/`read_url_content` are the most-referenced non-core tools in DevSystemV4.2 (14 + 17 refs), powering the flagship deep-research skill; OpenAI and Anthropic both offer native web search tools, so the two-backend constraint holds; `read_url_content` is plain HTTP fetching (no LLM backend involved), gated by Cascade-parity user approval.
+**LANAAGNT-DD-19:** Web research tools included in MVP-1 via provider-native web search (revised from MVP-2 deferral per user directive and scan evidence) [PROVEN - live web search TC-43 + Anthropic branch smoke green 2026-08-30]. Rationale: `search_web`/`read_url_content` are the most-referenced non-core tools in IPPS (14 + 17 refs), powering the flagship deep-research skill; OpenAI and Anthropic both offer native web search tools, so the two-backend constraint holds; `read_url_content` is plain HTTP fetching (no LLM backend involved), gated by Cascade-parity user approval.
 
 **LANAAGNT-DD-20:** Black-box CLI testing via three observable interfaces (FR-14): headless prompt injection, per-line-flushed session JSONL as the activity monitor, and the scripted replay adapter for deterministic turns. Rationale: tests exercise the real `lana` executable end-to-end without API cost, nondeterminism, or pseudo-terminal emulation (fragile on Windows); the AgentEvent stream (DD-06) stays the single observability surface for humans, tests, and the future ACP frontend alike.
 
@@ -455,7 +455,7 @@ User types "/prime"
 
 **Session JSONL (one AgentEvent per line):**
 ```json
-{"ts": "2026-08-29 21:05:10", "type": "session_started", "system_prompt": "You are Lana, ...", "tool_definitions": [{"name": "read_file", "description": "...", "schema": {}}], "config_snapshot": {"roles": {"generator": {"model_id": "claude-sonnet-4-5-20250929", "effort": "medium", "provider": "anthropic"}}, "execution_policy": "manual"}, "prompt_system_fingerprint": {"paths": ["e:/Dev/IPPS/DevSystemV4.2"], "counts": {"rules": 8, "workflows": 46, "skills": 23}, "content_hash": "sha256:..."}}
+{"ts": "2026-08-29 21:05:10", "type": "session_started", "system_prompt": "You are Lana, ...", "tool_definitions": [{"name": "read_file", "description": "...", "schema": {}}], "config_snapshot": {"roles": {"generator": {"model_id": "claude-sonnet-4-5-20250929", "effort": "medium", "provider": "anthropic"}}, "execution_policy": "manual"}, "prompt_system_fingerprint": {"paths": [".lana"], "counts": {"rules": 8, "workflows": 46, "skills": 23}, "content_hash": "sha256:..."}}
 {"ts": "2026-08-29 21:05:12", "type": "user_message", "content": "/prime", "expanded_workflow": "prime"}
 {"ts": "2026-08-29 21:05:14", "type": "tool_call_requested", "id": "tc_001", "tool": "read_file", "args": {"file_path": "e:/Dev/Delphios-Lana-V1/!NOTES.md"}}
 {"ts": "2026-08-29 21:05:14", "type": "tool_call_finished", "id": "tc_001", "status": "ok", "result": "     1\t# Notes\n...", "result_chars": 1204}
@@ -503,7 +503,7 @@ DO NOT ACKNOWLEDGE THIS CHECKPOINT MESSAGE.
 **Expected user-facing output for startup and one turn:**
 ```text
 Lana MVP-1 | generator: claude-sonnet-4-5 (medium) | summarizer: gpt-4.1-mini (low)
-Loading prompt system 'e:/Dev/IPPS/DevSystemV4.2'...
+Loading prompt system '.lana'...
   8 rules (7 injected, 1 skipped: empty), 46 workflows, 21 skills.
   OK. Loaded in 0.4 secs.
 
@@ -529,7 +529,7 @@ Running workflow 'prime'...
 - Token projection is usage-anchored (LANAAGNT-FR-07); the chars/4 heuristic covers only the delta since the last provider-reported count, bounding the known 2-4x under-count risk of pure heuristics on JSON-heavy payloads
 - No pre-call emergency compaction in MVP-1 - accepted risk: with the 50K-char tool result cap and the 60% threshold, the remaining 40% window headroom absorbs a full turn of capped results (`LANAAGNT-SP01-RV01` RF-03 reconcile decision)
 - `run_command` executes via the host shell (pwsh on Windows); working directory always explicit, `cd` never part of the command line (Cascade contract)
-- YAML frontmatter parsing must tolerate DevSystemV4.2 variations: key order differs across files, `workspace-rules.md` is near-empty (32 bytes)
+- YAML frontmatter parsing must tolerate IPPS variations: key order differs across files, `workspace-rules.md` is near-empty (32 bytes)
 - Windows paths and UTF-8 file content are the default test environment; encoding per `core-conventions.md`
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
@@ -561,7 +561,7 @@ Running workflow 'prime'...
 - Changed: Tool definition authority constraint now names `LANAAGNT-IN02` (live-session verbatim) above the ebook (`/improve` run 2 consequence; backup `_SPEC_LANA_MVP-1_v2.md`)
 
 **[2026-08-29 21:45]**
-- Added: Web research tools `search_web`/`read_url_content`/`view_content_chunk` (FR-10 now 15 tools), FR-13 behavior spec, DD-19, `websearch` role, tool demand evidence in section 2.2 (`/improve` run 1: DevSystemV4.2 scan showed 14+17 refs in deep-research/`/research`)
+- Added: Web research tools `search_web`/`read_url_content`/`view_content_chunk` (FR-10 now 15 tools), FR-13 behavior spec, DD-19, `websearch` role, tool demand evidence in section 2.2 (`/improve` run 1: IPPS scan showed 14+17 refs in deep-research/`/research`)
 - Changed: MVP-2 roadmap (web tools moved into MVP-1), capability notice list, NFR-01 network exception for approved fetches, DD-10 drop list + evidence-based rationale
 
 **[2026-08-29 21:35]**
@@ -578,4 +578,4 @@ Running workflow 'prime'...
 - Fixed: CLI acronym expanded in Goal; FR-07 anchor count aligned with the three-string checkpoint template (verification pass)
 
 **[2026-08-29 21:05]**
-- Initial specification created: 12 FRs, 4 NFRs, 18 DDs resolving all LANAAGNT-IN01 P1 questions for MVP-1 scope, DevSystemV4.2 analysis (8 rules, 46 workflows, 21 skills)
+- Initial specification created: 12 FRs, 4 NFRs, 18 DDs resolving all LANAAGNT-IN01 P1 questions for MVP-1 scope, IPPS analysis (8 rules, 46 workflows, 21 skills)

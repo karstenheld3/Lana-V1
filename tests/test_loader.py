@@ -5,7 +5,7 @@ from pathlib import Path
 from lana.loader import load_prompt_systems
 from tests.conftest import write_prompt_system
 
-DEVSYSTEM_PATH = Path("e:/Dev/IPPS/DevSystemV4.2")
+IPPS_PATH = Path(__file__).resolve().parent.parent / ".lana"
 
 
 # TC-07: fake system -> counts correct (3 rules loaded, 1 trigger-skipped; 2 workflows; 1 skill)
@@ -72,17 +72,17 @@ def test_missing_path_warns(tmp_path):
   assert system.rules == [] and system.workflows == []
 
 
-# TC-12: real DevSystemV4.2 -> loader finds EVERYTHING present on disk, in < 2 s
-# Counts computed from the filesystem, not hardcoded - DevSystemV4.2 is an external system that evolves
+# TC-12: real IPPS -> loader finds EVERYTHING present on disk, in < 2 s
+# Counts computed from the filesystem, not hardcoded - IPPS is an external system that evolves
 # (was 8/46/21 at SPEC analysis 2026-08-29; 23 skills by 2026-08-30)
-def test_tc12_real_devsystem_counts_and_speed():
-  if not DEVSYSTEM_PATH.is_dir(): pytest.skip("DevSystemV4.2 not present on this machine")
-  expected_rules = len(list((DEVSYSTEM_PATH / "rules").glob("*.md")))
-  expected_workflows = len(list((DEVSYSTEM_PATH / "workflows").glob("*.md")))
-  expected_skills = len(list((DEVSYSTEM_PATH / "skills").glob("*/SKILL.md")))
+def test_tc12_real_ipps_counts_and_speed():
+  if not IPPS_PATH.is_dir(): pytest.skip("IPPS not present on this machine")
+  expected_rules = len(list((IPPS_PATH / "rules").glob("*.md")))
+  expected_workflows = len(list((IPPS_PATH / "workflows").glob("*.md")))
+  expected_skills = len(list((IPPS_PATH / "skills").glob("*/SKILL.md")))
   assert expected_rules >= 8 and expected_workflows >= 46 and expected_skills >= 21  # sanity: never shrinks below the analyzed baseline
   started = time.perf_counter()
-  system = load_prompt_systems([DEVSYSTEM_PATH])
+  system = load_prompt_systems([IPPS_PATH])
   elapsed = time.perf_counter() - started
   assert (len(system.rules), len(system.workflows), len(system.skills)) == (expected_rules, expected_workflows, expected_skills)
   assert elapsed < 2.0, f"load took {elapsed:.2f} s"

@@ -1,4 +1,4 @@
-# IMPL: Lana MVP-1 - CLI Agent Running DevSystemV4.2
+# IMPL: Lana MVP-1 - CLI Agent Running IPPS
 
 **Doc ID**: LANAAGNT-IP01
 **Feature**: lana-mvp-1
@@ -35,7 +35,7 @@
 - **Greenfield**: `src/` is empty; no existing code paths, callers, or tests are affected
 - **Shared file surface**: `config/` gains one NEW file (`lana-config.json`); the 4 existing config files are opened read-only - zero modification risk
 - **Workspace root**: gains `pyproject.toml`, `README.md`, `tests/`; no collision with existing files (verified: none exist)
-- **External surface**: DevSystemV4.2 folder is read-only input at runtime; never written
+- **External surface**: IPPS folder is read-only input at runtime; never written
 - **Regression checkpoints**: each phase ends with its offline test group green (LANAAGNT-IP01-TC groups); phases A-C and E-G run without API keys, isolating provider risk to phases D and H
 
 ## Table of Contents
@@ -208,7 +208,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 # Skills: record supporting file relative paths (recursive, excluding SKILL.md)
 ```
 
-**Note**: Must load DevSystemV4.2 (8 rules / 46 workflows / 21 skills) in < 2 s (NFR-03); read files lazily where possible - workflow bodies are needed only on invocation
+**Note**: Must load IPPS (8 rules / 46 workflows / 21 skills) in < 2 s (NFR-03); read files lazily where possible - workflow bodies are needed only on invocation
 
 ### LANAAGNT-IP01-IS-05: System prompt assembly (LANAAGNT-FR-03)
 
@@ -380,7 +380,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Location**: `tests/`
 
-**Action**: Startup timing test against real DevSystemV4.2 path (skipped when absent); kill-and-resume test (NFR-02) via subprocess; byte-identity test for system prompt (IG-01); JSONL completeness audit test (IG-02)
+**Action**: Startup timing test against real IPPS path (skipped when absent); kill-and-resume test (NFR-02) via subprocess; byte-identity test for system prompt (IG-01); JSONL completeness audit test (IG-02)
 
 ### Phase J: End-to-End Acceptance
 
@@ -388,7 +388,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Location**: manual + `tests/test_e2e_offline.py`
 
-**Action**: Offline e2e with scripted fake adapter (full /prime-like flow). Then manual live run: `lana` in this workspace with `agent_folder` including DevSystemV4.2, execute `/prime`, one `edit` round trip, one `run_command` approval, `/cost`, Ctrl+C, `--resume`
+**Action**: Offline e2e with scripted fake adapter (full /prime-like flow). Then manual live run: `lana` in this workspace with `agent_folder` including IPPS, execute `/prime`, one `edit` round trip, one `run_command` approval, `/cost`, Ctrl+C, `--resume`
 
 **Note**: Acceptance criteria = Verification Checklist Validation block
 
@@ -415,7 +415,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 **Startup (success path):**
 ```text
 Lana MVP-1 | generator: claude-sonnet-4-5 (medium) | summarizer: gpt-4.1-mini (low) | websearch: gpt-4.1-mini
-Loading prompt system 'e:/Dev/IPPS/DevSystemV4.2'...
+Loading prompt system '.lana'...
   8 rules (7 injected, 1 skipped: empty), 46 workflows, 21 skills.
   OK. Loaded in 0.4 secs.
 Policy: manual
@@ -486,7 +486,7 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - **LANAAGNT-IP01-TC-09**: Malformed frontmatter (EC-02) -> body-only, warning
 - **LANAAGNT-IP01-TC-10**: Oversized rule (EC-03) -> truncation marker at limit
 - **LANAAGNT-IP01-TC-11**: Two paths, colliding workflow name -> later path wins
-- **LANAAGNT-IP01-TC-12**: Real DevSystemV4.2 (skip if absent) -> loader counts equal filesystem-derived counts (8/46/21 at analysis; the external system evolves - 23 skills by 2026-08-30) in < 2 s
+- **LANAAGNT-IP01-TC-12**: Real IPPS (skip if absent) -> loader counts equal filesystem-derived counts (8/46/21 at analysis; the external system evolves - 23 skills by 2026-08-30) in < 2 s
 
 ### Category 3: System Prompt (3 tests)
 
@@ -636,7 +636,7 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - Changed (implementation sync): IS-18 chunk store persisted via `.lana-data/chunks/<document_id>.json` files instead of JSONL event mirroring - same resume guarantee, simpler mechanism
 - Changed (implementation sync): IS-06 arg validation implemented as minimal built-in validator (no `jsonschema` dependency - DD-17 list is closed); TC-36 threshold comparison is `>=` (fires at exactly 120K)
 - Fixed: LANAAGNT-BG-0001 (approval_required not yielded to the event stream), LANAAGNT-BG-0002 (/cost empty after --resume) - see `_BugFixes/`
-- All 15 VC items checked: 161 offline + 4 live tests green; live acceptance automated portion passed against DevSystemV4.2
+- All 15 VC items checked: 161 offline + 4 live tests green; live acceptance automated portion passed against IPPS
 
 **[2026-08-29 22:20]**
 - Added: IS-21 (headless mode, exit codes), IS-22 (scripted adapter + LanaProc harness, resolves DF01 D-02), Category 10 harness tests TC-50..55, harness files in File Structure, flush contract in IS-14 (SPEC FR-14/DD-20 gap closure)
