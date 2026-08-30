@@ -6,11 +6,6 @@ Track problems using ID format: `LANAAGNT-PR-[NNNN]`
 
 ## Open
 
-**LANAACPB-PR-0001: 2026-08-30 ACP INFO refresh contains 4 hallucinated wire shapes**
-- **History**: Added 2026-08-30 14:05 (found by `/research` live-doc verification, LANAACPB-IN01)
-- **Assessment**: `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` claims `promptContentTypes` array (does not exist - real: `promptCapabilities` object + text/resource_link baseline), `agentCapabilities.session.*` nesting (real: top-level `loadSession` + `sessionCapabilities`), `usage_update` with token triple (real: `used`/`size`/`cost`), elicitation title/select fields (real: `message`/`requestedSchema`). The [VERIFIED] tags in that doc set cite sources contradicting the content - labels unreliable. The 2026-06-12 snapshot was correct on all disputed points. Lana docs shielded: LANAACPB-SP01/IP01 corrected, LANAACPB-IN01 is the wire authority.
-- **Decision needed**: user owns the doc refresh (other agent's deliverable) - forward LANAACPB-IN01 section 2 to the producing agent for correction
-
 **LANAACPB-PR-0002: grep_search returns zero matches on ACP INFO doc files with known content**
 - **History**: Added 2026-08-30 14:05
 - **Assessment**: searches for `capabilit`/`agentCapabilities`/`embeddedContext` in both `ACP-AgentClientProtocol_*` folders return nothing although the files contain the terms (verified by direct read; files are plain UTF-8, `# AC` first bytes, no BOM). Some folder-wide queries match (e.g., `resource`), others silently miss. Workaround: `read_file` for ground truth on these folders; do not trust negative grep results there.
@@ -22,6 +17,11 @@ Track problems using ID format: `LANAAGNT-PR-[NNNN]`
 - **Decision needed**: user owns the registry - either change the prefix rows to dash notation or accept the fallback row
 
 ## Resolved
+
+**LANAACPB-PR-0001: 2026-08-30 ACP INFO refresh contained hallucinated wire shapes**
+- **History**: Added 2026-08-30 14:05 (found by `/research` live-doc verification, LANAACPB-IN01) | Resolved 2026-08-30 14:25 (user directed direct correction of the doc set)
+- **Solution**: 8 files corrected in-place against live official docs with per-file Document History entries dated 2026-08-30 14:20 - ACP-05 (promptCapabilities, top-level loadSession + sessionCapabilities, mcpCapabilities, examples), ACP-07 (stopReason-only response, usage_update used/size/cost, StopReason enum incl. removal of fabricated auth_required/paused, current_mode_update added), ACP-15 (message/requestedSchema, action/content response, URL mode), ACP-06 (capability gates, mcpServers array), ACP-04 (method inventory, elicitation/complete direction, set_config_option gate), ACP-16 + ACP-01 (wording), ACP-09 (auth_required stop reason removed), ACP-14 (baseline gotcha added). Clean: ACP-08, __ACP_CHANGES, ACP-10
+- **Verification**: every correction backed by LANAACPB-IN01 verified findings (live agentclientprotocol.com fetches); [ASSUMED] used where live docs did not render the exact value (auth error code, $/cancel_request params field name)
 
 **LANAAGNT-PR-0006: --resume with missing file crashes with raw traceback**
 - **History**: Added 2026-08-30 05:40 | Resolved 2026-08-30 05:50 | → Now tracked as LANAAGNT-BG-0005

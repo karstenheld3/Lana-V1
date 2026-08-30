@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 14:25]**
+- Fixed: `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` corrected in-place (user directive: 100% exhaustive AND correct) - all 16 INFO files audited by direct read (grep untrustworthy there, PR-0002), 8 files corrected against live official docs, 2 additional hallucinations found beyond the original 4 (StopReason `auth_required`/`paused` fabricated in ACP-07 + ACP-09; verified enum: end_turn/max_tokens/max_turn_requests/refusal/cancelled), plus wrong capability gates in ACP-04/06 and mcpServers map-vs-array in ACP-06; every fix carries a per-file Document History entry; LANAACPB-PR-0001 resolved
+
 **[2026-08-30 14:10]**
 - Added: `_INFO_LANAACPB-IN01_AcpV1WireShapeVerification.md [LANAACPB-IN01]` via `/research` (user directive: compare snapshots, verify live) - 6 discrepancies resolved against https://agentclientprotocol.com official v1 docs; VERDICT: 2026-08-30 refresh hallucinated 4 wire shapes (promptContentTypes, session capability nesting, usage_update token triple, elicitation title/select), 2026-06-12 snapshot was correct on all disputed points; SP01 FR-02/05/06/09 + Data Structures corrected (incl. mandatory resource_link baseline acceptance - Zed file mentions now work), IP01 IS-03/05/09 + EC-03/TC-16/20 + TC-43 synced; LANAACPB-IN01 is now the wire-shape authority; problems LANAACPB-PR-0001 (doc set defect, needs forwarding to producing agent) and PR-0002 (grep false negatives on those folders) recorded
 
