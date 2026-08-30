@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 03:45]**
+- Added: full-recall session log PLANNED through the chain (user directive: JSONL must recover a full session including model change on resume - provider caches are ephemeral) - SP01 FR-08 rewrite + IG-07 + DD-22 [ASSUMED] (rev 03:20-03:40, verified), IP01 IS-24/EC-28/EC-29/TC-64..67 (rev 03:30-03:40, verified), TP01 TC-11 scenario + coverage contract FR-15/IG-07 (rev 03:35, verified); VC-12, TP01-VC-02/03 unchecked - implementation awaits confirmation
+
 **[2026-08-30 06:30]**
 - Added: tool completeness confirmed (15/15/15: FR-10 = definitions = executors), then 16th tool `trajectory_search` added through the full chain - IN02 section 7 (verbatim live-session transcription) -> SP01 FR-15/DD-21 (resolves deferred D-01, `/remove` now executable) -> IP01 IS-23/EC-27/TC-61..63 -> implementation (`trajectory_tools.py`, registry, capability notice removal) -> 175 offline tests green first pass
 

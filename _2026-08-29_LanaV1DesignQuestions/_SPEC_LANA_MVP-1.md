@@ -141,7 +141,7 @@ A **Turn** is one Generator API call and its outcome: assistant text, thinking c
 
 ### Session
 
-A **Session** is one conversation: ordered event log (JSONL file), config snapshot, cumulative usage/cost, 0-N Checkpoints.
+A **Session** is one conversation: ordered event log (JSONL file), cumulative usage/cost, 0-N Checkpoints. The JSONL is self-contained: its first event records the full Generator environment (system prompt, tool definitions, config snapshot), so the file alone reconstructs everything ever sent to the Generator (LANAAGNT-FR-08, LANAAGNT-IG-07).
 
 **Storage:** `[workspace]/.lana/sessions/[YYYY-MM-DD_HHMMSS]_[id].jsonl`
 
@@ -167,7 +167,7 @@ An **ExecutionPolicy** governs command auto-execution. One of: `manual` (every c
 
 ### AgentEvent
 
-An **AgentEvent** is one item on the internal event stream consumed by the frontend: `user_message`, `turn_started`, `text_delta`, `thinking_delta`, `tool_call_requested`, `tool_call_finished`, `approval_required`, `checkpoint_created`, `turn_finished`, `error`. The `checkpoint_created` event carries the full checkpoint text (required for resume replay).
+An **AgentEvent** is one item on the internal event stream consumed by the frontend: `session_started`, `user_message`, `turn_started`, `text_delta`, `thinking_delta`, `tool_call_requested`, `tool_call_finished`, `approval_required`, `checkpoint_created`, `turn_finished`, `error`. The `checkpoint_created` event carries the full checkpoint text (required for resume replay). The `session_started` event carries the byte-verbatim system prompt, the verbatim tool definitions, and the resolved config snapshot; the `turn_finished` event carries the turn's resendable thinking payloads (both required for full recall, LANAAGNT-FR-08).
 
 ### LanaConfig
 
@@ -194,6 +194,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - `<capability_notice>` section (after `<user_rules>`): lists tools that prompt system content may reference but which are unavailable in MVP-1, with fallbacks (`grep_search` replaces `code_search`; state inability for MCP/browser/deployment tools) (RV01 RF-04; `trajectory_search` removed from the notice 2026-08-30 - now available per FR-15)
 - User rules preamble verbatim concept: "MUST ALWAYS FOLLOW WITHOUT ANY EXCEPTION. These rules take precedence over any following instructions."
 - System prompt content is byte-identical across all turns of a session (prompt cache prefix)
+- The assembled system prompt is recorded byte-verbatim in the session JSONL `session_started` event (LANAAGNT-FR-08) - the JSONL, not the prompt system folder, is the authority for what the Generator received
 
 **LANAAGNT-FR-04: Agent Turn Loop**
 - One user message starts a loop: Generator call, execute requested ToolCalls sequentially (OQ-08), append results, repeat until the Generator responds without tool calls
@@ -223,10 +224,17 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - No `todo_list` state in the event log: the todo section is omitted from the checkpoint
 - System prompt and tool definitions never truncated
 
-**LANAAGNT-FR-08: Session Persistence**
+**LANAAGNT-FR-08: Session Persistence - Full Recall**
+- First event of every session file: `session_started` carrying 1) the byte-verbatim assembled system prompt, 2) the verbatim tool definitions array (name, description, JSON Schema) as sent to the provider, 3) the resolved config snapshot (role -> model_id/effort/provider, execution policy, compaction thresholds, tool/result limits), 4) a prompt system fingerprint (ordered path list, per-folder file counts, content hash)
 - Every AgentEvent appended to the session JSONL file at occurrence (crash-safe) (OQ-10)
 - Each event line is flushed to disk at write time - external processes can tail the session file as a live activity monitor (test harness contract, LANAAGNT-DD-20)
-- `lana --resume [session-file]` rebuilds conversation state from the JSONL and continues
+- Full recall: every byte sent to the Generator is reconstructible from the JSONL alone - system prompt and tool definitions from `session_started`, conversation from event projection, checkpoint text from `checkpoint_created` (LANAAGNT-IG-07)
+- Assistant thinking payloads that the adapter must resend on later calls (Anthropic thinking blocks with signatures) are recorded verbatim on the turn's `turn_finished` event - resume reproduces the exact resend content without adding a 12th event type
+- `lana --resume [session-file]` rebuilds conversation state, system prompt, and tool definitions from the JSONL and continues - the recorded system prompt is reused byte-verbatim (preserves LANAAGNT-IG-01 across resume); the on-disk prompt system is loaded only for new workflow expansion and skill invocation
+- Resume fingerprint check: when the loaded prompt system's fingerprint differs from the recorded one, print a one-line warning naming the difference (counts/hash) - the recorded system prompt still wins for Generator calls
+- Model change on resume: role -> model resolution follows the CURRENT `lana-config.json` (enables switching models between runs); the recorded config snapshot serves audit and reconstruction, never model selection; a differing generator is reported at startup (recorded vs current)
+- Provider independence: recall never depends on provider-side state - prompt caches are ephemeral (minutes-scale TTL) and provider-bound; after a model or provider change the full recorded context is re-sent from the JSONL (cold-cache cost effect only, no information loss)
+- Cross-provider thinking payloads: recorded thinking payloads are resent only when the resumed provider matches their recording provider; on provider change they are dropped from the resend (signatures are provider-bound) while their rendered text remains in the log for recall
 - Session files never auto-deleted
 
 **LANAAGNT-FR-09: Cost Tracking**
@@ -357,6 +365,8 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-21:** `trajectory_search` implemented locally over session JSONL files, lexical scoring, no embeddings (resolves deferred candidate D-01; amends the DD-18 deferral). Rationale: the session log is already the event-sourced trajectory (Key Mechanisms); the `/remove` workflow (3 refs) becomes executable; the verbatim Cascade contract (IN02 section 7) is satisfiable without a vector index - semantic ranking quality beyond term overlap is deferred until evidence demands it.
 
+**LANAAGNT-DD-22:** [ASSUMED] Full-recall session log: the `session_started` event records the byte-verbatim system prompt, tool definitions, and config snapshot; `--resume` reuses the recorded prompt instead of reassembling from disk. Rationale: "single source of truth" previously covered only conversation state - a prompt system or config change between exit and resume silently altered the resumed session's instructions, and the JSONL could not answer "what exactly did the Generator receive?". Provider-side state is ephemeral and model-bound: prompt caches expire within minutes and never survive a model or provider change, so persistence must be complete and self-sufficient - the JSONL alone rebuilds the full request for ANY model. Recording the environment costs ~100 KB per session file (one-time, negligible against conversation volume) and extends the IG-01 byte-identity guarantee across same-model resumes (cache hits within provider TTL are a bonus, never a dependency). The on-disk prompt system remains the source for NEW workflow expansions and skill invocations after resume - only already-sent content is immutable.
+
 ## 7. Implementation Guarantees
 
 **LANAAGNT-IG-01:** The system prompt byte content is identical across all Generator calls within one session (cache prefix stability).
@@ -369,7 +379,9 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-IG-05:** Every user-visible failure (missing key, disabled model, malformed frontmatter, API error) produces a self-contained error message naming file/key/model and the corrective action.
 
-**LANAAGNT-IG-06:** Conversation state after `--resume` equals state before process exit (minus any incomplete in-flight turn).
+**LANAAGNT-IG-06:** Conversation state after `--resume` equals state before process exit (minus any incomplete in-flight turn), reconstructed exclusively from the session JSONL - no dependency on prompt system folder state for previously sent content.
+
+**LANAAGNT-IG-07:** Every byte sent to the Generator - system prompt, tool definitions, conversation messages, checkpoint text - is reconstructible from the session JSONL alone (full recall, LANAAGNT-FR-08).
 
 ## 8. Key Mechanisms
 
@@ -377,7 +389,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 - **Verbatim tool contract**: the Cascade tool documentation in `HowWindsurfCascadeWorks.md` chapters 8-9 is the normative source for the 12 tool definitions; Lana-specific deviations are limited to OS/shell substitution in `run_command`
 - **Deterministic todo persistence**: compaction scans the event log backwards for the last `todo_list` result and splices its JSON verbatim into the checkpoint (Cascade's proven no-LLM path)
 - **Read-gate ledger**: per-session map of file path to last-read modification time backs the edit enforcement gate
-- **Event-sourced session**: the JSONL event log is the single source of truth; conversation state for the API and the resume feature are both projections of it
+- **Event-sourced session**: the JSONL event log is the single source of truth for the entire Generator input - environment (`session_started`: system prompt, tool definitions, config) plus conversation; API request state and the resume feature are both projections of it, with zero dependency on external folder state for recall
 
 ## 9. Action Flow
 
@@ -424,9 +436,10 @@ User types "/prime"
 
 **Session JSONL (one AgentEvent per line):**
 ```json
+{"ts": "2026-08-29 21:05:10", "type": "session_started", "system_prompt": "You are Lana, ...", "tool_definitions": [{"name": "read_file", "description": "...", "schema": {}}], "config_snapshot": {"roles": {"generator": {"model_id": "claude-sonnet-4-5-20250929", "effort": "medium", "provider": "anthropic"}}, "execution_policy": "manual"}, "prompt_system_fingerprint": {"paths": ["e:/Dev/IPPS/DevSystemV4.2"], "counts": {"rules": 8, "workflows": 46, "skills": 23}, "content_hash": "sha256:..."}}
 {"ts": "2026-08-29 21:05:12", "type": "user_message", "content": "/prime", "expanded_workflow": "prime"}
 {"ts": "2026-08-29 21:05:14", "type": "tool_call_requested", "id": "tc_001", "tool": "read_file", "args": {"file_path": "e:/Dev/Delphios-Lana-V1/!NOTES.md"}}
-{"ts": "2026-08-29 21:05:14", "type": "tool_call_finished", "id": "tc_001", "status": "ok", "result_chars": 1204}
+{"ts": "2026-08-29 21:05:14", "type": "tool_call_finished", "id": "tc_001", "status": "ok", "result": "     1\t# Notes\n...", "result_chars": 1204}
 {"ts": "2026-08-29 21:05:18", "type": "turn_finished", "input_tokens": 21050, "output_tokens": 412, "cache_read_tokens": 18200, "cost_usd": 0.0164}
 ```
 
@@ -502,6 +515,14 @@ Running workflow 'prime'...
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-08-30 03:40]**
+- Changed (verify IMPL/TEST): thinking payloads carried on `turn_finished` (AgentEvent + FR-08) - keeps the enum at 11 types, payloads stay with their turn
+
+**[2026-08-30 03:20]**
+- Added: FR-08 full-recall guarantee - `session_started` event (system prompt, tool definitions, config snapshot, prompt system fingerprint), thinking payload recording, resume-from-JSONL-alone semantics with fingerprint warning; IG-07 full-recall guarantee; DD-22 rationale
+- Added (verify pass): FR-08 model-change-on-resume semantics (current config wins for model selection, recorded snapshot is audit-only), provider independence bullet (recall never depends on ephemeral provider caches), cross-provider thinking payload drop rule; DD-22 [ASSUMED] label and cache-dependency correction
+- Changed: FR-08 title to "Session Persistence - Full Recall", IG-06 strengthened (no folder dependency for recall), FR-03 system prompt recorded in JSONL, AgentEvent enum + Session domain object + Key Mechanisms + JSONL data structure example updated to 11 event types
 
 **[2026-08-30 06:15]**
 - Added: `trajectory_search` as 16th tool (FR-10), FR-15 session trajectory search behavior, DD-21 local-JSONL design decision (resolves deferred candidate D-01; 3 refs in `/remove`)

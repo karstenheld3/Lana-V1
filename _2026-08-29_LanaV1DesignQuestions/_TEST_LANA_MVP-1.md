@@ -8,13 +8,13 @@
 - `tests/` (all modules per LANAAGNT-IP01 File Structure)
 
 **Depends on:**
-- `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` rev 22:20 for requirements (FR-14/DD-20 added for this plan)
-- `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]` rev 06:20 for the 63 unit/integration test cases (TC-01..63 incl. Categories 11-12) and phases
+- `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` rev 2026-08-30 03:40 for requirements (FR-14/DD-20 added for this plan; FR-08 full recall added 03:20-03:40)
+- `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]` rev 2026-08-30 03:30 for the 67 unit/integration test cases (TC-01..67 incl. Categories 11-13) and phases
 - `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` for tool contract assertions
 
 ## MUST-NOT-FORGET
 
-- IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..63); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
+- IP01 owns unit/integration cases (LANAAGNT-IP01-TC-01..67); this plan owns black-box scenarios (LANAAGNT-TP01-TC-*) and the coverage contract - never duplicate case definitions across the two documents
 - Every black-box scenario runs the REAL `lana` executable via `tests/harness.py` - no in-process shortcuts
 - Scripted adapter = determinism; live-key tests are a separate, skippable phase
 - Test workspaces are temp folders with their own `--config` - the real `config/lana-config.json` and DevSystemV4.2 are never written
@@ -59,7 +59,7 @@ Four test layers verify Lana MVP-1: unit (pure functions), integration (agent lo
 
 - **Layer 1 Unit** (IP01 TC-01..31, TC-36..39, TC-48..49): pure functions, in-process, no subprocess - config, loader, prompt assembly, tools, safety, projection, cost
 - **Layer 2 Integration** (IP01 TC-32..35): agent loop as async generator with in-process scripted adapter - event sequences, cancellation, resume
-- **Layer 3 Black-box CLI** (IP01 TC-50..55 + TP01-TC-01..10 below): real `lana` subprocess, temp workspace, scripted adapter env - the automated equivalent of a human driving the CLI
+- **Layer 3 Black-box CLI** (IP01 TC-50..55, TC-65 + TP01-TC-01..11 below): real `lana` subprocess, temp workspace, scripted adapter env - the automated equivalent of a human driving the CLI
 - **Layer 4 Live smoke** (IP01 TC-40..45, TC-47): real provider APIs; auto-skipped when keys absent; budget cap: under $1 per full run [ASSUMED]
 
 **Verification style**: event-sequence assertions (ordered subsequence matching on typed events with ids/timestamps masked), exit-code assertions, and file-state assertions (workspace files after edit-tool scenarios).
@@ -103,7 +103,7 @@ Four test layers verify Lana MVP-1: unit (pure functions), integration (agent lo
 
 ## 6. Test Cases
 
-Black-box scenarios (Layer 3). Each drives the real CLI and cites the requirements it proves. Unit/integration inventory stays in `LANAAGNT-IP01` section 5 (TC-01..63).
+Black-box scenarios (Layer 3). Each drives the real CLI and cites the requirements it proves. Unit/integration inventory stays in `LANAAGNT-IP01` section 5 (TC-01..67).
 
 ### Category 1: Conversation Scenarios (3 tests)
 
@@ -130,10 +130,14 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 - **LANAAGNT-TP01-TC-09**: `--debug` run with fake key values in env -> request/response JSON files exist under the temp workspace `.lana/logs/`, `assert_no_secret_leak` passes over log contents, events carry timestamps (NFR-01, NFR-04)
 - **LANAAGNT-TP01-TC-10**: Exit code semantics - script with `{"error": ...}` line -> exit 3 with provider-style message; script exceeding `max_tool_calls_per_prompt` headless with `auto_continue: false` -> exit 4 (FR-14)
 
+### Category 6: Full-Recall Resume Scenario (1 test, added 2026-08-30)
+
+- **LANAAGNT-TP01-TC-11**: Environment survives resume end-to-end - run a scripted session, then 1) DELETE a rule file from the fake prompt system, 2) change the generator `model_id` in the config, 3) `--resume` -> stderr shows the fingerprint mismatch warning and the model-change report; the session JSONL `session_started` line still carries the original system prompt; a follow-up prompt succeeds with the RECORDED environment (captured request byte-identical to pre-restart) (FR-08, IG-06, IG-07, DD-22)
+
 ## 7. Test Phases
 
-1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..63 (Layers 1-2), run on every change, no keys, no network
-2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58 + TP01-TC-01..10 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
+1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..64, TC-66..67 (Layers 1-2), run on every change, no keys, no network
+2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58, TC-65 + TP01-TC-01..11 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
 3. **Phase T3: Live smoke** - IP01 TC-40..45 (Layer 4), keys present, marker `live`, budget-capped
 4. **Phase T4: Acceptance** - IP01 TC-46 offline end-to-end + TC-47 manual live run against DevSystemV4.2; results recorded in PROGRESS.md
 
@@ -164,13 +168,17 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 ## 10. Verification Checklist
 
 - [x] **LANAAGNT-TP01-VC-01**: Phases T1+T2 green locally with zero keys configured (proves offline completeness)
-- [x] **LANAAGNT-TP01-VC-02**: All 10 TP01 scenarios pass against the installed executable (not in-process imports)
-- [x] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..14 and IG-01..06 is cited by at least one passing IP01 TC or TP01 TC (traceability sweep over both documents)
+- [ ] **LANAAGNT-TP01-VC-02**: All 11 TP01 scenarios pass against the installed executable (not in-process imports; TC-11 pending full-recall implementation)
+- [ ] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..15 and IG-01..07 is cited by at least one passing IP01 TC or TP01 TC (traceability sweep over both documents; re-run after full-recall implementation)
 - [x] **LANAAGNT-TP01-VC-04**: `assert_no_secret_leak` wired into every black-box scenario (NFR-01)
 - [x] **LANAAGNT-TP01-VC-05**: T3 live smoke green with keys; spend under budget cap
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 03:35]**
+- Added: Category 6 full-recall resume scenario TP01-TC-11 (fingerprint warning + model-change report + recorded-environment authority, SP01 FR-08/IG-07/DD-22 rev 03:20)
+- Changed: IP01 case count 63 -> 67 (Category 13 full recall TC-64..67), T1/T2 phase ranges, scenario count 10 -> 11, VC-02/VC-03 unchecked pending implementation, coverage contract extended to FR-15/IG-07
 
 **[2026-08-30 06:20]**
 - Changed: IP01 case count 60 → 63 (Category 12 trajectory search TC-61..63 for the 16th tool, SP01 FR-15); T1 range extended

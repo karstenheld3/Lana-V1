@@ -2,7 +2,7 @@
 
 **Doc ID**: LANAAGNT-IP01
 **Feature**: lana-mvp-1
-**Goal**: Implement the Lana MVP-1 command-line interface (CLI) agent per LANAAGNT-SP01 (rev 2026-08-29 21:45) in 10 verifiable phases
+**Goal**: Implement the Lana MVP-1 command-line interface (CLI) agent per LANAAGNT-SP01 (rev 2026-08-30 03:40) in 10 verifiable phases
 **Timeline**: Created 2026-08-29, Updated 0 times
 
 **Target file(s)**:
@@ -13,7 +13,7 @@
 - `tests/` - test package mirroring `src/lana/` (NEW)
 
 **Depends on:**
-- `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for all requirements (FR-01 to FR-13, NFR-01 to NFR-05, DD-01 to DD-19, IG-01 to IG-06)
+- `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for all requirements (FR-01 to FR-15, NFR-01 to NFR-05, DD-01 to DD-22, IG-01 to IG-07)
 - `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` for verbatim tool definitions (primary transcription source; the ebook chapters 8-9 lack full text for `multi_edit`, `command_status`, `skill`)
 - `HowWindsurfCascadeWorks.md` chapters 8-9 as cross-check for the 12 tools it covers verbatim
 - `config/model-registry.json`, `config/model-parameter-mapping.json`, `config/model-pricing.json` (read-only inputs)
@@ -62,7 +62,7 @@ e:\Dev\Delphios-Lana-V1\
 │   ├── cli.py                        # Arg parsing, startup sequence, read-eval-print loop (REPL) (~200 lines) [NEW]
 │   ├── config.py                     # LanaConfig + registry/mapping/pricing/keys loading, validation (~220 lines) [NEW]
 │   ├── models.py                     # Canonical types: Message, ToolCall, ToolResult, ThinkingBlock, Usage (pydantic) (~120 lines) [NEW]
-│   ├── events.py                     # AgentEvent union (10 types per SPEC), serialization (~100 lines) [NEW]
+│   ├── events.py                     # AgentEvent union (11 types per SPEC incl. session_started), serialization (~130 lines) [NEW]
 │   ├── session.py                    # JSONL append store, resume projection, cancellation note (~180 lines) [NEW]
 │   ├── loader.py                     # PromptSystem loading: rules/workflows/skills, frontmatter, precedence (~180 lines) [NEW]
 │   ├── prompt.py                     # System prompt assembly: sections, MEMORY blocks, capability notice (~200 lines) [NEW]
@@ -133,6 +133,8 @@ Estimated total: ~3,900 lines source + ~1,800 lines tests [ASSUMED - per-module 
 - **LANAAGNT-IP01-EC-25**: `view_content_chunk` with unknown `document_id` or out-of-range position -> error naming valid range
 - **LANAAGNT-IP01-EC-26**: `read_file` on an image file -> refused with explanatory error (no visual presentation in a CLI); SVG stays readable as text (synced from implementation 2026-08-30)
 - **LANAAGNT-IP01-EC-27**: `trajectory_search` with unknown `ID`, ambiguous prefix, `SearchType: "user"`, or no sessions folder -> error naming available session ids / the contract violation (FR-15)
+- **LANAAGNT-IP01-EC-28**: `--resume` on a legacy session file without `session_started` (pre-FR-08 full recall) -> fall back to disk prompt assembly, warn "legacy session file - recorded environment unavailable, system prompt assembled from current prompt system"
+- **LANAAGNT-IP01-EC-29**: `--resume` with a generator provider differing from a recorded thinking payload's provider -> payload dropped from the adapter resend (signatures are provider-bound, SPEC FR-08); rendered thinking text stays in the log
 
 ## 3. Implementation Steps
 
@@ -170,10 +172,10 @@ I hardening (offline NFR fixtures) <─────────────┘
 class ToolCall: id, name, args_json, status          # status: pending|ok|error|cancelled
 class ThinkingBlock: provider, payload               # opaque, resent per provider rules
 class Message: role, content, tool_calls, thinking, usage
-# events.py - the 10 AgentEvent types from SPEC Domain Objects, each with ts + to_jsonl()/from_jsonl()
+# events.py - the 11 AgentEvent types from SPEC Domain Objects, each with ts + to_jsonl()/from_jsonl()
 ```
 
-**Note**: `checkpoint_created` carries full checkpoint text (resume replay); `user_message` carries `expanded_workflow` name when applicable
+**Note**: `checkpoint_created` carries full checkpoint text (resume replay); `user_message` carries `expanded_workflow` name when applicable; `session_started` carries the full-recall environment (FR-08, see IS-24)
 
 ### LANAAGNT-IP01-IS-03: Configuration loading (LANAAGNT-FR-01)
 
@@ -349,6 +351,29 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Note**: Lexical scoring only (DD-21); the current session's own file is searchable too (it is flushed per line, FR-08)
 
+### LANAAGNT-IP01-IS-24: Full-recall session log (LANAAGNT-FR-08, DD-22, IG-07; added 2026-08-30)
+
+**Location**: `events.py`, `session.py`, `cli.py`, `agent.py`, `providers/scripted_adapter.py`
+
+**Action**:
+```python
+# events.py: SessionStarted event - system_prompt (byte-verbatim), tool_definitions (verbatim array),
+#            config_snapshot (role -> model_id/effort/provider, policy, thresholds, limits),
+#            prompt_system_fingerprint (paths, per-folder counts, sha256 content hash)
+# events.py: TurnFinished gains optional thinking_payloads: [{provider, payload}] - the turn's
+#            resendable ThinkingBlocks (Anthropic signature blocks, OpenAI reasoning items); enum stays at 11
+# cli.py:   new session -> session_started written as the FIRST line before any user event
+# session.py resume: read session_started -> recorded system prompt + tool definitions REPLACE disk assembly
+#            for Generator calls; projector rebuilds Message.thinking from turn_finished.thinking_payloads
+# session.py resume: fingerprint compare vs freshly loaded prompt system -> one-line WARNING on mismatch
+# cli.py resume: recorded vs current generator model differ -> one-line report (model change, FR-08)
+# agent.py:  drop resurrected thinking payloads whose provider != resumed generator provider (EC-29)
+# scripted_adapter.py: LANA_SCRIPTED_CAPTURE=<path> dumps each received (system, tools) to a JSONL file -
+#            the TC-65/TP01-TC-11 byte-identity oracle for what the Generator actually received
+```
+
+**Note**: Fingerprint hash over sorted (path, content) pairs - deterministic across machines [ASSUMED - mtime excluded to survive copies/checkouts]. Legacy files without `session_started` follow EC-28. The recorded tool definitions are the resume authority - a tool added after recording is absent from resumed Generator calls until a new session (IG-01 byte-identity extends to the tool block)
+
 ### Phase I: Hardening
 
 ### LANAAGNT-IP01-IS-19: NFR verification fixtures
@@ -432,6 +457,15 @@ Compacting context (projected 124K tokens > 120K threshold)...
 ^C
 Turn cancelled after 3 tool calls (results kept in conversation).
 >
+```
+
+**Resume startup (FR-08 full recall - fingerprint mismatch and model change):**
+```text
+Resuming session '.lana/sessions/2026-08-30_025545_54286c.jsonl'...
+  118 events replayed, 0 lines skipped. Environment restored from session_started.
+  WARNING: prompt system changed since recording (recorded 8/46/21, current 8/46/23 rules/workflows/skills). Recorded system prompt stays active for this session.
+  WARNING: generator changed (recorded claude-sonnet-4-5-20250929, current gpt-5.2). Full context re-sent - first turn runs without provider cache.
+  OK. Resumed with 12 messages.
 ```
 
 ## 5. Test Cases
@@ -535,6 +569,13 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - **LANAAGNT-IP01-TC-62**: Empty query returns all chunks chronologically (contract); ID resolution by exact name, stem, and unique prefix
 - **LANAAGNT-IP01-TC-63**: Error paths (EC-27) - unknown ID lists available sessions, ambiguous prefix rejected, SearchType "user" rejected, definitions diff test covers the 16th tool
 
+### Category 13: Full-Recall Session Log (4 tests, added 2026-08-30)
+
+- **LANAAGNT-IP01-TC-64**: `session_started` is the first JSONL line of every new session and carries system prompt byte-identical to the assembled one, the verbatim tool definitions array, config snapshot, and fingerprint (FR-08, IG-07)
+- **LANAAGNT-IP01-TC-65**: Resume authority - modify the fake prompt system on disk, `--resume` -> Generator receives the RECORDED system prompt byte-identically (scripted adapter captures the request); fingerprint mismatch warning printed; changed generator model in config -> model-change report line (IG-01 across resume)
+- **LANAAGNT-IP01-TC-66**: Thinking payload round trip - scripted turn yields a thinking payload -> `turn_finished.thinking_payloads` in JSONL; resume reprojects it into Message.thinking on provider match; provider mismatch drops it from the resend while the event stays in the log (EC-29)
+- **LANAAGNT-IP01-TC-67**: Legacy session file without `session_started` (EC-28) -> resume succeeds via disk assembly, legacy warning printed, conversation projection unchanged
+
 ## 6. Verification Checklist
 
 ### Prerequisites
@@ -553,12 +594,19 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - [x] **LANAAGNT-IP01-VC-11**: Commit after each green phase (`/commit`)
 
 ### Validation
-- [x] **LANAAGNT-IP01-VC-12**: All 63 test cases pass (live ones with keys present; TC-56..60 synced, TC-61..63 trajectory search added 2026-08-30)
+- [ ] **LANAAGNT-IP01-VC-12**: All 67 test cases pass (live ones with keys present; TC-56..60 synced, TC-61..63 trajectory search, TC-64..67 full recall added 2026-08-30 - TC-64..67 NOT yet implemented)
 - [x] **LANAAGNT-IP01-VC-13**: NFR-01 verified by code review (only api.openai.com/api.anthropic.com contacted; `urllib` fetch gated by approval) + secret-leak sweeps in every black-box scenario - a literal packet capture was NOT performed [ASSUMED clean]; NFR-02 kill/resume (TP01-TC-06); NFR-03 startup < 2 s + cache hits (TC-41 live); NFR-05 risk notice on auto/turbo
 - [x] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 03:40]**
+- Changed (verify pass): thinking payloads carried on `turn_finished.thinking_payloads` instead of a 12th event type (SP01 AgentEvent consistency); LANA_SCRIPTED_CAPTURE request-dump mechanism added to IS-24 (the TC-65/TP01-TC-11 byte-identity oracle was unspecified); fingerprint determinism [ASSUMED] label; Goal repointed to SP01 rev 03:40
+
+**[2026-08-30 03:30]**
+- Added: IS-24 full-recall session log (session_started event, turn_finished thinking payloads, resume environment authority, fingerprint warning, model-change report, cross-provider thinking drop) per SP01 FR-08/DD-22/IG-07 rev 03:20; EC-28 legacy session fallback, EC-29 provider-mismatch thinking drop; Category 13 TC-64..67; Resume startup logging preview
+- Changed: events.py to 11 event types (File Structure + IS-02), Depends-on ranges to FR-15/DD-22/IG-07, VC-12 count 63 -> 67 and unchecked (TC-64..67 pending implementation)
 
 **[2026-08-30 06:45]**
 - Changed (`/verify` logging audit): status keywords aligned with LOGGING-RULES - `Fix:` -> `HINT:` in all ConfigError messages and the preview, `NOTICE:` -> `WARNING:` + `HINT:` for the auto/turbo risk notice, loader warnings end with periods (LOG-GN-11); deviations from UF headers/timestamps documented in Logging Preview note below
