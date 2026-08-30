@@ -1,0 +1,8 @@
+required_files:
+  - "hello.py"
+file_rules:
+  - glob: "hello.py"
+    patterns:
+      - {name: greet_function, regex: "def greet\\(name"}
+      - {name: main_guard, regex: "if __name__ == .__main__.:"}
+      - {name: greeting_string, regex: "Hello,"}

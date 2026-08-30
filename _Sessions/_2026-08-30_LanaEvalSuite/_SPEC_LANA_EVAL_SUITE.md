@@ -159,7 +159,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 **LANATEST-FR-03: Workspace Isolation**
 - Runner copies `workspace/` scaffold to a fresh working directory per test before execution
 - Bucket 1 scaffolds contain empty `.lana/` (rules/, workflows/, skills/ present but empty)
-- Buckets 2-3 scaffolds contain the IPPS content under test (workflows, skills, rules)
+- Buckets 2-3 scaffolds reference the IPPS content under test via `scaffold.json` (`copy_lana` path list); the runner copies the listed workflows/skills from the repo `.lana/` at run time - tests always exercise the CURRENT IPPS
 - No state leaks between tests: each test gets its own working directory and `.lana-data/`
 
 **LANATEST-FR-04: Prompt Queue Execution**
@@ -185,7 +185,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - Tier 2 score = weighted by severity: CRITICAL fail caps the tier score at 0.5
 
 **LANATEST-FR-08: Tier 3 - Content Quality Evaluation**
-- QualityEvaluator submits output files plus `rubric.md` to a fixed judge model and receives dimension scores (0-100) with justifications
+- QualityEvaluator submits output files plus `rubric.md` to a fixed judge model via @skills:llm-evaluation `call-llm.py` (tools venv, `--response-format json`) and receives dimension scores (0-100) with justifications
 - Rubric anchors quality expectations with excerpts from `golden/`; the judge never receives the full golden folder as a diff target
 - Judge transcripts stored in the TestRunRecord for audit
 - Tier 3 score = mean of dimension scores / 100
@@ -398,6 +398,9 @@ RESULT: 4 passed, 1 failed, 0 invalid.
 - Session JSONL tool events carry full arguments (`tool_call_requested`: tool + args; `tool_call_finished`: status + result) - Tier 2 path-level and count-level checks are evaluable [VERIFIED: events.py]
 
 ## 13. Document History
+
+**[2026-08-30 20:20]**
+- Changed: FR-08 - judge calls go through @skills:llm-evaluation `call-llm.py` [user decision]; FR-03 - Bucket 2-3 IPPS content via `scaffold.json` copy_lana (no duplication, synced from LANATEST-IP01 DC-04)
 
 **[2026-08-30 19:55]**
 - Changed (`/verify` findings): FR-04 - per-step timeout enforcement mechanism (stdout progress monitoring) and per-test ExecutionPolicy added

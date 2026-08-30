@@ -1,0 +1,9 @@
+checks:
+  - id: fixture_read
+    action: "Agent read the HTML fixture before transcribing"
+    severity: CRITICAL
+    assert: {type: tool_called, tool: read_file, min: 1, args_regex: "pricing_page\\.html"}
+  - id: output_written_via_edit_tool
+    action: "Agent wrote the markdown output via write_to_file"
+    severity: CRITICAL
+    assert: {type: tool_called, tool: write_to_file, min: 1, args_regex: "pricing_page\\.md"}

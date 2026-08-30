@@ -1,0 +1,12 @@
+required_files:
+  - "output/pricing_page.md"
+file_rules:
+  - glob: "output/pricing_page.md"
+    required_sections: ["Acme Widgets Pricing"]
+    patterns:
+      - {name: price_starter, regex: "\\$9\\b"}
+      - {name: price_pro, regex: "\\$29\\b"}
+      - {name: price_enterprise, regex: "\\$99\\b"}
+      - {name: trial_note, regex: "14-day"}
+      - {name: vat_note, regex: "VAT"}
+    forbid_content: ["<table", "<html"]

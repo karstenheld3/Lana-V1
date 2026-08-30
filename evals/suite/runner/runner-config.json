@@ -1,0 +1,10 @@
+{
+  "judge_python": "../.tools/llm-venv/Scripts/python.exe",
+  "call_llm_script": ".devin/skills/llm-evaluation/call-llm.py",
+  "judge_model": "gpt-5-mini",
+  "judge_effort": "medium",
+  "judge_timeout_seconds": 300,
+  "keys_file": "config/.api-keys.txt",
+  "lana_config": "config/lana-config.json",
+  "judge_prompt_template": "evals/suite/runner/judge_prompt_template.md"
+}

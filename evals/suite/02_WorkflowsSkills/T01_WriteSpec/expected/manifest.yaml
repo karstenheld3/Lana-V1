@@ -1,0 +1,10 @@
+required_files:
+  - "_SPEC_WORDCOUNT.md"
+file_rules:
+  - glob: "_SPEC_WORDCOUNT.md"
+    required_sections: ["## MUST-NOT-FORGET", "## Table of Contents", "## Document History"]
+    patterns:
+      - {name: doc_id, regex: "WRDCOUNT-SP01"}
+      - {name: functional_requirements, regex: "WRDCOUNT-FR-\\d{2}"}
+      - {name: design_decisions, regex: "WRDCOUNT-DD-\\d{2}"}
+      - {name: goal_line, regex: "\\*\\*Goal\\*\\*:"}
