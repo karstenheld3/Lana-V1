@@ -57,7 +57,7 @@ class AcpServer:
   def __init__(self, args, connection: Connection | None = None):
     self.args = args
     self.connection = connection or Connection()
-    self.state = "uninitialized"  # -> awaiting_initialized -> initialized
+    self.state = "uninitialized"  # -> initialized (handshake completes with the initialize RESPONSE - ACP has no 'initialized' notification; that is MCP/LSP)
     self.sessions: dict[str, AcpSession] = {}
     self.elicitation_form = False  # client capability, present AND non-null (FR-09, LANAACPB-IN01)
 
@@ -100,17 +100,14 @@ class AcpServer:
   async def handle_request(self, request: Request) -> None:
     if request.method == "initialize": return self.handle_initialize(request)
     if self.state != "initialized":
-      raise AcpError(INVALID_REQUEST, f"'{request.method}' rejected: handshake incomplete (state '{self.state}') - send initialize, then the initialized notification first.")  # EC-06
+      raise AcpError(INVALID_REQUEST, f"'{request.method}' rejected: handshake incomplete - send initialize first.")  # EC-06
     if request.method == "session/new": return await self.handle_session_new(request)
     if request.method == "session/load": return await self.handle_session_load(request)
     if request.method == "session/prompt": return self.handle_session_prompt(request)
     raise AcpError(METHOD_NOT_FOUND, f"Method not found: '{request.method}'.")  # EC-02
 
   async def handle_notification(self, notification: Notification) -> None:
-    if notification.method == "initialized":
-      if self.state == "awaiting_initialized": self.state = "initialized"
-      else: log(f"  WARNING: 'initialized' in state '{self.state}' ignored.")
-      return
+    if notification.method == "initialized": return  # not part of ACP (MCP/LSP habit) - tolerated silently
     if notification.method == "session/cancel": return self.handle_session_cancel(notification.params)
     if notification.method == "$/cancel_request": return self.handle_cancel_request(notification.params)
     log(f"  WARNING: unknown notification '{notification.method}' ignored.")  # EC-02
@@ -128,7 +125,7 @@ class AcpServer:
       "agentInfo": {"name": "lana", "version": agent_version()},
       "agentCapabilities": {"loadSession": True, "promptCapabilities": {"image": False, "audio": False, "embeddedContext": False}},
     })
-    self.state = "awaiting_initialized"
+    self.state = "initialized"  # handshake complete - ACP defines no 'initialized' notification (agentclientprotocol.com/protocol/v1/initialization)
     client_label = f"{client_info.get('name', 'unknown')} {client_info.get('version', '')}".strip()
     log(f"initialize: client '{client_label}', negotiated protocolVersion {PROTOCOL_VERSION}.")
 
