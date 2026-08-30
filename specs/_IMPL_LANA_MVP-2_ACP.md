@@ -293,7 +293,7 @@ def handle_cancel_request(self, params): ...   # id matches active session/promp
 **Code**:
 ```python
 async def handle_session_load(self, params):
-  # resolve sessionId -> <workspace>/.lana/sessions/<id>.jsonl; missing -> EC-17 error
+  # resolve sessionId -> <workspace>/.lana-data/sessions/<id>.jsonl; missing -> EC-17 error
   # resumed = resume(path): recorded system_prompt/tool_definitions win (LANAAGNT-FR-08); fingerprint/model warnings -> stderr
   # replay resumed.events through EventTranslator -> session/update stream (user_message -> user_message_chunk during replay ONLY, FR-06)
   # construct Agent with resumed.messages + recorded environment (same as cli.py resume branch); respond after replay completes

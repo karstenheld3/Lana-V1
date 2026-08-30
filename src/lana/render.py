@@ -1,4 +1,9 @@
-"""CLI renderer: subscribes to AgentEvents, streams text, tool lines, prompts (IS-15, SPEC section 12 format)."""
+"""CLI renderer: subscribes to AgentEvents, streams text, tool lines, prompts (IS-15, SPEC section 12 format).
+
+FR-16 UX-01/02: a status spinner covers the dead air between turn start and first visible output,
+ticking elapsed seconds while thinking stays hidden. DD-24: `error` events render by severity prefix.
+"""
+import contextlib, time
 from typing import Optional
 from rich.console import Console
 from lana.cost import CostTracker
@@ -18,19 +23,49 @@ class Renderer:
     self.policy = policy
     self.show_thinking = show_thinking
     self.streaming_text = False
+    self.status = None            # active rich status spinner (FR-16 UX-01)
+    self.status_started = 0.0
 
   def end_stream(self):
     if self.streaming_text: self.console.print(); self.streaming_text = False
+
+  # FR-16 UX-01: spinner between turn start and the first visible output
+  def start_status(self):
+    self.stop_status()
+    self.status_started = time.monotonic()
+    try:
+      self.status = self.console.status("  generator thinking...")
+      self.status.start()
+    except Exception:  # non-terminal consoles that reject live displays - dead air stays, nothing breaks
+      self.status = None
+
+  def stop_status(self):
+    if self.status is not None:
+      with contextlib.suppress(Exception): self.status.stop()
+      self.status = None
+
+  # FR-16 UX-02: hidden thinking still ticks the elapsed counter - content exists, the user sees progress
+  def tick_status(self):
+    if self.status is not None:
+      elapsed = int(time.monotonic() - self.status_started)
+      with contextlib.suppress(Exception): self.status.update(f"  generator thinking... {elapsed}s")
 
   # BG-0004: event payloads (model text, tool results, provider messages) are UNTRUSTED - always markup=False;
   # styling goes through the style= parameter, never through inline tags mixed with payload text
   def handle(self, event) -> None:
     kind = event.type
+    if kind == "turn_started":
+      self.start_status()
+      return
+    if kind == "thinking_delta" and not self.show_thinking:
+      self.tick_status()  # hidden thinking: keep the spinner honest (UX-02)
+      return
+    self.stop_status()  # any visible output ends the dead-air spinner (UX-01)
     if kind == "text_delta":
       self.console.print(event.text, end="", markup=False)
       self.streaming_text = True
     elif kind == "thinking_delta":
-      if self.show_thinking: self.console.print(event.text, end="", style="dim", markup=False)
+      self.console.print(event.text, end="", style="dim", markup=False)
     elif kind == "tool_call_requested":
       self.end_stream()
       summary = summarize_args(event.tool, event.args)
@@ -52,9 +87,12 @@ class Renderer:
     elif kind == "checkpoint_created":
       self.end_stream()
       self.console.print(f"  Compacted: {event.truncated_messages} messages -> checkpoint + last {event.kept_messages}.", markup=False)
-    elif kind == "error":
+    elif kind == "error":  # DD-24: severity by message prefix - WARNING yellow, NOTICE dim, else red ERROR
       self.end_stream()
-      self.console.print(f"ERROR: {event.message}", style="red", markup=False)
+      message = event.message
+      if message.startswith("WARNING:"): self.console.print(message, style="yellow", markup=False)
+      elif message.startswith("NOTICE:"): self.console.print(f"  {message[len('NOTICE:'):].strip()}", style="dim", markup=False)
+      else: self.console.print(f"ERROR: {message}", style="red", markup=False)
 
 
 # ----------------------------------------- START: Interactive Prompts --------------------------------------------------------

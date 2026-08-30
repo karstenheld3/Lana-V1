@@ -12,7 +12,7 @@ def context(tmp_path):
 
 
 def write_session(workspace, name: str, event_list) -> str:
-  store = SessionStore(workspace / ".lana" / "sessions" / f"{name}.jsonl")
+  store = SessionStore(workspace / ".lana-data" / "sessions" / f"{name}.jsonl")
   for event in event_list: store.append(event)
   store.close()
   return name

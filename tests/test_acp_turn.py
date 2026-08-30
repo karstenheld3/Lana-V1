@@ -46,7 +46,7 @@ def make_client(tmp_path):
     workspace.mkdir()
     fake_system = write_prompt_system(tmp_path / f"fs{len(clients)}",
       workflows={"hello": "---\ndescription: Say hello\n---\n# Hello\n\nSay hello."})
-    write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(fake_system)], **(lana_overrides or {})})
+    write_config_dir(workspace, lana_overrides={"agent_folder": str(fake_system), **(lana_overrides or {})})
     script = write_script(workspace / "script.jsonl", turns)
     client = AcpClient(workspace, script_path=script, capabilities=capabilities, policy=policy).start()
     clients.append(client)
@@ -78,7 +78,7 @@ def prompt_params(client, session_id, text="do something"):
 
 
 def session_events(client, session_id):
-  session_file = client.workspace / ".lana" / "sessions" / f"{session_id}.jsonl"
+  session_file = client.workspace / ".lana-data" / "sessions" / f"{session_id}.jsonl"
   return [from_jsonl(line) for line in session_file.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
@@ -192,7 +192,7 @@ def test_tc23_cross_frontend_jsonl_identical(make_client, tmp_path):
   cli_workspace = tmp_path / "cli_ws"
   cli_workspace.mkdir()
   fake_system = write_prompt_system(tmp_path / "cli_fs", workflows={"hello": "---\ndescription: Say hello\n---\n# Hello\n\nSay hello."})
-  write_config_dir(cli_workspace, lana_overrides={"prompt_system_paths": [str(fake_system)]})
+  write_config_dir(cli_workspace, lana_overrides={"agent_folder": str(fake_system)})
   script = write_script(cli_workspace / "script.jsonl", turns)
   proc = LanaProc(cli_workspace, script_path=script)
   proc.run_headless("same input")

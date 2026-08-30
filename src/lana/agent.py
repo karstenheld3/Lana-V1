@@ -146,6 +146,7 @@ class Agent:
             yield self.emit(ThinkingDelta(text=delta.text))
           elif delta.kind == "tool_call": tool_calls.append(delta.tool_call)
           elif delta.kind == "usage": usage = delta.usage
+          elif delta.kind == "notice": yield self.emit(ErrorEvent(message=f"WARNING: {delta.text}"))  # FR-16 UX-03: visible provider retries (DD-24)
       except Exception as error:
         self.stop_reason = "provider_error"
         message = f"Provider error: {error}"

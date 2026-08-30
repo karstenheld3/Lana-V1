@@ -4,13 +4,13 @@ Never reads only the first output item - the output array is parsed typed (messa
 store=false; reasoning items are captured as ThinkingBlocks and resent verbatim on the next call of the tool loop.
 Usage normalization: input_tokens INCLUDES cached tokens (OpenAI native behavior) - matches the cost.py contract.
 """
-import datetime, json, uuid
+import asyncio, datetime, json, uuid
 from pathlib import Path
 from typing import AsyncIterator, Optional
 import openai
 from lana.config import ResolvedRole
 from lana.models import Message, ThinkingBlock, ToolCall, Usage
-from lana.providers.base import AdapterDelta, ProviderError
+from lana.providers.base import PROVIDER_TIMEOUT, RETRY_DELAYS_SECONDS, AdapterDelta, ProviderError, is_retryable_error
 
 
 def dump_debug(debug_dir: Optional[Path], name: str, payload: dict) -> None:
@@ -56,30 +56,48 @@ def normalize_usage(usage) -> Usage:
 
 class OpenAIAdapter:
   def __init__(self, api_key: str, debug_dir: Optional[Path] = None):
-    self.client = openai.AsyncOpenAI(api_key=api_key)
-    self.sync_client = openai.OpenAI(api_key=api_key)
+    self.client = openai.AsyncOpenAI(api_key=api_key, timeout=PROVIDER_TIMEOUT, max_retries=0)  # FR-16 BL-05: Lana owns retries (UX-03)
+    self.sync_client = openai.OpenAI(api_key=api_key, timeout=PROVIDER_TIMEOUT, max_retries=0)
     self.debug_dir = debug_dir
 
   def supports_web_search(self) -> bool:
     return True
 
+  # FR-16 UX-03: retry retryable SDK failures BEFORE the first streamed delta, each announced as a notice delta
   async def stream_turn(self, system: str, tools: list[dict], messages: list[Message], role: ResolvedRole) -> AsyncIterator[AdapterDelta]:
     request = {"model": role.model_id, "instructions": system, "input": build_input_items(messages), "store": False, "stream": True, **build_request_params(role)}
     if tools: request["tools"] = build_tools(tools)
     dump_debug(self.debug_dir, "request", {key: value for key, value in request.items() if key != "stream"})
-    try:
-      stream = await self.client.responses.create(**request)
-      final = None
-      async for event in stream:
-        event_type = getattr(event, "type", "")
-        if event_type == "response.output_text.delta": yield AdapterDelta(kind="text", text=event.delta)
-        elif event_type == "response.reasoning_summary_text.delta": yield AdapterDelta(kind="thinking", text=event.delta)
-        elif event_type == "response.completed": final = event.response
-        elif event_type == "response.failed":
-          error_detail = getattr(getattr(event.response, "error", None), "message", "response.failed")
-          raise ProviderError(f"OpenAI response failed: {error_detail}")
-    except openai.OpenAIError as error:
-      raise ProviderError(f"OpenAI API error: {error}") from None
+    attempt = 0
+    while True:
+      yielded = False
+      try:
+        async for delta in self._stream_once(request):
+          yielded = True
+          yield delta
+        return
+      except ProviderError:
+        raise  # already normalized (response.failed, incomplete stream) - never retried
+      except openai.OpenAIError as error:
+        if not yielded and attempt < len(RETRY_DELAYS_SECONDS) and is_retryable_error(error):
+          delay = RETRY_DELAYS_SECONDS[attempt]
+          attempt += 1
+          yield AdapterDelta(kind="notice", text=f"OpenAI {type(error).__name__} - retrying in {delay:.0f}s (attempt {attempt}/{len(RETRY_DELAYS_SECONDS)})...")
+          await asyncio.sleep(delay)
+          continue
+        raise ProviderError(f"OpenAI API error: {error}") from None
+
+  async def _stream_once(self, request: dict) -> AsyncIterator[AdapterDelta]:
+    stream = await self.client.responses.create(**request)
+    final = None
+    async for event in stream:
+      event_type = getattr(event, "type", "")
+      if event_type == "response.output_text.delta": yield AdapterDelta(kind="text", text=event.delta)
+      elif event_type == "response.reasoning_summary_text.delta": yield AdapterDelta(kind="thinking", text=event.delta)
+      elif event_type == "response.completed": final = event.response
+      elif event_type == "response.failed":
+        error_detail = getattr(getattr(event.response, "error", None), "message", "response.failed")
+        raise ProviderError(f"OpenAI response failed: {error_detail}")
     if final is None: raise ProviderError("OpenAI stream ended without response.completed")
     dump_debug(self.debug_dir, "response", final.model_dump() if hasattr(final, "model_dump") else {"raw": str(final)})
     for item in final.output:  # typed array parsing - message | reasoning | function_call (RF-01)

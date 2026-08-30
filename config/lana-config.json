@@ -4,7 +4,8 @@
     "summarizer": { "model_id": "gpt-4.1-mini", "effort": "low" },
     "websearch":  { "model_id": "gpt-4.1-mini", "effort": "low" }
   },
-  "prompt_system_paths": ["e:/Dev/IPPS/DevSystemV4.2"],
+  "agent_folder": ".lana",
+  "data_dir": ".lana-data",
   "rule_block_max_chars": 6000,
   "max_tool_calls_per_prompt": 25,
   "auto_continue": false,

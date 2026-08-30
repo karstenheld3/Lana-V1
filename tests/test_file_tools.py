@@ -100,7 +100,7 @@ def test_find_by_name_filters(tmp_path, context):
 def test_search_tools_skip_ignored_directories(tmp_path, context):
   (tmp_path / "src").mkdir()
   (tmp_path / "src" / "real.py").write_text("needle here\n", encoding="utf-8")
-  for noise_dir in (".git", "node_modules", "__pycache__", ".lana"):
+  for noise_dir in (".git", "node_modules", "__pycache__", ".lana", ".lana-data"):
     (tmp_path / noise_dir / "sub").mkdir(parents=True)
     (tmp_path / noise_dir / "sub" / "noise.py").write_text("needle here\n", encoding="utf-8")
   grep_result = execute_grep_search({"SearchPath": str(tmp_path), "Query": "needle"}, context)

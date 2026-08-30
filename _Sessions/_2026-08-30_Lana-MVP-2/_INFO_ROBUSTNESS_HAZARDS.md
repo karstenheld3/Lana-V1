@@ -11,12 +11,12 @@
 
 ## Summary
 
-- **2 crash classes are real**: the CLI catches only `ConfigError` at startup and only `UnknownWorkflowError` in the REPL - any other exception (disk full on JSONL append, permission error creating `.lana/`, locked prompt system file) kills the process with a raw traceback. The ACP server has broad catches and survives the same failures [VERIFIED]
+- **4 crash findings span 2 exception surfaces (startup + REPL)**: the CLI catches only `ConfigError` at startup and only `UnknownWorkflowError` in the REPL - any other exception (disk full on JSONL append, permission error creating `.lana/`, locked prompt system file) kills the process with a raw traceback. The ACP server has broad catches and survives the same failures [VERIFIED]
 - **The ACP server has one total-hang hazard**: a client that stops reading stdout blocks `sys.stdout.write` on the event loop thread - the whole server freezes including cancel processing [VERIFIED]
-- **Cancellation cannot stop executor-thread tools**: `task.cancel()` abandons the await but the worker thread and its child `pwsh` process keep running; process exit then blocks on the `concurrent.futures` atexit join until the tool finishes [VERIFIED mechanism, join behavior ASSUMED from stdlib]
+- **Cancellation cannot stop executor-thread tools**: `task.cancel()` abandons the await but the worker thread and its child `pwsh` process keep running; process exit then blocks on the `concurrent.futures` atexit join until the tool finishes [VERIFIED mechanism; join behavior VERIFIED - stdlib docs: "All threads enqueued to ThreadPoolExecutor will be joined before the interpreter can exit"]
 - **`command_status` accepts unbounded `WaitDurationSeconds`**: the schema advises max 60 s but nothing enforces it - one tool call can block its dispatch slot for hours [VERIFIED]
 - **Three dead-air UX moments dominate**: nothing renders between Enter and the first token (reasoning models: 10-60 s), thinking is hidden by default (long silent reasoning stretches), and compaction runs a silent Summarizer call between turns [VERIFIED]
-- **Provider SDK defaults hide latency**: ~600 s request timeout and 2 silent retries with backoff mean a degraded provider looks like a frozen agent for minutes [ASSUMED - SDK documented defaults, not measured]
+- **Provider SDK defaults hide latency**: ~600 s request timeout and 2 silent retries with backoff mean a degraded provider looks like a frozen agent for minutes [VERIFIED - OpenAI `_constants.py`: `DEFAULT_TIMEOUT = httpx.Timeout(timeout=600, connect=5.0)`, `DEFAULT_MAX_RETRIES = 2`; Anthropic `_constants.py` identical]
 - Specified fail-safes (EC-16/17/20/21, compaction no-op, corrupt-line skip, denial paths) are implemented and tested - this analysis found no gap in SPECed error handling, only in UNSPECIFIED error surfaces [VERIFIED]
 
 ## Table of Contents
@@ -33,6 +33,8 @@
 ## 1. Method and Scope
 
 Re-read of all 4 planning documents (SPEC/IMPL for MVP-1 and MVP-2) followed by targeted code inspection of every I/O boundary: startup, REPL, turn loop, tool executors, provider adapters, session store, compaction, renderer, ACP server. Each finding states evidence (file), trigger, consequence, mitigation, and effort.
+
+Mitigations for UX findings should conform to `LOGGING-RULES-USER-FACING.md` (LG-UF-03 progress indicators, LG-UF-04 activity boundaries, LG-UF-05 error messages) and `LOGGING-RULES-APP-LEVEL.md` (LG-AP-02 error context). CR error messages should follow LG-UF-05 (what happened, why, what to do).
 
 Severity meaning:
 - **[HIGH]** - process dies or hangs, or the user is misled for minutes
@@ -91,7 +93,7 @@ Threads or loops that block where they need not.
 
 - **Evidence**: `agent.dispatch_call` uses `run_in_executor` in ACP mode; `asyncio.Task.cancel` cancels the await, never the thread; `shell_tools` child `pwsh` keeps running; `concurrent.futures.thread` joins workers at interpreter exit
 - **Trigger**: `session/cancel` during a long `run_command` (up to 600 s) or `command_status` wait; then stdin EOF
-- **Consequence**: turn reports cancelled (correct per FR-10 - completed calls kept, note appended) but the tool still runs to completion invisibly; process exit blocks until the worker thread finishes [ASSUMED - stdlib atexit join; not tested with a stuck worker]
+- **Consequence**: turn reports cancelled (correct per FR-10 - completed calls kept, note appended) but the tool still runs to completion invisibly; process exit blocks until the worker thread finishes [VERIFIED - stdlib docs confirm atexit join]. In ACP mode, a subsequent `session/prompt` may start while the abandoned executor thread still mutates the workspace (server checks `active_task.done()`, not whether the executor thread terminated)
 - **Mitigation**: 1) track live `Popen` handles in `ToolContext.background_processes` plus a current-foreground slot, `terminate()` them on cancel/EOF; 2) cap executor tool time (BL-03 covers the worst offender). Full thread interruption is not achievable in Python - process-kill is the honest lever
 - **Effort**: medium
 
@@ -114,7 +116,7 @@ Threads or loops that block where they need not.
 
 ### BL-05: No explicit provider timeouts - SDK defaults govern stalls [MEDIUM]
 
-- **Evidence**: `openai.AsyncOpenAI(api_key=...)` and `anthropic.AsyncAnthropic(api_key=...)` constructed without `timeout`/`max_retries`; defaults ~600 s total with 2 retries [ASSUMED - SDK documentation, not measured]
+- **Evidence**: `openai.AsyncOpenAI(api_key=...)` and `anthropic.AsyncAnthropic(api_key=...)` constructed without `timeout`/`max_retries`; defaults ~600 s total with 2 retries [VERIFIED - both SDKs define `DEFAULT_TIMEOUT = httpx.Timeout(timeout=600, connect=5.0)` and `DEFAULT_MAX_RETRIES = 2` in `_constants.py`]
 - **Trigger**: TCP half-open, proxy stall, provider incident mid-stream
 - **Consequence**: a dead turn occupies up to ~10 minutes; CLI Ctrl+C and ACP cancel DO work (the await is cancellable) - this is a hang-duration hazard, not a hard hang
 - **Mitigation**: explicit `timeout=httpx.Timeout(connect=10, read=120, ...)` per adapter (config-surfaced), `max_retries` owned by Lana so retries become visible (UX-02)
@@ -156,7 +158,7 @@ Expected waits that look like hangs because nothing tells the user.
 
 ### UX-03: Silent provider retries [MEDIUM]
 
-- **Evidence**: SDK-internal retries (BL-05) emit no event; the user waits through backoff with no signal [ASSUMED - SDK defaults]
+- **Evidence**: SDK-internal retries (BL-05) emit no event; the user waits through backoff with no signal [VERIFIED - SDK retry with exponential backoff 0.5-8 s per `_constants.py`]
 - **Mitigation**: own the retry loop in the adapters: on retryable status, emit an `error`-severity-free notice event (`Provider 429 - retrying in 8s (attempt 2/3)...`); requires `max_retries=0` on the SDK client
 - **Effort**: medium (adapter retry loop + one new rendered line; event enum unchanged - reuse ErrorEvent with WARNING prefix like EC-17 does)
 
@@ -212,7 +214,7 @@ Suggested order (crash class first, then the cheap high-value items):
 - `LANAAGNT-IN03-SC-IMPL-MVP2`: `_IMPL_LANA_MVP-2_ACP.md [LANAACPB-IP01]` - EC-01..23 [VERIFIED]
 - `LANAAGNT-IN03-SC-CODE-CLI`: `src/lana/cli.py` - startup/REPL exception surface (CR-01/02/03, UX-05) [VERIFIED]
 - `LANAAGNT-IN03-SC-CODE-AGNT`: `src/lana/agent.py` - dispatch, cancellation, executor seam (BL-02) [VERIFIED]
-- `LANAAGNT-IN03-SC-CODE-PROV`: `src/lana/providers/openai_adapter.py`, `anthropic_adapter.py` - client construction without timeouts (BL-05, UX-03) [VERIFIED code; SDK defaults ASSUMED]
+- `LANAAGNT-IN03-SC-CODE-PROV`: `src/lana/providers/openai_adapter.py`, `anthropic_adapter.py` - client construction without timeouts (BL-05, UX-03) [VERIFIED code and SDK defaults]
 - `LANAAGNT-IN03-SC-CODE-SHTL`: `src/lana/tools/shell_tools.py` - 600 s bound, background table, unbounded wait (BL-03/06) [VERIFIED]
 - `LANAAGNT-IN03-SC-CODE-WEBT`: `src/lana/tools/web_tools.py` - fetch timeout semantics (BL-07) [VERIFIED]
 - `LANAAGNT-IN03-SC-CODE-CMPT`: `src/lana/compaction.py` - EC-17 scope, silent Summarizer call (CR-04, UX-04) [VERIFIED]
@@ -221,6 +223,9 @@ Suggested order (crash class first, then the cheap high-value items):
 - `LANAAGNT-IN03-SC-CODE-SESS`: `src/lana/session.py` - unguarded append, broad resume skip (CR-03, non-finding EC-21) [VERIFIED]
 
 ## 8. Document History
+
+**[2026-08-30 16:15]**
+- Changed: applied 4 reconciled findings from `/critique` + `/reconcile` (LANAAGNT-IN03-RV01): Summary precision ("4 findings / 2 surfaces"), 3 [ASSUMED] relabeled to [VERIFIED] with SDK/stdlib source references, logging-rules cross-reference added to Method section, BL-02 concurrent-mutation-after-cancel consequence added
 
 **[2026-08-30 15:20]**
 - Initial hazard analysis created: 4 crash findings (CR), 7 blocking findings (BL), 6 responsiveness findings (UX), 5 verified non-findings, prioritized next steps

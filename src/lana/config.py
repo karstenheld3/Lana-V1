@@ -7,6 +7,13 @@ from pydantic import BaseModel, Field, ValidationError
 
 ENV_KEY_NAMES = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
 
+# Zero-setup default roles (FR-16, DD-02/DD-23): written to a missing DEFAULT config path at startup
+DEFAULT_ROLES = {
+  "generator": {"model_id": "claude-sonnet-4-5-20250929", "effort": "medium"},
+  "summarizer": {"model_id": "gpt-4.1-mini", "effort": "low"},
+  "websearch": {"model_id": "gpt-4.1-mini", "effort": "low"},
+}
+
 
 class ConfigError(Exception):
   pass
@@ -21,7 +28,8 @@ class RoleSpec(BaseModel):
 
 class LanaConfig(BaseModel):
   roles: dict[str, RoleSpec]
-  prompt_system_paths: list[str] = Field(default_factory=list)
+  agent_folder: str = ".lana"
+  data_dir: str = ".lana-data"
   rule_block_max_chars: int = 6000
   max_tool_calls_per_prompt: int = 25
   auto_continue: bool = False
@@ -53,8 +61,12 @@ class AppConfig:
   keys: dict[str, str]    # provider -> api key (only for providers required at load)
   workspace: Path
   config_dir: Path
+  agent_folder: Path = Path(".lana")  # resolved absolute agent folder path (prompt system)
+  data_dir: Path = Path(".lana-data")  # resolved absolute runtime data directory (sessions, logs, chunks)
   scripted: bool = False              # LANA_SCRIPTED_ADAPTER active (FR-14)
   debug_dir: Optional[Path] = None    # --debug: redacted API traffic target (NFR-04)
+  show_thinking: bool = False         # --show-thinking: stream thinking dim-styled (FR-16 UX-02)
+  created_files: list = field(default_factory=list)  # zero-setup artifacts created at startup (FR-16, reported by the CLI)
 
 # ----------------------------------------- END: Schema -----------------------------------------------------------------------
 
@@ -68,6 +80,16 @@ def read_json(path: Path) -> dict:
     raise ConfigError(f"Config file not found: '{path}'.\n  HINT: create it or pass --config <path> (env LANA_CONFIG).") from None
   except json.JSONDecodeError as error:
     raise ConfigError(f"Malformed JSON in '{path}' at line {error.lineno}, column {error.colno}: {error.msg}.\n  HINT: repair the JSON syntax at that position.") from None
+
+
+# Zero-setup (FR-16, DD-23): write the default config to a missing DEFAULT path; explicit overrides never auto-create
+def create_default_config(config_path: Path) -> None:
+  content = LanaConfig(roles={name: RoleSpec(**spec) for name, spec in DEFAULT_ROLES.items()}).model_dump()
+  try:
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps(content, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+  except OSError as error:
+    raise ConfigError(f"Cannot create default config '{config_path}': {error}.\n  HINT: check folder permissions or pass --config <path> to a writable location.") from None
 
 
 def parse_key_file(path: Path) -> dict[str, str]:
@@ -131,7 +153,12 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
   └── registry/mapping/pricing/.api-keys.txt are read from the config file's folder
   └── require_keys=False skips API key resolution (scripted adapter mode, FR-14)
   """
-  if config_path is None: config_path = workspace / "config" / "lana-config.json"
+  created_files: list[str] = []
+  if config_path is None:
+    config_path = workspace / "config" / "lana-config.json"
+    if not Path(config_path).exists():  # FR-16 zero-setup: only the DEFAULT path auto-creates
+      create_default_config(Path(config_path))
+      created_files.append(str(config_path))
   config_path = Path(config_path)
   config_dir = config_path.parent
   raw = read_json(config_path)
@@ -157,6 +184,10 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
       if key is None:
         raise ConfigError(f"No API key for provider '{provider}'.\n  HINT: set env var {ENV_KEY_NAMES[provider]} or add a line '{ENV_KEY_NAMES[provider]}=<key>' to '{key_file}'.")
       keys[provider] = key
-  return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, workspace=Path(workspace), config_dir=config_dir)
+  resolved_data_dir = (Path(workspace) / lana.data_dir).resolve()
+  agent_path = Path(lana.agent_folder)
+  resolved_agent_folder = agent_path if agent_path.is_absolute() else (Path(workspace) / agent_path).resolve()
+  return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, workspace=Path(workspace), config_dir=config_dir, agent_folder=resolved_agent_folder, data_dir=resolved_data_dir,
+                   created_files=created_files)
 
 # ----------------------------------------- END: Loading ----------------------------------------------------------------------

@@ -112,7 +112,8 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - Messages are newline-delimited JSON-RPC 2.0, UTF-8; no embedded raw newlines (ACP-IN10)
 - stdout carries only ACP messages; every diagnostic, warning, and log line goes to stderr
 - Each outbound message is flushed immediately (same discipline as session JSONL writes, LANAAGNT-DD-20)
-- EOF on stdin ends the process cleanly (exit 0) after finishing any active turn cancellation
+- stdout writes run on a dedicated writer thread fed by a bounded queue (LANAAGNT-IN03 BL-01): a client that stops draining stdout cannot freeze the event loop - cancel and EOF detection stay live; on queue overflow, messages are dropped with a stderr log line (backpressure fail-safe, wire bytes unchanged otherwise)
+- EOF on stdin ends the process cleanly (exit 0) after finishing any active turn cancellation and terminating live tool child processes (LANAAGNT-IN03 BL-06)
 
 **LANAACPB-FR-02: Initialization Handshake**
 - Respond to `initialize` with `protocolVersion: 1`, `agentInfo` (name `lana`, version from package metadata), and agent capabilities (LANAACPB-IN01, official v1 shape)
@@ -122,6 +123,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 
 **LANAACPB-FR-03: Session Creation**
 - `session/new` creates a Lana session: workspace = `cwd` param; prompt system, config, and system prompt assembled per LANAAGNT-FR-01..03; `session_started` environment record written as first JSONL line (LANAAGNT-FR-08)
+- Runtime construction runs off the event loop in the default executor (LANAAGNT-IN03 BL-04): message processing (cancel, ping, second request) stays live during config/prompt-system load; applies to `session/load` identically
 - Response carries `sessionId` (= session file stem)
 - `mcpServers` param: ignored with one stderr warning (Lana has no MCP client, LANAAGNT-DD-18); `additionalDirectories`: ignored with stderr warning (single-workspace model, LANAAGNT-SP01 workspace definition)
 - After the response, send `available_commands_update` listing workflows and built-ins (ACP-IN07 update types; source: loaded PromptSystem)
@@ -181,6 +183,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - Updates may still flow between `session/cancel` and the response (race by design); idempotent when no turn is active
 - Pending `session/request_permission` or `elicitation/create` at cancel time → resolve as cancelled outcome; whether the denial record lands in the JSONL before the turn task's cancellation preempts it is a benign race - the guaranteed contract is the cancellation note plus the cancelled response (synced from implementation 2026-08-30)
 - `$/cancel_request` (notification, either direction) on a cancellable outstanding request → same cancellation path, `-32800` Request Cancelled error response where no partial result exists (ACP-IN07)
+- Cancellation terminates live tool child processes of the session (LANAAGNT-IN03 BL-02): abandoned executor-thread tools cannot keep mutating the workspace after the cancelled response, and process exit does not block on the `concurrent.futures` atexit join
 
 **LANAACPB-FR-11: Wire Error Handling**
 - Unparseable stdin line → error response `-32700` (Parse error) with null id, processing continues
@@ -315,10 +318,13 @@ Client sends session/cancel (notification, any time during the turn)
 - Single asyncio event loop coordinates stdin dispatch, turn execution, and client-bound requests; the blocking stdin readline itself runs in the default executor (Windows has no async console stdin)
 - Windows stdio: UTF-8 encoding enforced on both pipes; line flushing per message (CRLF must not appear inside the JSON payload)
 - The scripted replay adapter (LANAAGNT-FR-14) works unchanged under ACP mode - deterministic offline testing of full ACP exchanges
-- Session files remain in `<workspace>/.lana/sessions/`; the `cwd` from `session/new` is the workspace for tool context and git-root detection
+- Session files remain in `<workspace>/.lana-data/sessions/`; the `cwd` from `session/new` is the workspace for tool context and git-root detection
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-30 16:55]**
+- Added: hardening per LANAAGNT-IN03 - FR-01 stdout writer thread (BL-01) + process cleanup at EOF (BL-06), FR-03 off-loop runtime construction (BL-04), FR-10 child process termination on cancel (BL-02)
 
 **[2026-08-30 15:10]**
 - Changed (`/sync` Code→SPEC after implementation): FR-06 usage_update mapping made precise (per-turn used, pricing-derived size, cumulative cost); FR-10 denial-vs-cancellation race documented as benign

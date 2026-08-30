@@ -56,7 +56,7 @@ class LanaProc:
     return parsed
 
   def session_files(self) -> list[Path]:
-    sessions_dir = self.workspace / ".lana" / "sessions"
+    sessions_dir = self.workspace / ".lana-data" / "sessions"
     if not sessions_dir.is_dir(): return []
     return sorted(sessions_dir.glob("*.jsonl"), key=lambda path: path.stat().st_mtime)
 

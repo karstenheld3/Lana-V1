@@ -5,13 +5,13 @@ breakpoints) plus top-level automatic caching so growing history is cache-read t
 Usage normalization: input_tokens is reported EXCLUDING cache reads by Anthropic - we normalize to
 input_tokens INCLUDING cache reads to match the cost.py contract.
 """
-import datetime, json
+import asyncio, datetime, json
 from pathlib import Path
 from typing import AsyncIterator, Optional
 import anthropic
 from lana.config import ResolvedRole
 from lana.models import Message, ThinkingBlock, ToolCall, Usage
-from lana.providers.base import AdapterDelta, ProviderError
+from lana.providers.base import PROVIDER_TIMEOUT, RETRY_DELAYS_SECONDS, AdapterDelta, ProviderError, is_retryable_error
 
 EPHEMERAL = {"type": "ephemeral"}
 
@@ -85,30 +85,48 @@ def normalize_usage(usage) -> Usage:
 
 class AnthropicAdapter:
   def __init__(self, api_key: str, debug_dir: Optional[Path] = None):
-    self.client = anthropic.AsyncAnthropic(api_key=api_key)
-    self.sync_client = anthropic.Anthropic(api_key=api_key)
+    self.client = anthropic.AsyncAnthropic(api_key=api_key, timeout=PROVIDER_TIMEOUT, max_retries=0)  # FR-16 BL-05: Lana owns retries (UX-03)
+    self.sync_client = anthropic.Anthropic(api_key=api_key, timeout=PROVIDER_TIMEOUT, max_retries=0)
     self.debug_dir = debug_dir
 
   def supports_web_search(self) -> bool:
     return True
 
+  # FR-16 UX-03: retry retryable SDK failures BEFORE the first streamed delta, each announced as a notice delta
   async def stream_turn(self, system: str, tools: list[dict], messages: list[Message], role: ResolvedRole) -> AsyncIterator[AdapterDelta]:
     request = {"model": role.model_id, "system": [{"type": "text", "text": system, "cache_control": EPHEMERAL}], "messages": build_messages(messages), **build_request_params(role)}
     if tools: request["tools"] = build_tools(tools)
     if role.beta: request.setdefault("extra_headers", {})["anthropic-beta"] = role.beta
     dump_debug(self.debug_dir, "request", {key: value for key, value in request.items() if key != "extra_headers"})
-    try:
-      async with self.client.messages.stream(**request) as stream:
-        async for event in stream:
-          event_type = getattr(event, "type", "")
-          if event_type == "content_block_delta":
-            delta = event.delta
-            delta_type = getattr(delta, "type", "")
-            if delta_type == "text_delta": yield AdapterDelta(kind="text", text=delta.text)
-            elif delta_type == "thinking_delta": yield AdapterDelta(kind="thinking", text=delta.thinking)
-        final = await stream.get_final_message()
-    except anthropic.AnthropicError as error:
-      raise ProviderError(f"Anthropic API error: {error}") from None
+    attempt = 0
+    while True:
+      yielded = False
+      try:
+        async for delta in self._stream_once(request):
+          yielded = True
+          yield delta
+        return
+      except ProviderError:
+        raise
+      except anthropic.AnthropicError as error:
+        if not yielded and attempt < len(RETRY_DELAYS_SECONDS) and is_retryable_error(error):
+          delay = RETRY_DELAYS_SECONDS[attempt]
+          attempt += 1
+          yield AdapterDelta(kind="notice", text=f"Anthropic {type(error).__name__} - retrying in {delay:.0f}s (attempt {attempt}/{len(RETRY_DELAYS_SECONDS)})...")
+          await asyncio.sleep(delay)
+          continue
+        raise ProviderError(f"Anthropic API error: {error}") from None
+
+  async def _stream_once(self, request: dict) -> AsyncIterator[AdapterDelta]:
+    async with self.client.messages.stream(**request) as stream:
+      async for event in stream:
+        event_type = getattr(event, "type", "")
+        if event_type == "content_block_delta":
+          delta = event.delta
+          delta_type = getattr(delta, "type", "")
+          if delta_type == "text_delta": yield AdapterDelta(kind="text", text=delta.text)
+          elif delta_type == "thinking_delta": yield AdapterDelta(kind="thinking", text=delta.thinking)
+      final = await stream.get_final_message()
     dump_debug(self.debug_dir, "response", final.model_dump() if hasattr(final, "model_dump") else {"raw": str(final)})
     for block in final.content:
       block_type = getattr(block, "type", "")

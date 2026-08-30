@@ -16,7 +16,7 @@ def proc_factory(tmp_path):
     workspace = tmp_path / name
     workspace.mkdir()
     system = write_prompt_system(workspace / "ps", rules={"main.md": "Rule"}, workflows={"prime": "---\ndescription: Prime\n---\nbody"})
-    config_dir = write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(system).replace("\\", "/")]}, key_lines=None)
+    config_dir = write_config_dir(workspace, lana_overrides={"agent_folder": str(system).replace("\\", "/")}, key_lines=None)
     script = write_script(workspace / "script.jsonl", TURNS)
     return LanaProc(workspace, config_path=config_dir / "lana-config.json", script_path=script)
   return make

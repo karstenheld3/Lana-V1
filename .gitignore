@@ -6,6 +6,7 @@ build/
 dist/
 .pytest_cache/
 .lana/
+.lana-data/
 *_gitignore.*
 *_gitignore/
 config/.api-keys.txt

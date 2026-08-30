@@ -39,7 +39,7 @@ def test_tc65_tp01_tc11_resume_authority_and_warnings(tmp_path):
   # Mutate the environment: delete a rule file AND switch the generator model
   (proc.workspace / "fake_system" / "rules" / "normal.md").unlink()
   system_path = str(proc.workspace / "fake_system").replace("\\", "/")
-  write_config_dir(proc.workspace, lana_overrides={"prompt_system_paths": [system_path],
+  write_config_dir(proc.workspace, lana_overrides={"agent_folder": system_path,
                                                    "roles": {"generator": {"model_id": "gpt-4.1-mini", "effort": "low"},
                                                              "summarizer": {"model_id": "gpt-4.1-mini", "effort": "low"},
                                                              "websearch": {"model_id": "gpt-4.1-mini", "effort": "low"}}}, key_lines=None)
@@ -75,7 +75,7 @@ def test_tc66_thinking_payload_round_trip(agent_factory):
 # TC-67: legacy session file without session_started -> disk assembly fallback + warning (EC-28)
 def test_tc67_legacy_session_fallback(tmp_path):
   proc = build_scenario_proc(tmp_path, "tc67", [{"text": "resumed", "usage": {"input": 100, "output": 5}}])
-  sessions_dir = proc.workspace / ".lana" / "sessions"
+  sessions_dir = proc.workspace / ".lana-data" / "sessions"
   sessions_dir.mkdir(parents=True)
   legacy = sessions_dir / "2026-01-01_000000_legacy.jsonl"
   legacy.write_text('{"ts":"2026-01-01 00:00:00","type":"user_message","content":"old question"}\n'

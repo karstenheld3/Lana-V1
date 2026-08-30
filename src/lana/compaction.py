@@ -92,17 +92,22 @@ def make_compactor(app: AppConfig):
     threshold = compaction_threshold(app)
     projected = project_from_messages(agent.messages)
     if projected < threshold: return
+    yield ErrorEvent(message=f"NOTICE: Compacting context (~{projected} tokens, threshold {threshold})...")  # FR-16 UX-04: announce BEFORE the paid call
     try:
       summary_text = await run_summarizer(agent)
     except Exception as error:  # EC-17: fail-safe, no truncation
       yield ErrorEvent(message=f"WARNING: Summarizer call failed ({error}). Continuing uncompacted - next turn may be expensive.")
       return
-    objective, summary, code_history = split_sections(summary_text)
-    todo_json = extract_todo_json(agent.tool_context.todo_state)
-    checkpoint_text = build_checkpoint(objective, summary, code_history, todo_json)
-    tail = agent.messages[-KEEP_TAIL_MESSAGES:] if len(agent.messages) > KEEP_TAIL_MESSAGES else list(agent.messages)
-    while tail and tail[0].role == "tool": tail = tail[1:]  # never keep a tool result whose tool_use partner was truncated (provider 400 guard)
-    truncated_count = len(agent.messages) - len(tail)
-    agent.messages = [Message(role="user", content=checkpoint_text)] + tail
+    try:  # FR-16 CR-04: the whole compact body shares the EC-17 warn-and-continue semantics
+      objective, summary, code_history = split_sections(summary_text)
+      todo_json = extract_todo_json(agent.tool_context.todo_state)
+      checkpoint_text = build_checkpoint(objective, summary, code_history, todo_json)
+      tail = agent.messages[-KEEP_TAIL_MESSAGES:] if len(agent.messages) > KEEP_TAIL_MESSAGES else list(agent.messages)
+      while tail and tail[0].role == "tool": tail = tail[1:]  # never keep a tool result whose tool_use partner was truncated (provider 400 guard)
+      truncated_count = len(agent.messages) - len(tail)
+      agent.messages = [Message(role="user", content=checkpoint_text)] + tail
+    except Exception as error:
+      yield ErrorEvent(message=f"WARNING: Compaction failed after the Summarizer call ({type(error).__name__}: {error}). Continuing uncompacted - next turn may be expensive.")
+      return
     yield CheckpointCreated(text=checkpoint_text, truncated_messages=truncated_count, kept_messages=len(tail))
   return compact

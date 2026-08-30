@@ -19,7 +19,7 @@ def build_scenario_proc(tmp_path: Path, name: str, turns: list[dict] | None, lan
     rules={"normal.md": "---\ntrigger: always_on\n---\nBe helpful.", "empty.md": "---\ntrigger: always_on\n---\n", "oversized.md": "R" * 9000},
     workflows=SCENARIO_WORKFLOWS,
     skills={"demo-skill": ("---\nname: demo-skill\ndescription: Demo\n---\nBody.", {"GUIDE.md": "guide"})})
-  overrides = {"prompt_system_paths": [str(system).replace("\\", "/")]}
+  overrides = {"agent_folder": str(system).replace("\\", "/")}
   if lana_overrides: overrides.update(lana_overrides)
   config_dir = write_config_dir(workspace, lana_overrides=overrides, key_lines=None)
   script = write_script(workspace / "script.jsonl", turns) if turns is not None else None

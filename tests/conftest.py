@@ -47,7 +47,7 @@ DEFAULT_LANA_CONFIG = {
     "summarizer": {"model_id": "gpt-4.1-mini", "effort": "low"},
     "websearch": {"model_id": "gpt-4.1-mini", "effort": "low"},
   },
-  "prompt_system_paths": [],
+  "agent_folder": ".lana",
   "rule_block_max_chars": 6000,
   "max_tool_calls_per_prompt": 25,
   "auto_continue": False,
@@ -149,8 +149,8 @@ def agent_factory(tmp_path, monkeypatch, fake_system):
     system_prompt = build_system_prompt(prompt_system, {"os": platform.system().lower(), "workspace": str(workspace), "git_root": ""})
     registry = ToolRegistry(os_name="windows", shell="pwsh", skills=prompt_system.skills)
     for name, executor in EXECUTORS.items(): registry.register(name, executor)
-    tool_context = ToolContext(workspace=workspace, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
-    session = SessionStore.create(workspace)
+    tool_context = ToolContext(workspace=workspace, data_dir=app.data_dir, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
+    session = SessionStore.create(app.data_dir)
     cost_tracker = CostTracker(app)
     compactor = None
     if use_compactor:

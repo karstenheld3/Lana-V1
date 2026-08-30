@@ -14,7 +14,7 @@ LISTED_SESSIONS_CAP = 10
 
 
 def sessions_directory(context: ToolContext) -> Path:
-  return Path(context.workspace) / ".lana" / "sessions"
+  return (context.data_dir or Path(context.workspace) / ".lana-data") / "sessions"
 
 
 # Resolve ID against session files: exact filename, stem, or unique prefix (EC-27 on failure)

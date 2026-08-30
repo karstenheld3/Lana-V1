@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from lana.tools import ToolContext, ToolError
 
 DEFAULT_BLOCKING_TIMEOUT_SECONDS = 600
+MAX_STATUS_WAIT_SECONDS = 60  # FR-16 BL-03: the bound the command_status description promises
+TERMINATE_WAIT_SECONDS = 3
 
 
 @dataclass
@@ -43,15 +45,19 @@ def execute_run_command(args: dict, context: ToolContext) -> str:
   process = BackgroundProcess(command_id=f"cmd_{uuid.uuid4().hex[:8]}", command_line=command_line, popen=popen)
   reader = threading.Thread(target=drain_output, args=(process,), daemon=True)
   reader.start()
-  if args.get("Blocking", False):
-    reader.join(timeout=DEFAULT_BLOCKING_TIMEOUT_SECONDS)
-    if not process.done:
-      context.background_processes[process.command_id] = process
-      return f"Command still running after {DEFAULT_BLOCKING_TIMEOUT_SECONDS} s - moved to background with ID {process.command_id}. Check it with command_status."
-    return f"Exit code {process.exit_code}\nOutput:\n{process.output_text()}"
-  wait_ms = args.get("WaitMsBeforeAsync", 0)
-  if wait_ms > 0: reader.join(timeout=wait_ms / 1000)
-  if process.done: return f"Exit code {process.exit_code}\nOutput:\n{process.output_text()}"
+  context.foreground_process = process  # FR-16 BL-02: cancellation/exit can terminate the live foreground child
+  try:
+    if args.get("Blocking", False):
+      reader.join(timeout=DEFAULT_BLOCKING_TIMEOUT_SECONDS)
+      if not process.done:
+        context.background_processes[process.command_id] = process
+        return f"Command still running after {DEFAULT_BLOCKING_TIMEOUT_SECONDS} s - moved to background with ID {process.command_id}. Check it with command_status."
+      return f"Exit code {process.exit_code}\nOutput:\n{process.output_text()}"
+    wait_ms = args.get("WaitMsBeforeAsync", 0)
+    if wait_ms > 0: reader.join(timeout=wait_ms / 1000)
+    if process.done: return f"Exit code {process.exit_code}\nOutput:\n{process.output_text()}"
+  finally:
+    context.foreground_process = None
   context.background_processes[process.command_id] = process
   preview = process.output_text()
   suffix = f"\nOutput so far:\n{preview}" if preview else ""
@@ -62,7 +68,8 @@ def execute_command_status(args: dict, context: ToolContext) -> str:
   command_id = args["CommandId"]
   process = context.background_processes.get(command_id)
   if process is None: raise ToolError(f"Unknown command ID '{command_id}'. Known background IDs: {', '.join(context.background_processes) or '(none)'}")
-  wait_seconds = args.get("WaitDurationSeconds", 0)
+  wait_requested = args.get("WaitDurationSeconds", 0)
+  wait_seconds = min(wait_requested, MAX_STATUS_WAIT_SECONDS)  # FR-16 BL-03: clamp to the promised bound
   deadline = time.monotonic() + wait_seconds
   while not process.done and time.monotonic() < deadline: time.sleep(0.05)
   status = "done" if process.done else "running"
@@ -70,4 +77,26 @@ def execute_command_status(args: dict, context: ToolContext) -> str:
   max_chars = args["OutputCharacterCount"]
   if len(output) > max_chars: output = output[-max_chars:]
   exit_line = f"\nExit code {process.exit_code}" if process.done else ""
-  return f"Status: {status}{exit_line}\nOutput:\n{output}"
+  clamp_note = f"\nNOTE: WaitDurationSeconds {wait_requested} clamped to {MAX_STATUS_WAIT_SECONDS} s (tool contract maximum)." if wait_requested > MAX_STATUS_WAIT_SECONDS else ""
+  return f"Status: {status}{exit_line}{clamp_note}\nOutput:\n{output}"
+
+
+# FR-16 BL-02/BL-06: terminate live tool child processes (foreground always; background on exit/EOF).
+# Returns (terminated labels, survivor labels) - the caller reports them in one line each.
+def terminate_tool_processes(context, include_background: bool = True) -> tuple[list[str], list[str]]:
+  candidates: list[BackgroundProcess] = []
+  foreground = getattr(context, "foreground_process", None)
+  if foreground is not None: candidates.append(foreground)
+  if include_background: candidates.extend(context.background_processes.values())
+  terminated, survivors = [], []
+  for process in candidates:
+    if process.popen.poll() is not None: continue  # already finished
+    label = f"{process.command_id} ({process.command_line[:60]})"
+    try:
+      process.popen.terminate()
+      process.popen.wait(timeout=TERMINATE_WAIT_SECONDS)
+      terminated.append(label)
+    except Exception:
+      survivors.append(label)
+  context.foreground_process = None
+  return terminated, survivors

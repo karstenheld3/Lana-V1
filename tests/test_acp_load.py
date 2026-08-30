@@ -17,7 +17,7 @@ def loaded_workspace(tmp_path):
   workspace = tmp_path / "ws"
   workspace.mkdir()
   fake_system = write_prompt_system(tmp_path / "fs", workflows={"hello": "---\ndescription: Say hello\n---\n# Hello\n\nSay hello."})
-  write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(fake_system)]})
+  write_config_dir(workspace, lana_overrides={"agent_folder": str(fake_system)})
   script = write_script(workspace / "script.jsonl", TOOL_TURNS + TOOL_TURNS)
   return workspace, script
 
@@ -85,7 +85,7 @@ def test_tc36_recorded_environment_authority(loaded_workspace):
   finally:
     client.stop()
   # CLI resume of the ACP session: /cost seeded, then a prompt with the RECORDED system prompt (LANAAGNT-FR-08)
-  session_file = workspace / ".lana" / "sessions" / f"{session_id}.jsonl"
+  session_file = workspace / ".lana-data" / "sessions" / f"{session_id}.jsonl"
   proc = LanaProc(workspace, script_path=script)
   proc.extra_env["LANA_SCRIPTED_CAPTURE"] = str(capture_path)
   result = proc.run_headless("again", extra_args=["--resume", str(session_file)])
@@ -99,15 +99,15 @@ def test_tc36_recorded_environment_authority(loaded_workspace):
 def test_tc37_unknown_and_legacy(loaded_workspace):
   workspace, script = loaded_workspace
   session_id = make_acp_session_with_turn(workspace, script)
-  session_file = workspace / ".lana" / "sessions" / f"{session_id}.jsonl"
+  session_file = workspace / ".lana-data" / "sessions" / f"{session_id}.jsonl"
   lines = session_file.read_text(encoding="utf-8").splitlines()
-  legacy_file = workspace / ".lana" / "sessions" / "legacy_0000.jsonl"
+  legacy_file = workspace / ".lana-data" / "sessions" / "legacy_0000.jsonl"
   legacy_file.write_text("\n".join(lines[1:]) + "\n", encoding="utf-8")  # strip session_started (EC-18)
   client = AcpClient(workspace, script_path=script).start()
   try:
     client.handshake()
     response, _ = client.request("session/load", {"sessionId": "2026-01-01_000000_zzzz", "cwd": str(workspace)})
-    assert "error" in response and ".lana" in response["error"]["message"]  # EC-17: self-contained
+    assert "error" in response and ".lana-data" in response["error"]["message"]  # EC-17: self-contained
     response, _ = client.request("session/load", {"sessionId": "legacy_0000", "cwd": str(workspace)})
     assert response["result"] == {}
     assert "legacy session file" in client.stderr_text()

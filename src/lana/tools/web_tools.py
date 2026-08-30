@@ -1,9 +1,9 @@
 """Web research tools: search_web (websearch role side-call), read_url_content, view_content_chunk (LANAAGNT-FR-13, IS-18).
 
 read_url_content is plain HTTP fetching (no LLM backend); the approval gate runs in the agent before dispatch.
-Chunk store: in-memory + mirrored to .lana/chunks/<document_id>.json so view_content_chunk survives --resume.
+Chunk store: in-memory + mirrored to <data_dir>/chunks/<document_id>.json so view_content_chunk survives --resume.
 """
-import html.parser, json, urllib.error, urllib.request, uuid
+import html.parser, json, time, urllib.error, urllib.request, uuid
 from pathlib import Path
 from lana.providers import get_adapter
 from lana.tools import ToolContext, ToolError
@@ -11,6 +11,8 @@ from lana.tools import ToolContext, ToolError
 FETCH_MAX_BYTES = 5 * 1024 * 1024  # EC-18
 CHUNK_CHARS = 5000  # [ASSUMED - matches Cascade's observed 2-8 KB chunk cost range]
 FETCH_TIMEOUT_SECONDS = 30
+FETCH_WALL_DEADLINE_SECONDS = 120  # FR-16 BL-07: total transfer bound - a trickling server cannot extend a fetch past it
+FETCH_CHUNK_BYTES = 65536
 TEXT_CONTENT_MARKERS = ("text/", "application/json", "application/xml", "application/xhtml")
 
 
@@ -43,7 +45,7 @@ def chunk_text(text: str) -> list[str]:
 
 
 def chunks_dir(context: ToolContext) -> Path:
-  return Path(context.workspace) / ".lana" / "chunks"
+  return (context.data_dir or Path(context.workspace) / ".lana-data") / "chunks"
 
 
 def store_chunks(context: ToolContext, document_id: str, chunks: list[str]) -> None:
@@ -74,7 +76,14 @@ def execute_read_url_content(args: dict, context: ToolContext) -> str:
       content_type = response.headers.get("Content-Type", "")
       if content_type and not any(marker in content_type.lower() for marker in TEXT_CONTENT_MARKERS):
         raise ToolError(f"Refused non-text content from '{url}': Content-Type '{content_type}' (EC-18)")
-      body = response.read(FETCH_MAX_BYTES + 1)
+      body = b""
+      wall_deadline = time.monotonic() + FETCH_WALL_DEADLINE_SECONDS  # FR-16 BL-07: chunked read under a wall-clock bound
+      while len(body) <= FETCH_MAX_BYTES:
+        chunk = response.read(FETCH_CHUNK_BYTES)
+        if not chunk: break
+        body += chunk
+        if time.monotonic() > wall_deadline:
+          raise ToolError(f"Fetch of '{url}' aborted after {FETCH_WALL_DEADLINE_SECONDS} s wall-clock deadline ({len(body)} bytes received) - the server is too slow (BL-07)")
   except ToolError:
     raise
   except urllib.error.URLError as error:

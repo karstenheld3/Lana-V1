@@ -1,6 +1,6 @@
 # Lana MVP-1
 
-CLI agent that runs the DevSystemV4.2 prompt system (rules, workflows, skills) with an agentic tool loop on OpenAI/Anthropic backends.
+CLI agent that runs a prompt system (rules, workflows, skills) with an agentic tool loop on OpenAI/Anthropic backends.
 
 ## Install
 
@@ -10,7 +10,8 @@ pip install -e .[dev]
 
 ## Configure
 
-Runtime configuration lives in `config/lana-config.json` (roles, prompt system paths, safety policy).
+Zero-setup: on first run Lana creates everything it needs - `config/lana-config.json` (default roles), `.lana-data/sessions/`, and the `.lana/` prompt system scaffold - and reports each created artifact. No init command.
+Runtime configuration lives in `config/lana-config.json` (roles, agent folder, safety policy).
 API keys resolve from environment variables (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) first, then `config/.api-keys.txt`.
 
 ## Run
@@ -19,7 +20,8 @@ API keys resolve from environment variables (`OPENAI_API_KEY` / `ANTHROPIC_API_K
 lana                        # interactive session, workspace = current directory
 lana --resume <session>     # resume a session JSONL file
 lana --policy auto          # execution policy: manual | auto | turbo
-lana --debug                # write redacted API traffic to .lana/logs/
+lana --debug                # write redacted API traffic to .lana-data/logs/
+lana --show-thinking        # stream model thinking dim-styled
 lana -p "your prompt"       # headless single prompt (exit codes 0/2/3/4)
 lana -p "..." --output-format jsonl   # stream AgentEvents as JSON Lines
 ```

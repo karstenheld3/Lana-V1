@@ -21,9 +21,9 @@ class SessionStore:
     self.file = open(self.path, "a", encoding="utf-8", newline="\n")
 
   @staticmethod
-  def create(workspace: Path) -> "SessionStore":
+  def create(data_dir: Path) -> "SessionStore":
     stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    return SessionStore(workspace / ".lana" / "sessions" / f"{stamp}_{uuid.uuid4().hex[:6]}.jsonl")
+    return SessionStore(data_dir / "sessions" / f"{stamp}_{uuid.uuid4().hex[:6]}.jsonl")
 
   # Append + flush per line (FR-08 flush contract, IG-02)
   def append(self, event) -> None:

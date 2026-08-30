@@ -16,7 +16,7 @@ def scenario_workspace(tmp_path):
   workspace = tmp_path / "ws"
   workspace.mkdir()
   fake_system = write_prompt_system(tmp_path / "fs", workflows={"hello": "---\ndescription: Say hello\n---\n# Hello\n\nSay hello."})
-  write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(fake_system)]})
+  write_config_dir(workspace, lana_overrides={"agent_folder": str(fake_system)})
   return workspace
 
 
@@ -26,7 +26,7 @@ def make_client(workspace, turns, **kwargs):
 
 
 def session_events(workspace, session_id):
-  session_file = workspace / ".lana" / "sessions" / f"{session_id}.jsonl"
+  session_file = workspace / ".lana-data" / "sessions" / f"{session_id}.jsonl"
   return [from_jsonl(line) for line in session_file.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
@@ -127,7 +127,7 @@ def test_tp01_tc10_hostile_battery_secret_sweep(scenario_workspace):
     assert image["error"]["code"] == -32602
     valid, _ = client.request("session/prompt", {"sessionId": session_id, "prompt": [{"type": "text", "text": "hello"}]})
     assert valid["result"]["stopReason"] == "end_turn"  # connection survived the battery
-    session_text = (scenario_workspace / ".lana" / "sessions" / f"{session_id}.jsonl").read_text(encoding="utf-8")
+    session_text = (scenario_workspace / ".lana-data" / "sessions" / f"{session_id}.jsonl").read_text(encoding="utf-8")
     assert_no_secret_leak(["\n".join(client.raw_stdout), client.stderr_text(), session_text], FAKE_KEYS)
     assert_stdout_pure(client)
   finally:

@@ -3,9 +3,12 @@
 stdout carries ONLY serialized JSON-RPC messages (IG-01); one message per line, no embedded
 raw newlines (FR-01). Agent-originated and client-originated request id spaces are independent -
 `pending` tracks agent-originated ids only (SP01 Key Mechanisms). The blocking stdin readline
-runs in the default executor (Windows has no async console stdin); coordination stays on one loop.
+runs in the default executor (Windows has no async console stdin), coordination stays on one loop.
+
+FR-01 hardening (LANAAGNT-IN03 BL-01): stdout writes run on a dedicated writer thread fed by a
+bounded queue - a client that stops draining stdout cannot freeze the event loop.
 """
-import asyncio, json, sys
+import asyncio, contextlib, json, queue, sys, threading
 from dataclasses import dataclass
 from typing import Any, Optional
 from lana.acp import log
@@ -75,6 +78,44 @@ class RoundTripCancelled(Exception):
   """A pending agent-originated request was cancelled locally (IG-05)."""
 
 
+class StdoutWriter:
+  """Dedicated stdout writer thread (BL-01): the event loop enqueues, the thread writes + flushes.
+
+  Bounded queue: on overflow the message is DROPPED with a stderr log - blocking would re-freeze the
+  loop, which is the exact hazard this thread removes. Wire bytes are unchanged on the happy path.
+  """
+
+  def __init__(self, sink=None, maxsize: int = 1000):
+    self._stdout = sys.stdout  # bind the REAL stream now - a later redirect_stdout (session build, BL-04) must never divert protocol bytes
+    self.sink = sink or self._stdout_sink
+    self.queue: queue.Queue = queue.Queue(maxsize=maxsize)
+    self.dropped = 0
+    self.thread = threading.Thread(target=self._run, daemon=True, name="acp-stdout-writer")
+    self.thread.start()
+
+  def _stdout_sink(self, line: str) -> None:
+    self._stdout.write(line + "\n")
+    self._stdout.flush()  # FR-01: flush per message
+
+  def _run(self) -> None:
+    while True:
+      line = self.queue.get()
+      if line is None: return
+      with contextlib.suppress(Exception):  # a broken stdout pipe must not kill the thread loudly
+        self.sink(line)
+
+  def write(self, line: str) -> None:
+    try:
+      self.queue.put_nowait(line)
+    except queue.Full:  # EC: overflow drops with a log line - never blocks the event loop
+      self.dropped += 1
+      log(f"  WARNING: stdout writer queue full - message dropped ({self.dropped} total).")
+
+  def close(self) -> None:
+    with contextlib.suppress(queue.Full): self.queue.put_nowait(None)
+    self.thread.join(timeout=3)
+
+
 class Connection:
   """One stdio link: reads client lines, writes agent lines, correlates agent-originated requests."""
 
@@ -83,10 +124,16 @@ class Connection:
     self.write_line = write_line or self._write_stdout
     self.pending: dict[Any, asyncio.Future] = {}      # agent-originated id -> response future
     self.next_id = 100                                # distinct start aids log reading; id spaces are independent regardless
+    self._writer: Optional[StdoutWriter] = None       # lazy: only the default stdout path spawns the writer thread (BL-01)
 
   def _write_stdout(self, line: str) -> None:
-    sys.stdout.write(line + "\n")
-    sys.stdout.flush()                                # FR-01: flush per message
+    if self._writer is None: self._writer = StdoutWriter()
+    self._writer.write(line)
+
+  def close(self) -> None:
+    if self._writer is not None:
+      self._writer.close()
+      self._writer = None
 
   async def _read_stdin(self) -> Optional[str]:
     line = await asyncio.get_running_loop().run_in_executor(None, sys.stdin.readline)

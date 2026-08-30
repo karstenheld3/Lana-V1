@@ -15,7 +15,7 @@ def test_tp01_tc08_devsystem_startup(tmp_path):
   if not DEVSYSTEM_PATH.is_dir(): pytest.skip("DevSystemV4.2 not present on this machine")
   workspace = tmp_path / "tc08"
   workspace.mkdir()
-  config_dir = write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(DEVSYSTEM_PATH)]}, key_lines=None)
+  config_dir = write_config_dir(workspace, lana_overrides={"agent_folder": str(DEVSYSTEM_PATH)}, key_lines=None)
   proc = LanaProc(workspace, config_path=config_dir / "lana-config.json", script_path=write_script(workspace / "s.jsonl", []))
   result = proc.run_piped("/help\n/exit\n")
   assert result.returncode == 0, result.stdout + result.stderr
@@ -35,7 +35,7 @@ def test_tp01_tc09_debug_and_no_secret_leak(tmp_path, monkeypatch):
   fake_keys = ["sk-fake-openai-value-12345", "sk-fake-anthropic-value-67890"]
   env_result = proc.run_headless("go", extra_args=["--debug"])
   assert env_result.returncode == 0, env_result.stdout + env_result.stderr
-  logs_dir = proc.workspace / ".lana" / "logs"
+  logs_dir = proc.workspace / ".lana-data" / "logs"
   assert logs_dir.is_dir()  # NFR-04 debug target created
   all_outputs = [env_result.stdout, env_result.stderr]
   for session_file in proc.session_files(): all_outputs.append(session_file.read_text(encoding="utf-8"))

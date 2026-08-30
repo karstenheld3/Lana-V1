@@ -10,9 +10,11 @@ from lana.tools.definitions import SCHEMAS, render_definitions
 @dataclass
 class ToolContext:
   workspace: Path
+  data_dir: Optional[Path] = None     # resolved runtime data directory; falls back to workspace/.lana-data
   tool_result_max_chars: int = 50000
   read_ledger: dict[str, float] = field(default_factory=dict)         # path -> mtime at last read/edit by Lana (FR-11)
   background_processes: dict[str, Any] = field(default_factory=dict)  # command id -> BackgroundProcess (IS-09)
+  foreground_process: Any = None                                      # live foreground BackgroundProcess during a blocking run_command (FR-16 BL-02)
   chunk_store: dict[str, list[str]] = field(default_factory=dict)     # document_id -> chunks (FR-13)
   todo_state: Optional[list[dict]] = None                             # last todo_list items (IG-04)
   prompt_system: Any = None                                           # PromptSystem for the skill tool

@@ -12,7 +12,7 @@ def acp_workspace(tmp_path):
   fake_system = write_prompt_system(tmp_path / "fake_system",
     rules={"alpha.md": "---\ntrigger: always_on\n---\nAlpha rule body"},
     workflows={"prime": "---\ndescription: Prime context\n---\n# Prime\n\nStep 1.", "verify": "---\ndescription: Verify work\n---\n# Verify\n\nStep 1."})
-  write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(fake_system)]})
+  write_config_dir(workspace, lana_overrides={"agent_folder": str(fake_system)})
   return workspace
 
 
@@ -69,7 +69,7 @@ def test_tc11_second_initialize_rejected(client):
 def test_tc12_session_new_creates_full_recall_jsonl(client):
   client.handshake()
   session_id, _ = client.session_new()
-  session_file = client.workspace / ".lana" / "sessions" / f"{session_id}.jsonl"
+  session_file = client.workspace / ".lana-data" / "sessions" / f"{session_id}.jsonl"
   assert session_file.is_file()
   first_event = from_jsonl(session_file.read_text(encoding="utf-8").splitlines()[0])
   assert first_event.type == "session_started" and first_event.system_prompt

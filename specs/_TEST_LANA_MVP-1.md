@@ -127,7 +127,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 ### Category 5: Diagnostics and Exit Codes (2 tests)
 
-- **LANAAGNT-TP01-TC-09**: `--debug` run with fake key values in env -> request/response JSON files exist under the temp workspace `.lana/logs/`, `assert_no_secret_leak` passes over log contents, events carry timestamps (NFR-01, NFR-04)
+- **LANAAGNT-TP01-TC-09**: `--debug` run with fake key values in env -> request/response JSON files exist under the temp workspace `.lana-data/logs/`, `assert_no_secret_leak` passes over log contents, events carry timestamps (NFR-01, NFR-04)
 - **LANAAGNT-TP01-TC-10**: Exit code semantics - script with `{"error": ...}` line -> exit 3 with provider-style message; script exceeding `max_tool_calls_per_prompt` headless with `auto_continue: false` -> exit 4 (FR-14)
 
 ### Category 6: Full-Recall Resume Scenario (1 test, added 2026-08-30)
@@ -162,7 +162,7 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 
 - Surviving `lana` subprocesses (harness teardown kills after grace period)
 - Temp workspaces and session files (pytest `tmp_path` auto-removal)
-- `.lana/logs/` debug output inside temp workspaces only - never in the real workspace
+- `.lana-data/logs/` debug output inside temp workspaces only - never in the real workspace
 - Live smoke sessions: no cleanup needed (temp workspaces); spend reported in test summary
 
 ## 10. Verification Checklist

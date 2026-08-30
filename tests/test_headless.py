@@ -12,7 +12,7 @@ def cli_workspace(tmp_path):
   workspace = tmp_path / "cli_ws"
   workspace.mkdir()
   system = write_prompt_system(workspace / "ps", rules={"main.md": "Rule body"}, workflows={"help2": "---\ndescription: Help twin\n---\nbody", "prime": "---\ndescription: Prime\n---\nPrime body"})
-  config_dir = write_config_dir(workspace, lana_overrides={"prompt_system_paths": [str(system).replace("\\", "/")]}, key_lines=None)
+  config_dir = write_config_dir(workspace, lana_overrides={"agent_folder": str(system).replace("\\", "/")}, key_lines=None)
   return workspace, config_dir / "lana-config.json"
 
 

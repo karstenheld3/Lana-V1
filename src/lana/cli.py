@@ -19,7 +19,7 @@ from lana.tools import ToolContext, ToolRegistry
 from lana.tools.edit_tools import execute_edit, execute_multi_edit, execute_write_to_file
 from lana.tools.file_tools import execute_find_by_name, execute_grep_search, execute_list_dir, execute_read_file
 from lana.tools.interact_tools import execute_ask_user_question
-from lana.tools.shell_tools import execute_command_status, execute_run_command
+from lana.tools.shell_tools import execute_command_status, execute_run_command, terminate_tool_processes
 from lana.tools.skill_tool import execute_skill
 from lana.tools.state_tools import execute_todo_list
 from lana.tools.trajectory_tools import execute_trajectory_search
@@ -44,7 +44,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--resume", metavar="SESSION_FILE", help="resume a session from its JSONL file")
   parser.add_argument("--config", metavar="PATH", help="config file override (env LANA_CONFIG)")
   parser.add_argument("--policy", choices=["manual", "auto", "turbo"], help="execution policy override")
-  parser.add_argument("--debug", action="store_true", help="write redacted request/response JSON to .lana/logs/")
+  parser.add_argument("--debug", action="store_true", help="write redacted request/response JSON to .lana-data/logs/")
+  parser.add_argument("--show-thinking", action="store_true", help="stream model thinking dim-styled (FR-16)")
   parser.add_argument("--acp", action="store_true", help="ACP agent mode: JSON-RPC 2.0 over stdio (MVP-2, LANAACPB-SP01)")
   return parser
 
@@ -68,22 +69,33 @@ def build_runtime(args, workspace: Path, interactive: bool):
   config_override = args.config or os.environ.get("LANA_CONFIG") or None
   app = load_lana_config(workspace, Path(config_override) if config_override else None, require_keys=not scripted)
   app.scripted = scripted
+  app.show_thinking = getattr(args, "show_thinking", False)
   if args.policy: app.lana.execution_policy = args.policy
+  created = list(app.created_files)  # FR-16 zero-setup: create what is missing, report every artifact
+  sessions_dir = app.data_dir / "sessions"
+  if not sessions_dir.is_dir():
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    created.append(str(sessions_dir))
+  if not app.agent_folder.is_dir():
+    for sub in ("rules", "workflows", "skills"): (app.agent_folder / sub).mkdir(parents=True, exist_ok=True)
+    created.append(str(app.agent_folder))
+  for path in created: print(f"Created '{path}' (zero-setup).")
   if args.debug:
-    app.debug_dir = workspace / ".lana" / "logs"
+    app.debug_dir = app.data_dir / "logs"
     app.debug_dir.mkdir(parents=True, exist_ok=True)
   roles_banner = " | ".join(f"{name}: {short_model_name(role.model_id)} ({role.effort})" for name, role in app.roles.items())
   scripted_marker = " | SCRIPTED" if scripted else ""
   print(f"Lana MVP-1 | {roles_banner}{scripted_marker}")
   started = time.perf_counter()
-  if app.lana.prompt_system_paths:
-    for path in app.lana.prompt_system_paths: print(f"Loading prompt system '{path}'...")
-  prompt_system = load_prompt_systems(app.lana.prompt_system_paths, app.lana.rule_block_max_chars)
+  print(f"Loading prompt system '{app.agent_folder}'...")
+  prompt_system = load_prompt_systems([app.agent_folder], app.lana.rule_block_max_chars)
   injected = sum(1 for rule in prompt_system.rules if rule.skipped_reason is None)
   skipped_empty = sum(1 for rule in prompt_system.rules if rule.skipped_reason == "empty")
   skip_note = f", {skipped_empty} skipped: empty" if skipped_empty else ""
   print(f"  {len(prompt_system.rules)} rules ({injected} injected{skip_note}), {len(prompt_system.workflows)} workflows, {len(prompt_system.skills)} skills.")
   print(f"  OK. Loaded in {time.perf_counter() - started:.1f} secs.")
+  if not (prompt_system.rules or prompt_system.workflows or prompt_system.skills):
+    print(f"  NOTICE: prompt system is empty - Lana runs without rules, workflows, or skills. Add content to '{app.agent_folder}'.")
   for warning in prompt_system.warnings: print(f"  WARNING: {warning}")
   print(f"Policy: {app.lana.execution_policy}")
   if app.lana.execution_policy in ("auto", "turbo"):
@@ -94,10 +106,10 @@ def build_runtime(args, workspace: Path, interactive: bool):
   system_prompt = build_system_prompt(prompt_system, workspace_info)
   registry = ToolRegistry(os_name=workspace_info["os"], shell="pwsh", skills=prompt_system.skills)
   for name, executor in EXECUTORS.items(): registry.register(name, executor)
-  tool_context = ToolContext(workspace=workspace, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
+  tool_context = ToolContext(workspace=workspace, data_dir=app.data_dir, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
   messages = []
   cost_tracker = CostTracker(app)
-  fingerprint = compute_fingerprint(prompt_system, app.lana.prompt_system_paths)
+  fingerprint = compute_fingerprint(prompt_system, [app.agent_folder])
   config_snapshot = {"roles": {name: {"model_id": role.model_id, "effort": role.effort, "provider": role.provider} for name, role in app.roles.items()},
                      "execution_policy": app.lana.execution_policy, "max_tool_calls_per_prompt": app.lana.max_tool_calls_per_prompt,
                      "tool_result_max_chars": app.lana.tool_result_max_chars, "compaction_threshold_fraction": app.lana.compaction_threshold_fraction,
@@ -106,7 +118,8 @@ def build_runtime(args, workspace: Path, interactive: bool):
   if args.resume:
     resume_path = Path(args.resume)
     if not resume_path.is_file():  # IG-05: startup inputs fail with self-contained errors, never tracebacks (BG-0005)
-      raise ConfigError(f"Session file not found: '{resume_path}'.\n  HINT: pass an existing session JSONL from '<workspace>/.lana/sessions/' to --resume.")
+      raise ConfigError(f"Session file not found: '{resume_path}'.\n  HINT: pass an existing session JSONL from '<workspace>/{app.lana.data_dir}/sessions/' to --resume.")
+    print(f"Resuming '{args.resume}'...")  # FR-16 UX-05: name the file BEFORE the parse
     resumed = resume_session(resume_path)
     messages = resumed.messages
     tool_context.todo_state = resumed.todo_state
@@ -128,7 +141,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
     print(f"Resumed session '{args.resume}': {len(messages)} messages.")
     session = SessionStore(Path(args.resume))
   else:
-    session = SessionStore.create(workspace)
+    session = SessionStore.create(app.data_dir)
     session.append(SessionStarted(system_prompt=system_prompt, tool_definitions=registry.definition_list(),
                                   config_snapshot=config_snapshot, prompt_system_fingerprint=fingerprint))  # FR-08: FIRST line
   if interactive:
@@ -153,7 +166,9 @@ def run_one_prompt(agent: Agent, renderer: Renderer | None, text: str, jsonl_out
     asyncio.run(consume())
   except KeyboardInterrupt:
     note = agent.note_cancellation()
-    print(f"\n{note} (results kept in conversation).", file=sys.stderr if jsonl_output else sys.stdout)
+    terminated, _ = terminate_tool_processes(agent.tool_context, include_background=False)  # FR-16 BL-02: stop the abandoned foreground child
+    stopped = f" Stopped: {', '.join(terminated)}." if terminated else ""
+    print(f"\n{note} (results kept in conversation).{stopped}", file=sys.stderr if jsonl_output else sys.stdout)
   return agent.stop_reason
 
 
@@ -170,13 +185,18 @@ def run_headless(agent: Agent, cost_tracker: CostTracker, prompt: str, output_fo
     if command == "help": print_help(agent.prompt_system)
     elif command == "cost": print(cost_tracker.summary())
     return EXIT_OK
-  renderer = None if jsonl_output else Renderer(cost_tracker=cost_tracker, policy=agent.app.lana.execution_policy)
+  renderer = None if jsonl_output else Renderer(cost_tracker=cost_tracker, policy=agent.app.lana.execution_policy, show_thinking=agent.app.show_thinking)
   try:
     stop_reason = run_one_prompt(agent, renderer, prompt, jsonl_output)
   except UnknownWorkflowError as error:
     print(str(error), file=sys.stderr if jsonl_output else sys.stdout)
     return EXIT_OK
+  except Exception as error:  # FR-16 CR-02/CR-03: self-contained failure, session JSONL survives for --resume
+    print(f"ERROR: unexpected failure during this prompt ({type(error).__name__}: {error}). The session file is intact - continue with --resume.", file=sys.stderr)
+    report_process_cleanup(agent)
+    return EXIT_STOPPED
   if not jsonl_output and agent.final_text and renderer is None: print(agent.final_text)
+  report_process_cleanup(agent)
   return stop_reason_to_exit_code(stop_reason)
 
 
@@ -186,8 +206,15 @@ def print_help(prompt_system) -> None:
   for workflow in prompt_system.workflows: print(f"  /{workflow.name}: {workflow.description}")
 
 
+# FR-16 BL-02/BL-06: terminate live tool child processes at exit; name what was stopped and what survived
+def report_process_cleanup(agent: Agent) -> None:
+  terminated, survivors = terminate_tool_processes(agent.tool_context)
+  if terminated: print(f"Stopped {len(terminated)} running command(s): {', '.join(terminated)}.", file=sys.stderr)
+  if survivors: print(f"WARNING: still running after terminate: {', '.join(survivors)}.", file=sys.stderr)
+
+
 def repl(agent: Agent, cost_tracker: CostTracker, prompt_system) -> int:
-  renderer = Renderer(cost_tracker=cost_tracker, policy=agent.app.lana.execution_policy)
+  renderer = Renderer(cost_tracker=cost_tracker, policy=agent.app.lana.execution_policy, show_thinking=agent.app.show_thinking)
   prompt_session = PromptSession() if sys.stdin.isatty() else None  # terminal-dependent input only on a real terminal (FR-14)
   while True:
     try:
@@ -204,6 +231,9 @@ def repl(agent: Agent, cost_tracker: CostTracker, prompt_system) -> int:
       run_one_prompt(agent, renderer, text, jsonl_output=False)
     except UnknownWorkflowError as error:
       print(str(error))
+    except Exception as error:  # FR-16 CR-02: the REPL survives any turn failure; the session file allows --resume
+      print(f"ERROR: unexpected failure during this turn ({type(error).__name__}: {error}). The session stays alive - continue typing, or exit and --resume later.")
+  report_process_cleanup(agent)
   return EXIT_OK
 
 
@@ -226,6 +256,9 @@ def main() -> int:
       app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive)
   except ConfigError as error:
     print(f"ERROR: {error}", file=sys.stderr)
+    return EXIT_CONFIG
+  except OSError as error:  # FR-16 CR-01: filesystem failures at startup are self-contained, never tracebacks
+    print(f"ERROR: startup failed on a filesystem operation: {error}.\n  HINT: check that the workspace is writable and no path is locked by another process.", file=sys.stderr)
     return EXIT_CONFIG
   if args.prompt is not None: return run_headless(agent, cost_tracker, args.prompt, args.output_format)
   return repl(agent, cost_tracker, prompt_system)

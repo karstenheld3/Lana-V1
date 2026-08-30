@@ -84,7 +84,7 @@ e:\Dev\Delphios-Lana-V1\
 │       ├── edit_tools.py             # edit, multi_edit, write_to_file + ReadLedger (~240 lines) [NEW]
 │       ├── shell_tools.py            # run_command, command_status; background process table (~200 lines) [NEW]
 │       ├── web_tools.py              # search_web (websearch role side-call), read_url_content, view_content_chunk (~220 lines) [NEW]
-│       ├── trajectory_tools.py       # trajectory_search over .lana/sessions JSONL (lexical scoring, 50-chunk cap) (~80 lines) [NEW 2026-08-30]
+│       ├── trajectory_tools.py       # trajectory_search over .lana-data/sessions JSONL (lexical scoring, 50-chunk cap) (~80 lines) [NEW 2026-08-30]
 │       ├── state_tools.py            # todo_list (full-replace, event emission) (~60 lines) [NEW]
 │       ├── skill_tool.py             # skill: SKILL.md + supporting file listing (~60 lines) [NEW]
 │       └── interact_tools.py         # ask_user_question (blocks on frontend response) (~60 lines) [NEW]
@@ -234,7 +234,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Action**: Add executors: `read_file` (cat -n format, 1-indexed, offset/limit, 2000-char line truncation), `list_dir` (sizes, recursive item counts), `grep_search` (regex/fixed, includes, case flag, MatchPerLine; pure-Python line scan - no external rg dependency), `find_by_name` (glob, excludes, type, depth, 50-result cap)
 
-**Note**: All results pass through the shared `cap_result()` (EC-04). `read_file` success updates the ReadLedger; image files refused with explanatory error (EC-26). Pure-Python grep instead of bundling ripgrep [TESTED - full suite + real-system scans green 2026-08-30]. grep_search/find_by_name skip a fixed IGNORED_DIRECTORIES set (.git, node_modules, __pycache__, .lana, ...) as a gitignore approximation - the tool descriptions promise rg/fd ignore semantics (synced 2026-08-30)
+**Note**: All results pass through the shared `cap_result()` (EC-04). `read_file` success updates the ReadLedger; image files refused with explanatory error (EC-26). Pure-Python grep instead of bundling ripgrep [TESTED - full suite + real-system scans green 2026-08-30]. grep_search/find_by_name skip a fixed IGNORED_DIRECTORIES set (.git, node_modules, __pycache__, .lana, .lana-data, ...) as a gitignore approximation - the tool descriptions promise rg/fd ignore semantics (synced 2026-08-30)
 
 ### LANAAGNT-IP01-IS-08: Edit tools with ReadLedger (LANAAGNT-FR-11)
 
@@ -307,7 +307,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `render.py`: subscribes to events; streams text; tool lines + approval y/n prompts + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
 
-**Note**: `--debug` writes redacted request/response JSON to `.lana/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only
+**Note**: `--debug` writes redacted request/response JSON to `.lana-data/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only
 
 ### Phase F: Cost Tracking
 
@@ -341,13 +341,13 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Action**: `search_web`: one-shot side-call via `websearch` role adapter with the provider-native web search tool; render Cascade's 5-result format. `read_url_content`: approval gate -> `urllib`/`httpx` GET (5 MB cap, text/HTML only, EC-18) -> HTML-to-text -> chunk (~5K chars) -> store per `document_id`. `view_content_chunk`: chunk lookup (EC-25)
 
-**Note**: Chunk store is session-scoped in-memory + persisted as `.lana/chunks/<document_id>.json` files - view_content_chunk survives --resume by lazy disk load (implementation replaced the JSONL-mirroring idea; same guarantee, simpler - synced 2026-08-30). Chunk size ~5K chars [ASSUMED - matches Cascade's observed 2-8 KB chunk cost range]
+**Note**: Chunk store is session-scoped in-memory + persisted as `.lana-data/chunks/<document_id>.json` files - view_content_chunk survives --resume by lazy disk load (implementation replaced the JSONL-mirroring idea; same guarantee, simpler - synced 2026-08-30). Chunk size ~5K chars [ASSUMED - matches Cascade's observed 2-8 KB chunk cost range]
 
 ### LANAAGNT-IP01-IS-23: Session trajectory search tool (LANAAGNT-FR-15, added 2026-08-30)
 
 **Location**: `tools/trajectory_tools.py`, `tools/definitions.py`, `prompt.py`, `cli.py`
 
-**Action**: Transcribe the `trajectory_search` definition verbatim from IN02 section 7 (hand-transcription guarded by the diff test). Executor: resolve `ID` against `[workspace]/.lana/sessions/` (exact name, stem, or unique prefix); render each event line as one chunk `[NNN] type: excerpt`; score by case-insensitive query-term overlap, sort descending (stable by position); empty query -> chronological; cap 50 chunks; `SearchType: "user"` -> error. Register executor; REMOVE trajectory_search from the `prompt.py` capability notice
+**Action**: Transcribe the `trajectory_search` definition verbatim from IN02 section 7 (hand-transcription guarded by the diff test). Executor: resolve `ID` against `[workspace]/.lana-data/sessions/` (exact name, stem, or unique prefix); render each event line as one chunk `[NNN] type: excerpt`; score by case-insensitive query-term overlap, sort descending (stable by position); empty query -> chronological; cap 50 chunks; `SearchType: "user"` -> error. Register executor; REMOVE trajectory_search from the `prompt.py` capability notice
 
 **Note**: Lexical scoring only (DD-21); the current session's own file is searchable too (it is flushed per line, FR-08)
 
@@ -388,7 +388,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Location**: manual + `tests/test_e2e_offline.py`
 
-**Action**: Offline e2e with scripted fake adapter (full /prime-like flow). Then manual live run: `lana` in this workspace with `prompt_system_paths` = DevSystemV4.2, execute `/prime`, one `edit` round trip, one `run_command` approval, `/cost`, Ctrl+C, `--resume`
+**Action**: Offline e2e with scripted fake adapter (full /prime-like flow). Then manual live run: `lana` in this workspace with `agent_folder` including DevSystemV4.2, execute `/prime`, one `edit` round trip, one `run_command` approval, `/cost`, Ctrl+C, `--resume`
 
 **Note**: Acceptance criteria = Verification Checklist Validation block
 
@@ -461,7 +461,7 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 
 **Resume startup (FR-08 full recall - fingerprint mismatch and model change):**
 ```text
-Resuming session '.lana/sessions/2026-08-30_025545_54286c.jsonl'...
+Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
   118 events replayed, 0 lines skipped. Environment restored from session_started.
   WARNING: prompt system changed since recording (recorded 8/46/21, current 8/46/23 rules/workflows/skills). Recorded system prompt stays active for this session.
   WARNING: generator changed (recorded claude-sonnet-4-5-20250929, current gpt-5.2). Full context re-sent - first turn runs without provider cache.
@@ -622,7 +622,7 @@ Resuming session '.lana/sessions/2026-08-30_025545_54286c.jsonl'...
 - Changed (`/improve` run 3): IS-21 jsonl stdout purity - diagnostics to stderr in headless jsonl mode (evidence: tests/harness.py carried a skip-non-JSON workaround for the contamination); purity regression tests added; 4 unused test imports removed
 
 **[2026-08-30 04:15]**
-- Changed (`/sync` Code→IMPL, body sweep): File Structure notes scripted_adapter package location; IS-07 ignore-directories + image refusal + grep [ASSUMED]→[TESTED]; IS-14 kept_messages + cost seeding; IS-15 BG-0004 markup constraint; IS-16 cache-write rate + usage normalization contract; IS-17 >= threshold, per-turn check, 6-message tail + orphan-tool trim; IS-18 .lana/chunks persistence (replaces JSONL mirroring); IS-21 headless built-ins; TC-12 filesystem-derived counts
+- Changed (`/sync` Code→IMPL, body sweep): File Structure notes scripted_adapter package location; IS-07 ignore-directories + image refusal + grep [ASSUMED]→[TESTED]; IS-14 kept_messages + cost seeding; IS-15 BG-0004 markup constraint; IS-16 cache-write rate + usage normalization contract; IS-17 >= threshold, per-turn check, 6-message tail + orphan-tool trim; IS-18 .lana-data/chunks persistence (replaces JSONL mirroring); IS-21 headless built-ins; TC-12 filesystem-derived counts
 - Added: EC-26 (image read refusal), Category 11 TC-56..60 (synced regressions); VC-12 count 55 → 60
 
 **[2026-08-30 03:58]**
@@ -633,7 +633,7 @@ Resuming session '.lana/sessions/2026-08-30_025545_54286c.jsonl'...
 
 **[2026-08-30 02:10]**
 - Changed (implementation sync): scripted adapter lives in `src/lana/providers/scripted_adapter.py` (not `tests/`) - the installed executable must load it via LANA_SCRIPTED_ADAPTER; `tests/scripted_adapter.py` re-exports it plus script helpers (IS-22 deviation)
-- Changed (implementation sync): IS-18 chunk store persisted via `.lana/chunks/<document_id>.json` files instead of JSONL event mirroring - same resume guarantee, simpler mechanism
+- Changed (implementation sync): IS-18 chunk store persisted via `.lana-data/chunks/<document_id>.json` files instead of JSONL event mirroring - same resume guarantee, simpler mechanism
 - Changed (implementation sync): IS-06 arg validation implemented as minimal built-in validator (no `jsonschema` dependency - DD-17 list is closed); TC-36 threshold comparison is `>=` (fires at exactly 120K)
 - Fixed: LANAAGNT-BG-0001 (approval_required not yielded to the event stream), LANAAGNT-BG-0002 (/cost empty after --resume) - see `_BugFixes/`
 - All 15 VC items checked: 161 offline + 4 live tests green; live acceptance automated portion passed against DevSystemV4.2

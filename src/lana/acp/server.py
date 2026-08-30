@@ -5,7 +5,7 @@ One asyncio loop coordinates the stdin read loop, turn execution, and client-bou
 processable while a turn is active (FR-10, EC-08/EC-22). Nothing is sent before `initialize`
 arrives (FR-02); the Lana runtime is built per session at `session/new` (FR-03).
 """
-import argparse, asyncio, contextlib, sys
+import argparse, asyncio, contextlib, os, sys
 from importlib import metadata
 from pathlib import Path
 from lana.acp import log
@@ -17,6 +17,7 @@ from lana.acp.translator import EventTranslator, generator_context_window
 from lana.agent import UnknownWorkflowError
 from lana.config import ConfigError
 from lana.session import resume as resume_session
+from lana.tools.shell_tools import terminate_tool_processes
 
 PROTOCOL_VERSION = 1
 
@@ -67,8 +68,17 @@ class AcpServer:
         session.active_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
           await session.active_task
+    for session in self.sessions.values():  # FR-01 BL-06: no tool child process outlives the server
+      self.cleanup_session_processes(session, include_background=True)
+    self.connection.close()  # drain the stdout writer thread (BL-01)
     log("stdin EOF - ACP server shut down.")
     return 0
+
+  # FR-10 BL-02: terminate live tool children; foreground always, background only at shutdown
+  def cleanup_session_processes(self, session: "AcpSession", include_background: bool) -> None:
+    terminated, survivors = terminate_tool_processes(session.agent.tool_context, include_background=include_background)
+    if terminated: log(f"  terminated tool process(es): {', '.join(terminated)}.")
+    if survivors: log(f"  WARNING: tool process(es) still running: {', '.join(survivors)}.")
 
   # ------------------------------------------- START: Router ---------------------------------------------------------
 
@@ -128,7 +138,7 @@ class AcpServer:
     if not cwd: raise AcpError(INVALID_PARAMS, "session/new requires 'cwd' (absolute workspace path).")
     if request.params.get("mcpServers"): log("  WARNING: 'mcpServers' ignored - Lana has no MCP client.")  # EC-19
     if request.params.get("additionalDirectories"): log("  WARNING: 'additionalDirectories' ignored - Lana has a single-workspace model.")  # EC-19
-    app, agent, cost_tracker, prompt_system = self.build_session_runtime("session/new", self.args, cwd)
+    app, agent, cost_tracker, prompt_system = await self.build_session_runtime("session/new", self.args, cwd)
     session_id = agent.session.path.stem
     self.sessions[session_id] = self.make_acp_session(session_id, agent, cost_tracker, prompt_system, app)
     self.connection.respond(request.id, result={"sessionId": session_id})
@@ -141,11 +151,16 @@ class AcpServer:
     session_id, cwd = params.get("sessionId", ""), params.get("cwd")
     if not cwd: raise AcpError(INVALID_PARAMS, "session/load requires 'cwd' (absolute workspace path).")
     if params.get("mcpServers"): log("  WARNING: 'mcpServers' ignored - Lana has no MCP client.")  # EC-19
-    session_file = Path(cwd) / ".lana" / "sessions" / f"{session_id}.jsonl"
+    # Resolve data_dir: load config to get the configured data_dir, then look for session file
+    config_override = self.args.config or os.environ.get("LANA_CONFIG") or None
+    from lana.config import load_lana_config
+    temp_app = load_lana_config(Path(cwd), Path(config_override) if config_override else None, require_keys=False)
+    sessions_dir = temp_app.data_dir / "sessions"
+    session_file = sessions_dir / f"{session_id}.jsonl"
     if not session_file.is_file():
-      raise AcpError(INVALID_PARAMS, f"Unknown sessionId '{session_id}' - no session file in '{Path(cwd) / '.lana' / 'sessions'}'.")  # EC-17
+      raise AcpError(INVALID_PARAMS, f"Unknown sessionId '{session_id}' - no session file in '{sessions_dir}'.")  # EC-17
     load_args = argparse.Namespace(**{**vars(self.args), "resume": str(session_file)})
-    app, agent, cost_tracker, prompt_system = self.build_session_runtime("session/load", load_args, cwd)
+    app, agent, cost_tracker, prompt_system = await self.build_session_runtime("session/load", load_args, cwd)
     session = self.make_acp_session(session_id, agent, cost_tracker, prompt_system, app)
     self.sessions[session_id] = session
     replayer = EventTranslator(cost_tracker, session.translator.context_window, replaying=True)
@@ -158,13 +173,16 @@ class AcpServer:
     self.send_available_commands(session_id, prompt_system)
     log(f"session/load: '{session_id}' - {replayed} updates replayed.")
 
-  # Shared runtime construction for session/new and session/load; loader output diverted to stderr (IG-01)
-  def build_session_runtime(self, method: str, args, cwd: str):
+  # Shared runtime construction for session/new and session/load; loader output diverted to stderr (IG-01).
+  # FR-03 BL-04: runs in the default executor - cancel/EOF processing stays live during the load
+  async def build_session_runtime(self, method: str, args, cwd: str):
     from lana.cli import build_runtime  # lazy: lana.cli is the composition root - importing it at module load would couple the frontends
-    try:
-      with contextlib.redirect_stdout(sys.stderr):
+    def build():
+      with contextlib.redirect_stdout(sys.stderr):  # redirect inside the callable - it must wrap the executor thread's prints
         return build_runtime(args, Path(cwd), interactive=False)
-    except ConfigError as error:
+    try:
+      return await asyncio.get_running_loop().run_in_executor(None, build)
+    except (ConfigError, OSError) as error:  # FR-16 CR-01 parity: filesystem failures answer as structured errors
       raise AcpError(INVALID_PARAMS, f"{method} failed: {error}")
 
   # Wire the ACP brokers into the Agent's callback seam (IS-06/07/08)
@@ -216,6 +234,7 @@ class AcpServer:
       return
     except asyncio.CancelledError:  # session/cancel or $/cancel_request (FR-10)
       session.agent.note_cancellation()  # completed calls kept, cancellation note appended (LANAAGNT-FR-04)
+      self.cleanup_session_processes(session, include_background=False)  # FR-10 BL-02: the abandoned foreground tool must not keep mutating the workspace
       if session.cancel_with_error: self.connection.respond(request_id, error=error_body(REQUEST_CANCELLED, "Request cancelled."))
       else: self.connection.respond(request_id, result={"stopReason": "cancelled"})
       log("session/prompt: cancelled.")
@@ -263,7 +282,7 @@ class AcpServer:
     session_id = params.get("sessionId", "")
     session = self.sessions.get(session_id)
     if session is None:
-      raise AcpError(INVALID_PARAMS, f"Unknown sessionId '{session_id}'. Sessions live in '<workspace>/.lana/sessions/'; create one with session/new or load one with session/load.")  # EC-17
+      raise AcpError(INVALID_PARAMS, f"Unknown sessionId '{session_id}'. Create one with session/new or load one with session/load.")  # EC-17
     return session
 
 

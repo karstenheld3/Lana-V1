@@ -9,7 +9,7 @@ GREP_LINE_CAP = 200
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".tiff", ".ico", ".heic", ".heif")
 # rg/fd parity: both tool descriptions promise gitignore-style skipping; this fixed set covers the dominant
 # noise directories without a gitignore parser dependency (DD-17 closed list) - documented approximation
-IGNORED_DIRECTORIES = {".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", ".pytest_cache", ".mypy_cache", ".lana", "dist", "build"}
+IGNORED_DIRECTORIES = {".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", ".pytest_cache", ".mypy_cache", ".lana", ".lana-data", "dist", "build"}
 
 
 def is_inside_ignored_directory(path: Path, base: Path) -> bool:

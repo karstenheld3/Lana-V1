@@ -55,8 +55,10 @@ def test_tc38_summarizer_failure_fail_safe(agent_factory):
   message_count_probe = []
   events = collect_events(agent, "go")
   assert not [event for event in events if event.type == "checkpoint_created"]
-  warning = [event for event in events if event.type == "error"][0]
-  assert "Summarizer call failed" in warning.message and "429" in warning.message
+  error_events = [event for event in events if event.type == "error"]
+  assert any(event.message.startswith("NOTICE: Compacting context") for event in error_events)  # FR-16 UX-04: pre-notice BEFORE the paid call
+  warning = [event for event in error_events if "Summarizer call failed" in event.message][0]
+  assert "429" in warning.message
   assert any(message.content == "long answer" for message in agent.messages)  # nothing truncated
   assert agent.stop_reason is None  # session continues
 

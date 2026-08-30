@@ -94,7 +94,7 @@ The rules reference Cascade tool names (`read_file`, `run_command`, `todo_list`,
 
 A **PromptSystem** represents one folder containing agent configuration content.
 
-**Storage:** configurable path, default `[workspace]/.lana/`; DevSystemV4.2 via `prompt_system_paths` config
+**Storage:** configurable via `agent_folder` in config (relative path resolved against workspace, absolute used as-is)
 **Key properties:**
 - `rules` - list of RuleFile, loaded from `rules/*.md`
 - `workflows` - list of WorkflowFile, loaded from `workflows/*.md`
@@ -143,7 +143,7 @@ A **Turn** is one Generator API call and its outcome: assistant text, thinking c
 
 A **Session** is one conversation: ordered event log (JSONL file), cumulative usage/cost, 0-N Checkpoints. The JSONL is self-contained: its first event records the full Generator environment (system prompt, tool definitions, config snapshot), so the file alone reconstructs everything ever sent to the Generator (LANAAGNT-FR-08, LANAAGNT-IG-07).
 
-**Storage:** `[workspace]/.lana/sessions/[YYYY-MM-DD_HHMMSS]_[id].jsonl`
+**Storage:** `[workspace]/.lana-data/sessions/[YYYY-MM-DD_HHMMSS]_[id].jsonl`
 
 ### Checkpoint
 
@@ -182,7 +182,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Fail at startup with a self-contained error naming the missing key/model - never at first API call
 
 **LANAAGNT-FR-02: Prompt System Loading**
-- Load every folder listed in `prompt_system_paths` (order = precedence, later overrides earlier on name collision)
+- Load the folder specified by `agent_folder` (relative path resolved against workspace, absolute used as-is)
 - Parse YAML frontmatter of rules, workflows, SKILL.md files; tolerate missing frontmatter
 - Rules: inject only `trigger: always_on` or missing trigger; truncate per block at `rule_block_max_chars` with a `<truncated N chars>` marker
 - Report loaded counts at startup: N rules, N workflows, N skills
@@ -288,12 +288,26 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 
 **LANAAGNT-FR-15: Session Trajectory Search**
 - `trajectory_search` operates on Lana's own session JSONL files - they ARE the trajectories (deferred candidate D-01 design)
-- `ID` resolves against `[workspace]/.lana/sessions/`: exact filename, filename without extension, or unique prefix; unknown ID -> error listing available session ids
+- `ID` resolves against `[workspace]/.lana-data/sessions/`: exact filename, filename without extension, or unique prefix; unknown ID -> error listing available session ids
 - Each session event renders as one chunk (type + content excerpt); `Query` terms score chunks by case-insensitive term overlap, results sorted by score descending
 - Empty `Query` returns all chunks in chronological order (tool contract: "An empty query will return all trajectory steps")
 - Maximum 50 chunks returned (tool contract); results pass through `tool_result_max_chars` like all tool results
 - `SearchType` `"user"` -> error (no user-activity index in Lana; the tool contract already forbids it)
 - Scoring is lexical term overlap, not embedding-based [ASSUMED - adequate for session-scale text; revisit if relevance quality disappoints]
+
+**LANAAGNT-FR-16: Zero-Setup Startup and Runtime Resilience** (hardening per `_INFO_ROBUSTNESS_HAZARDS.md [LANAAGNT-IN03]`)
+- Zero-setup: at startup Lana auto-creates every missing artifact it can create safely - the runtime data directory (`data_dir` with `sessions/`), the agent folder scaffold (`agent_folder` with `rules/`, `workflows/`, `skills/`), and a default `config/lana-config.json` (DD-02 default roles) - and prints one line per created artifact; no init command, no manual setup steps (DD-23)
+- Auto-created config applies only to the DEFAULT config path; an explicit `--config`/`LANA_CONFIG` override that does not exist stays a ConfigError (an explicit path is a user statement, not a gap)
+- Model data files (`model-registry.json`, `model-parameter-mapping.json`, `model-pricing.json`) are shipped data: when missing, startup fails with the existing self-contained ConfigError (bundled-default distribution deferred)
+- Empty prompt system (0 rules, 0 workflows, 0 skills): print a one-line notice that Lana runs without prompt system content
+- Startup resilience (IN03 CR-01): `OSError` during startup is handled like `ConfigError` - self-contained message naming path and corrective action, exit code 2, never a raw traceback
+- REPL/headless resilience (IN03 CR-02/CR-03): any unexpected exception in a prompt turn prints a self-contained error; the REPL stays alive (headless: exit code 4); the session JSONL survives for `--resume`
+- Compaction fail-safe widened (IN03 CR-04): the entire compaction body runs under EC-17 warn-and-continue semantics, not only the Summarizer call
+- `command_status` wait clamp (IN03 BL-03): `WaitDurationSeconds` is clamped to 60 s server-side (the bound the tool description already promises); a triggered clamp is noted in the result
+- Fetch wall-clock deadline (IN03 BL-07): `read_url_content` reads in chunks under a 120 s wall-clock deadline - a trickling server cannot extend a fetch beyond it
+- Provider timeouts and visible retries (IN03 BL-05/UX-03): SDK clients are constructed with explicit timeouts (connect 10 s, read 120 s) and SDK-internal retries disabled; Lana owns up to 2 retries on retryable failures (connection errors, HTTP 408/429/5xx) occurring before the first streamed delta, each announced as a user-visible WARNING notice with backoff delay
+- Responsiveness (IN03 UX-01/02/04/05): a status line renders between turn start and the first visible output, ticking elapsed seconds while thinking stays hidden; `--show-thinking` streams thinking dim-styled; a notice line announces compaction BEFORE the Summarizer call; resume prints the session file name BEFORE parsing
+- Process cleanup (IN03 BL-02/BL-06): live tool child processes (foreground and background `pwsh`) are terminated on turn cancellation and at process exit; survivors are named in one line
 
 ## 5. Non-Functional Requirements
 
@@ -311,7 +325,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Startup (config + prompt system load) under 2 seconds for DevSystemV4.2 (397 files)
 
 **LANAAGNT-NFR-04: Observability - Debuggable API Traffic**
-- `--debug` flag writes full request/response JSON (keys redacted) to `[workspace]/.lana/logs/`
+- `--debug` flag writes full request/response JSON (keys redacted) to `[workspace]/.lana-data/logs/`
 - Every AgentEvent carries a timestamp (`YYYY-MM-DD HH:MM:SS`)
 
 **LANAAGNT-NFR-05: Security - Prompt Injection Threat Model**
@@ -345,7 +359,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-11:** Tool names, descriptions, and schemas verbatim from Cascade (OQ-30). Rationale: DevSystemV4.2 rules and workflows reference exact tool names and embedded behavioral constraints; verbatim copy transfers proven prompt engineering and keeps the prompt system portable between Cascade and Lana.
 
-**LANAAGNT-DD-12:** Prompt system paths configurable, Cascade folder layout (`rules/`, `workflows/`, `skills/`) (OQ-21). Rationale: DevSystemV4.2 already uses this layout at folder root; pointing `prompt_system_paths` at it requires zero content changes; workspace `.lana/` uses the same layout.
+**LANAAGNT-DD-12:** Single prompt system folder configurable via `agent_folder`, Cascade folder layout (`rules/`, `workflows/`, `skills/`) (OQ-21). Rationale: one agent has one prompt system folder, matching the Cascade architecture; pointing `agent_folder` at any folder with the standard layout requires zero content changes. Relative path resolves against the workspace; absolute path used as-is.
 
 **LANAAGNT-DD-13:** Agent-side slash command expansion (OQ-22). Rationale: one code path that also serves ACP in MVP-2, where slash commands arrive as plain prompt text.
 
@@ -366,6 +380,10 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 **LANAAGNT-DD-21:** `trajectory_search` implemented locally over session JSONL files, lexical scoring, no embeddings (resolves deferred candidate D-01; amends the DD-18 deferral). Rationale: the session log is already the event-sourced trajectory (Key Mechanisms); the `/remove` workflow (3 refs) becomes executable; the verbatim Cascade contract (IN02 section 7) is satisfiable without a vector index - semantic ranking quality beyond term overlap is deferred until evidence demands it.
 
 **LANAAGNT-DD-22:** [ASSUMED] Full-recall session log: the `session_started` event records the byte-verbatim system prompt, tool definitions, and config snapshot; `--resume` reuses the recorded prompt instead of reassembling from disk. Rationale: "single source of truth" previously covered only conversation state - a prompt system or config change between exit and resume silently altered the resumed session's instructions, and the JSONL could not answer "what exactly did the Generator receive?". Provider-side state is ephemeral and model-bound: prompt caches expire within minutes and never survive a model or provider change, so persistence must be complete and self-sufficient - the JSONL alone rebuilds the full request for ANY model. Recording the environment costs ~100 KB per session file (one-time, negligible against conversation volume) and extends the IG-01 byte-identity guarantee across same-model resumes (cache hits within provider TTL are a bonus, never a dependency). The on-disk prompt system remains the source for NEW workflow expansions and skill invocations after resume - only already-sent content is immutable.
+
+**LANAAGNT-DD-23:** Zero-setup philosophy: Lana auto-creates everything it needs on first run and reports what it did; there is no `init` command (user directive 2026-08-30: "We want to let the user work, not do setup tasks"). Rationale: a beginner running `lana` in an empty workspace must reach a working prompt without reading setup docs; auto-creation is bounded to artifacts derivable from defaults (data dirs, folder scaffold, default config) - shipped model data files stay required until distribution bundles them.
+
+**LANAAGNT-DD-24:** Severity-prefixed notices over the existing `error` event: messages starting `WARNING:` render yellow, `NOTICE:` render dim (prefix stripped), all others red with `ERROR:` prefix; the AgentEvent enum stays at 11 types. Rationale: retry notices (FR-16) and the pre-compaction line need non-error rendering; a 12th event type would touch the JSONL schema, resume projection, and the ACP translator for a pure presentation concern - the EC-17 `WARNING:` prefix convention already exists, this formalizes it.
 
 ## 7. Implementation Guarantees
 
@@ -422,7 +440,8 @@ User types "/prime"
     "summarizer": { "model_id": "gpt-4.1-mini", "effort": "low" },
     "websearch":  { "model_id": "gpt-4.1-mini", "effort": "low" }
   },
-  "prompt_system_paths": ["e:/Dev/IPPS/DevSystemV4.2"],
+  "agent_folder": ".lana",
+  "data_dir": ".lana-data",
   "rule_block_max_chars": 6000,
   "max_tool_calls_per_prompt": 25,
   "auto_continue": false,
@@ -515,6 +534,9 @@ Running workflow 'prime'...
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-08-30 16:50]**
+- Added: FR-16 zero-setup startup and runtime resilience (auto-creation + reporting, CR/BL/UX hardening per LANAAGNT-IN03), DD-23 zero-setup philosophy, DD-24 severity-prefixed notice rendering
 
 **[2026-08-30 03:40]**
 - Changed (verify IMPL/TEST): thinking payloads carried on `turn_finished` (AgentEvent + FR-08) - keeps the enum at 11 types, payloads stay with their turn
