@@ -71,6 +71,8 @@ Three implementation options were evaluated (2026-08-30 design discussion):
 
 ACP protocol status at spec time: v1 stable (elicitation, request cancellation, message IDs, usage updates, session delete all stabilized mid-2026); v2 Draft published 2026-07-20 with breaking changes; stdio the only widely implemented transport (ACP-IN10, ACP-IN13).
 
+**Protocol version scope [user decision 2026-08-30]:** MVP-2 implements ACP v1 at its LATEST stable state (all mid-2026 stabilizations included: elicitation, `$/cancel_request`, message IDs, usage updates). ACP v2 breaking changes (Draft 2026-07-20: `state_update` lifecycle, unified capabilities, tool-call upserts, fs/terminal removal) are POSTPONED to a later MVP. Only the version-negotiation seam (LANAACPB-DD-02) anticipates v2 - no v2 surface is implemented, stubbed, or tested in MVP-2.
+
 ## 3. Domain Objects
 
 ### AcpConnection
@@ -315,6 +317,10 @@ Client sends session/cancel (notification, any time during the turn)
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-30 13:45]**
+- Added: explicit protocol version scope statement in Context (user decision: v1 latest stable, v2 breaking changes postponed)
+- Verified: `promptContentTypes` capability shape re-checked against ACP-IN05 [VERIFIED] examples - FR-02 shape confirmed correct; `resource_link` absent from v1 docs, FR-05 defensive rejection stands
 
 **[2026-08-30 13:25]**
 - Changed: Technical Constraints synced with LANAACPB-IP01 codebase analysis - awaitable callback seam in the Agent (sync CLI callbacks unaffected), stdin readline via default executor

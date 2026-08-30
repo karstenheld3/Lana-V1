@@ -98,7 +98,9 @@ Data anomalies:
 - **LANAACPB-IP01-EC-18**: Legacy session JSONL without `session_started` -> load proceeds with disk assembly + stderr warning (FR-04, LANAAGNT-FR-08 fallback)
 - **LANAACPB-IP01-EC-19**: `mcpServers`/`additionalDirectories` params on `session/new` -> ignored, one stderr warning each (FR-03)
 - **LANAACPB-IP01-EC-20**: Elicitation capability absent + `ask_user_question` called -> tool result is the capability-missing fallback string, no wire request (FR-09)
-- **LANAACPB-IP01-EC-21**: Denylist hit under `turbo` policy -> `session/request_permission` still issued (agent-side classify unchanged, IG-04)
+- **LANAACPB-IP01-EC-21**: Denylisted command under `turbo` policy -> `session/request_permission` still issued (agent-side classify unchanged, IG-04)
+- **LANAACPB-IP01-EC-22**: `session/cancel` arrives while a long sync tool executor runs (e.g., 30s `run_command`) -> read loop stays responsive (sync dispatch runs in the default executor); cancellation takes effect at the next event boundary, completed calls kept
+- **LANAACPB-IP01-EC-23**: Second `session/new` on the same connection -> second AcpSession in the registry; turns across sessions serialize (one active turn per CONNECTION in MVP-2 - runtime construction is workspace-scoped, concurrent cross-session turns are untested territory)
 
 ## 3. Implementation Steps
 
@@ -212,7 +214,7 @@ async def _maybe_await(value): ...            # inspect.isawaitable(value) -> aw
 # limit branch: await _maybe_await(self.continue_callback(calls_this_prompt))
 ```
 
-**Note**: CLI callbacks stay sync (plain values pass through `_maybe_await` untouched) - zero behavior change; existing 179 offline tests must stay green. This is the callback seam the SPEC Technical Constraints permit.
+**Note**: CLI callbacks stay sync (plain values pass through `_maybe_await` untouched) - zero behavior change; existing 179 offline tests must stay green. This is the callback seam the SPEC Technical Constraints permit. In ACP mode, sync tool executors dispatch via `loop.run_in_executor` so the read loop keeps processing `session/cancel` during long tool runs (EC-22); the CLI path keeps direct sync dispatch.
 
 #### LANAACPB-IP01-IS-07: PermissionBroker
 
@@ -398,12 +400,13 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - **LANAACPB-IP01-TC-29**: Denylisted command under `turbo` -> permission request still issued (EC-21, IG-04)
 - **LANAACPB-IP01-TC-41**: Tool-call limit reached -> `session/request_permission` on synthetic toolCallId with allow_once/reject_once; `allow_once` -> turn continues, `reject_once` -> `end_turn` (FR-08 continue prompt)
 
-### Category 6: Cancellation (4 tests)
+### Category 6: Cancellation (5 tests)
 
 - **LANAACPB-IP01-TC-30**: `session/cancel` mid-turn -> `stopReason: "cancelled"`, completed calls kept in JSONL (FR-10)
 - **LANAACPB-IP01-TC-31**: `session/cancel` while permission request pending -> pending request resolved, denial recorded, cancelled response (EC-10)
 - **LANAACPB-IP01-TC-32**: `session/cancel` with no active turn -> no response, one stderr line (EC-09)
 - **LANAACPB-IP01-TC-33**: `$/cancel_request` on active prompt id -> `-32800`; on unknown id -> ignored (EC-16)
+- **LANAACPB-IP01-TC-42**: `session/cancel` during a slow scripted tool execution -> processed without waiting for the tool; `stopReason: "cancelled"`, completed calls kept (EC-22)
 
 ### Category 7: Session Load (4 tests)
 
@@ -433,12 +436,16 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - [ ] **LANAACPB-IP01-VC-08**: Phase 6 (IS-12, IS-13) complete, Category 8 green
 
 ### Validation
-- [ ] **LANAACPB-IP01-VC-09**: All 41 test cases pass offline (scripted adapter, no provider calls)
+- [ ] **LANAACPB-IP01-VC-09**: All 42 test cases pass offline (scripted adapter, no provider calls)
 - [ ] **LANAACPB-IP01-VC-10**: Wire fixtures byte-structurally match the 2026-08-30 INFO doc examples (NFR-01)
 - [ ] **LANAACPB-IP01-VC-11**: Manual smoke against a real ACP client (Zed or `npx @zed-industries/acp` inspector if available; else scripted harness replay documented)
 - [ ] **LANAACPB-IP01-VC-12**: SPEC sync: Technical Constraints refined (executor readline, callback seam) reverse-updated into LANAACPB-SP01
 
 ## 7. Document History
+
+**[2026-08-30 13:50]**
+- Added: EC-22 (read-loop responsiveness during long sync tool runs - executor dispatch in ACP mode) + TC-42; EC-23 (multi-session registry, turns serialized per connection in MVP-2)
+- Changed: MNF protocol line - v1 LATEST stable, v2 breaking changes POSTPONED [user decision 2026-08-30]
 
 **[2026-08-30 13:20]**
 - Initial implementation plan created: 6 phases per user directive (jsonrpc core → method router → event translator → permission bridge → session/load → CLI flag), 21 ECs, 13 ISs, 41 TCs, 12 VCs; codebase analysis found the sync-callback seam (IS-06) and Windows executor-readline refinement (IS-02 note) - both flagged for SPEC sync (VC-12); verify pass added TC-41 (FR-08 continue prompt coverage)
