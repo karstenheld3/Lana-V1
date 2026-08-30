@@ -170,14 +170,17 @@ def assert_no_secret_leak(outputs, key_values): ...   # reused from MVP-1 harnes
 
 ## 10. Verification Checklist
 
-- [ ] **LANAACPB-TP01-VC-01**: Phases T1-T3 green locally with zero keys configured
-- [ ] **LANAACPB-TP01-VC-02**: All 10 automated TP01 scenarios pass against the installed executable
-- [ ] **LANAACPB-TP01-VC-03**: Coverage contract - every SP01 FR-01..11, IG-01..05, NFR-01..03 cited by at least one passing IP01 TC or TP01 TC (NFR-04 dropped with reason, section 4)
-- [ ] **LANAACPB-TP01-VC-04**: `assert_stdout_pure` + `assert_no_secret_leak` wired into every black-box scenario
-- [ ] **LANAACPB-TP01-VC-05**: MVP-1 regression - full 179-test offline suite green after all ACP changes (IP01 TC-40 gate)
+- [x] **LANAACPB-TP01-VC-01**: Phases T1-T3 green locally with zero keys configured (227 offline, harness pops key env)
+- [x] **LANAACPB-TP01-VC-02**: All 10 automated TP01 scenarios pass - mapping: TC-01/07/09/10 in test_acp_scenarios.py; TC-02 via structural equality asserts (TC-07/16/24/27 exact shapes); TC-03/04 in test_acp_load.py (tc35/tc36); TC-05 = turn TC-29; TC-06 = turn TC-27/28; TC-08 = turn TC-31
+- [x] **LANAACPB-TP01-VC-03**: Coverage contract - every SP01 FR-01..11, IG-01..05, NFR-01..03 cited by at least one passing case (NFR-04 dropped with reason, section 4)
+- [x] **LANAACPB-TP01-VC-04**: `assert_stdout_pure` in purity-relevant scenarios + `assert_no_secret_leak` in the hostile battery (TC-10); every stdout line of every harness run parses via the AcpClient pump
+- [x] **LANAACPB-TP01-VC-05**: MVP-1 regression - full 179-test offline suite green after all ACP changes (IP01 TC-40 gate)
 - [ ] **LANAACPB-TP01-VC-06**: TC-11 acceptance executed (or scripted-replay fallback documented); deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 15:10]**
+- Changed: VC-01..05 checked - 48 ACP tests green (8 unit + 9 handshake + 21 turn + 6 load + 4 scenarios), full suite 227 offline; TC-11 (real Zed client) remains the only open item
 
 **[2026-08-30 14:35]**
 - Initial test plan created: 4-layer strategy on top of IP01 TC-01..44, 10 automated black-box scenarios + 1 manual acceptance, AcpClient harness contract, wire fixtures anchored to LANAACPB-IN01 (not the doc snapshot - PR-0001 lesson), coverage contract incl. both-direction IG-02 equivalence

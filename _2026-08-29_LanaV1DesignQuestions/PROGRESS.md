@@ -57,6 +57,13 @@
 
 ## Progress Changes
 
+**[2026-08-30 15:15]**
+- Added: ACP frontend IMPLEMENTED and green (`/go` + `/implement` per LANAACPB-IP01) - all 6 phases: `acp/jsonrpc.py` (codec, Connection, dual id spaces), `acp/server.py` (handshake, router, session/new+load, prompt-as-task, both cancellation paths), `acp/translator.py` (FR-06 exhaustive), `acp/bridge.py` (Permission+Elicitation brokers), agent.py awaitable seam + off-loop executor dispatch, tools dispatch awaitable passthrough, cli.py --acp; tests: 48 ACP (test_acp_jsonrpc/handshake/turn/load/scenarios + AcpClient harness); FULL SUITE 227 OFFLINE GREEN (179 MVP-1 regression + 48 ACP); IP01 all VCs checked except VC-11, TP01 VC-01..05 checked; SPEC synced (FR-06 usage mapping, FR-10 benign race)
+- [DECISION] --acp flag wired in Phase 2 instead of Phase 6 - harness-driven Categories 2-8 need the entry point; consulted IP01 phase gates (still verified in order)
+- [DECISION] $/cancel_request params read tolerantly (`requestId` falling back to `id`) - exact v1 field name unverifiable from rendered docs; consulted LANAACPB-IN01 open items
+- [DECISION] EC-10 denial-vs-cancellation race accepted as benign - deterministic contract = cancellation note + cancelled response; consulted FR-10 + official cancellation semantics (updates may flow until the response)
+- OPEN: VC-11/TP01-TC-11 manual smoke against a real ACP client (Zed) - needs user environment
+
 **[2026-08-30 14:40]**
 - Added: `_TEST_LANA_MVP-2_ACP.md [LANAACPB-TP01]` created via `/write-test-plan` - 4 layers (unit / integration / black-box fake-ACP-client / manual Zed acceptance), 10 automated TP01 scenarios + 1 manual, AcpClient harness contract, wire fixtures anchored to LANAACPB-IN01 (PR-0001 lesson), coverage contract FR-01..11 + IG-01..05 + NFR-01..03 (NFR-04 dropped with reason); verify pass found IG-03 uncovered → IP01 TC-44 added (translator exhaustiveness, 44 TCs now); ACP planning chain COMPLETE (SPEC + IMPL + TEST per original constraint) - implementation awaits confirmation
 

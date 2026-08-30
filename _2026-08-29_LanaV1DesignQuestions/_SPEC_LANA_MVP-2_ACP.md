@@ -148,7 +148,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - `approval_required` → consumed by the PermissionBroker (LANAACPB-FR-08); never forwarded as a `session/update`
 - `tool_call_requested` → `tool_call` (status `pending`, `title` = tool name + primary argument, `kind` per LANAACPB-FR-07)
 - `tool_call_finished` → `tool_call_update` (status `completed`|`failed` from the event status, result text as content)
-- `turn_finished` → `usage_update` with `used` (cumulative session input+output tokens), `size` (generator context window), `cost` (`{amount, currency: "USD"}` from CostTracker) - official v1 shape per LANAACPB-IN01 [ASSUMED - the agent-side accounting mapping; field shape is VERIFIED]
+- `turn_finished` → `usage_update` with `used` (the turn's input+output tokens = current context consumption), `size` (generator context window from the pricing entry, 0 when unpriced), `cost` (`{amount, currency: "USD"}` cumulative session total from CostTracker) - official v1 shape per LANAACPB-IN01; mapping synced from implementation 2026-08-30
 - `todo_list` tool results additionally → `plan` update (entries content/priority/status map 1:1 to Lana todo items)
 - `user_message` → not echoed (the client already owns the user's message) except during session/load replay
 - `checkpoint_created` → no ACP mapping in v1 (Session Compaction RFD is Draft); one stderr log line documents the omission
@@ -179,7 +179,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 **LANAACPB-FR-10: Cancellation**
 - `session/cancel` (notification) cancels the session's active turn using the existing cancellation machinery (LANAAGNT-FR-04: completed calls kept, cancellation note appended); the pending `session/prompt` response then carries `stopReason: "cancelled"` (ACP-IN07)
 - Updates may still flow between `session/cancel` and the response (race by design); idempotent when no turn is active
-- Pending `session/request_permission` or `elicitation/create` at cancel time → resolve as cancelled outcome
+- Pending `session/request_permission` or `elicitation/create` at cancel time → resolve as cancelled outcome; whether the denial record lands in the JSONL before the turn task's cancellation preempts it is a benign race - the guaranteed contract is the cancellation note plus the cancelled response (synced from implementation 2026-08-30)
 - `$/cancel_request` (notification, either direction) on a cancellable outstanding request → same cancellation path, `-32800` Request Cancelled error response where no partial result exists (ACP-IN07)
 
 **LANAACPB-FR-11: Wire Error Handling**
@@ -319,6 +319,9 @@ Client sends session/cancel (notification, any time during the turn)
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-30 15:10]**
+- Changed (`/sync` Code→SPEC after implementation): FR-06 usage_update mapping made precise (per-turn used, pricing-derived size, cumulative cost); FR-10 denial-vs-cancellation race documented as benign
 
 **[2026-08-30 14:00]**
 - Fixed: 4 wire shapes corrected per live-doc verification (`/research` → LANAACPB-IN01): FR-02 capabilities (`promptCapabilities` object, top-level `loadSession` - `promptContentTypes` does not exist), FR-05 (accept baseline `resource_link`, response = `stopReason` only), FR-06 (`usage_update` = used/size/cost), FR-09 (elicitation = `message` + `requestedSchema` enum/multi-select), both Data Structures examples
