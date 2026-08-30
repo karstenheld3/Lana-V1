@@ -57,7 +57,10 @@ Initialize project, read [Cascade doc] and think hard, which design questions ar
 
 ## Bug List
 
-- (none yet)
+- `LANAAGNT-BG-0001` ApprovalEventNotYielded (resolved 2026-08-30)
+- `LANAAGNT-BG-0002` ResumeCostNotSeeded (resolved 2026-08-30)
+- `LANAAGNT-BG-0003` AnthropicWebSearchBadParam (resolved 2026-08-30)
+- `LANAAGNT-BG-0004` RendererMarkupInjection (resolved 2026-08-30)
 
 ## Significant Prompts Log
 

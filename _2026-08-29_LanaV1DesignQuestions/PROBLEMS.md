@@ -10,6 +10,11 @@ Track problems using ID format: `LANAAGNT-PR-[NNNN]`
 
 ## Resolved
 
+**LANAAGNT-PR-0005: Renderer parses untrusted text as rich markup**
+- **History**: Added 2026-08-30 03:50 | Resolved 2026-08-30 03:58 | → Now tracked as LANAAGNT-BG-0004
+- **Solution**: markup=False on all payload-carrying prints; style= parameters for coloring (see `_BugFixes/LANAAGNT-BG-0004_RendererMarkupInjection/`)
+- **Verification**: 5/5 repro cases verbatim after fix (3 LOST + 1 CRASH before); regression tests green; also verified non-bug: Anthropic auto-combines consecutive same-role messages (ANTAPI-IN08), so cancellation-note/checkpoint user-message sequences are safe
+
 **LANAAGNT-PR-0004: Anthropic web_search built with invalid allowed_domains parameter**
 - **History**: Added 2026-08-30 02:40 | Resolved 2026-08-30 02:45 | → Now tracked as LANAAGNT-BG-0003
 - **Solution**: Parameter removed (web_fetch-only per ANTAPI-IN24); domain folded into the search prompt; live smoke added for the branch (see `_BugFixes/LANAAGNT-BG-0003_AnthropicWebSearchBadParam/`)

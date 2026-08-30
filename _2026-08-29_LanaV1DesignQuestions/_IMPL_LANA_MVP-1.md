@@ -534,6 +534,9 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 
 ## 7. Document History
 
+**[2026-08-30 03:58]**
+- Fixed: LANAAGNT-BG-0004 - renderer parsed untrusted event text as rich markup (Markdown links swallowed, MarkupError crash on `[/tag]`-like content); all payload prints now markup=False with style= parameters (IS-15 constraint: untrusted text never enters markup parsing). Verified non-bug: Anthropic auto-combines consecutive same-role messages (ANTAPI-IN08) - cancellation-note/checkpoint sequences safe
+
 **[2026-08-30 02:50]**
 - Changed (`/drift-correct`): FR-07 compaction check moved inside the tool loop (after every turn), EC-20 overflow advisory added, PAGER=cat set, image reads refused with notice, headless built-ins dispatched; VC-13 reworded to the evidence actually collected; BG-0003 fixed (Anthropic web_search allowed_domains is a web_fetch-only parameter per ANTAPI-IN24)
 

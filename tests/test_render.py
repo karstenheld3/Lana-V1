@@ -53,6 +53,25 @@ def test_checkpoint_and_error_events():
   assert "Summarizer call failed" in output
 
 
+# BG-0004 regression: untrusted bracketed text renders verbatim - no markup swallowing, no MarkupError crash
+def test_bg0004_bracketed_untrusted_text_verbatim():
+  renderer, buffer = make_renderer()
+  renderer.handle(events.TextDelta(text="See [the docs](https://example.com) and array[/end] marker"))
+  renderer.handle(events.ToolCallFinished(id="tc", status="error", result="unknown parameter '[foo]'", result_chars=10))
+  renderer.handle(events.ErrorEvent(message="[Errno 11001] getaddrinfo failed [/weird]"))
+  output = buffer.getvalue()
+  assert "[the docs](https://example.com)" in output and "array[/end] marker" in output
+  assert "unknown parameter '[foo]'" in output
+  assert "[Errno 11001] getaddrinfo failed [/weird]" in output
+
+
+def test_bg0004_thinking_delta_bracketed():
+  renderer, buffer = make_renderer()
+  renderer.show_thinking = True
+  renderer.handle(events.ThinkingDelta(text="considering [option A] vs [/option B]"))
+  assert "considering [option A] vs [/option B]" in buffer.getvalue()
+
+
 def test_summarize_args_priority():
   assert summarize_args("run_command", {"CommandLine": "git log", "Cwd": "x"}) == "git log"
   assert summarize_args("edit", {"file_path": "a.py", "old_string": "x"}) == "a.py"
