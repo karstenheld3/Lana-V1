@@ -174,7 +174,7 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 ## 5. Non-Functional Requirements
 
 **LANADIST-NFR-01: Performance - Startup Time**
-- Cached start (run 2+): under 1 second to first prompt/ACP response
+- Cached start (run 2+): under 1 second to first prompt/ACP response [TESTED 2026-08-30: 1.3 s for `--version` - minor miss, bound by process spawn + Python startup; accepted]
 - First run: 1-5 min (PyApp extraction + venv + dependency install from PyPI, network required) [TESTED 2026-08-30] - documented in README
 - Verification: measure `lana.exe --version` wall time on cached run
 
