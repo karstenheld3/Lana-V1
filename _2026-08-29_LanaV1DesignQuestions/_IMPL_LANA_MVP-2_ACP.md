@@ -74,7 +74,7 @@ tests/
 Input boundaries:
 - **LANAACPB-IP01-EC-01**: Unparseable stdin line -> `-32700` response with `id: null`, connection continues (FR-11)
 - **LANAACPB-IP01-EC-02**: Unknown method -> `-32601`; notification with unknown method -> stderr log only, no response
-- **LANAACPB-IP01-EC-03**: `session/prompt` with a non-text content block -> `-32602` naming the unsupported type (FR-05)
+- **LANAACPB-IP01-EC-03**: `session/prompt` with an `image`/`audio`/`resource` block -> `-32602` naming the unsupported type; `text` + `resource_link` always accepted (FR-05 baseline)
 - **LANAACPB-IP01-EC-04**: Client requests `protocolVersion: 2` -> respond `1`; client disconnect afterwards is a clean EOF exit (FR-02)
 - **LANAACPB-IP01-EC-05**: JSON content containing newlines/CRLF -> `json.dumps` escapes them; wire line stays single-line (FR-01)
 
@@ -159,7 +159,7 @@ class AcpServer:
   def handle_initialize(self, params): ...  # protocolVersion 1, agentInfo, capabilities per FR-02
 ```
 
-**Note**: Capability response exactly per SPEC Data Structures: `session.loadSession: true`, `promptContentTypes: ["text"]`, nothing else.
+**Note**: Capability response exactly per SPEC Data Structures (LANAACPB-IN01 verified shape): top-level `loadSession: true`, `promptCapabilities: {image: false, audio: false, embeddedContext: false}`, nothing else.
 
 #### LANAACPB-IP01-IS-04: session/new - runtime construction per session
 
@@ -193,7 +193,8 @@ class EventTranslator:
   # turn_started -> [] + rotate messageId; text_delta -> agent_message_chunk; thinking_delta -> agent_thought_chunk
   # tool_call_requested -> tool_call (pending, kind, title="tool: primary arg")
   # tool_call_finished -> tool_call_update (+ plan update when result starts with "Todo list updated:")
-  # turn_finished -> usage_update; error -> agent_message_chunk; approval_required/session_started/checkpoint_created -> [] (+ stderr note for checkpoint)
+  # turn_finished -> usage_update {used: cumulative in+out tokens, size: generator context window, cost: {amount, currency}} (LANAACPB-IN01 shape)
+  # error -> agent_message_chunk; approval_required/session_started/checkpoint_created -> [] (+ stderr note for checkpoint)
 ```
 
 **Note**: `messageId` = `msg_<turn counter>` rotated on `turn_started` (DD-06 forward compatibility). Todo-plan extraction reuses the `"Todo list updated:"` result contract already used by `session.resume`.
@@ -257,9 +258,9 @@ class ElicitationBroker:
 **Code**:
 ```python
 async def handle_session_prompt(self, params):
-  # guards: known sessionId (EC-17), no active turn (EC-08), text-only blocks (EC-03)
-  # concatenate text blocks -> async for event in agent.run_prompt(text): for update in translator.translate(event): connection.send(session/update)
-  # respond {stopReason: "end_turn"|"cancelled", usage} (FR-05); provider_error -> JSON-RPC error response (EC-13)
+  # guards: known sessionId (EC-17), no active turn (EC-08); baseline blocks accepted: text verbatim, resource_link -> "[resource: name](uri)" line; image/audio/resource -> -32602 (EC-03, FR-05)
+  # assembled input -> async for event in agent.run_prompt(text): for update in translator.translate(event): connection.send(session/update)
+  # respond {stopReason: "end_turn"|"cancelled"} - stopReason ONLY, usage flows via usage_update (FR-05); provider_error -> JSON-RPC error response (EC-13)
 ```
 
 **Note**: `UnknownWorkflowError` -> `agent_message_chunk` with the hint text + `end_turn` (mirrors REPL behavior; the client user typo-ed a slash command - not a wire error).
@@ -379,16 +380,17 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - **LANAACPB-IP01-TC-14**: `available_commands_update` after `session/new` lists workflows, excludes `/help` `/cost` `/exit`
 - **LANAACPB-IP01-TC-15**: Full stdout capture during `session/new` -> every line parses as JSON-RPC (IG-01)
 
-### Category 4: Prompt Turn and Translation (7 tests)
+### Category 4: Prompt Turn and Translation (9 tests)
 
-- **LANAACPB-IP01-TC-16**: Scripted text turn -> `agent_message_chunk` stream with stable `messageId`, response `stopReason: "end_turn"` + usage
+- **LANAACPB-IP01-TC-16**: Scripted text turn -> `agent_message_chunk` stream with stable `messageId`, `usage_update` (used/size/cost) before the response, response `{stopReason: "end_turn"}` with no usage field
 - **LANAACPB-IP01-TC-17**: Scripted tool turn -> `tool_call` (pending, correct kind per FR-07) then `tool_call_update` (completed), wire order preserved
 - **LANAACPB-IP01-TC-18**: `todo_list` result -> additional `plan` update with 1:1 entries (DD-08)
 - **LANAACPB-IP01-TC-19**: Thinking deltas -> `agent_thought_chunk` with same `messageId` as the turn's message chunks
-- **LANAACPB-IP01-TC-20**: Non-text content block -> `-32602` naming the type (EC-03)
+- **LANAACPB-IP01-TC-20**: `image` content block -> `-32602` naming the type (EC-03)
 - **LANAACPB-IP01-TC-21**: Second concurrent `session/prompt` -> error; first turn completes normally (EC-08)
 - **LANAACPB-IP01-TC-22**: Scripted provider error -> JSON-RPC error response on the prompt id; prior notifications intact (EC-13)
 - **LANAACPB-IP01-TC-23**: Session JSONL after ACP turn == event types of identical CLI-driven turn (IG-02 differential)
+- **LANAACPB-IP01-TC-43**: Prompt with `text` + `resource_link` blocks -> accepted; user message carries the text plus `[resource: name](uri)` line (LANA_SCRIPTED_CAPTURE oracle, FR-05 baseline)
 
 ### Category 5: Permission and Elicitation (7 tests)
 
@@ -436,12 +438,15 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - [ ] **LANAACPB-IP01-VC-08**: Phase 6 (IS-12, IS-13) complete, Category 8 green
 
 ### Validation
-- [ ] **LANAACPB-IP01-VC-09**: All 42 test cases pass offline (scripted adapter, no provider calls)
-- [ ] **LANAACPB-IP01-VC-10**: Wire fixtures byte-structurally match the 2026-08-30 INFO doc examples (NFR-01)
+- [ ] **LANAACPB-IP01-VC-09**: All 43 test cases pass offline (scripted adapter, no provider calls)
+- [ ] **LANAACPB-IP01-VC-10**: Wire fixtures byte-structurally match the official v1 shapes per LANAACPB-IN01 (NFR-01; the 2026-08-30 snapshot is NOT the wire authority - 4 shapes hallucinated)
 - [ ] **LANAACPB-IP01-VC-11**: Manual smoke against a real ACP client (Zed or `npx @zed-industries/acp` inspector if available; else scripted harness replay documented)
 - [ ] **LANAACPB-IP01-VC-12**: SPEC sync: Technical Constraints refined (executor readline, callback seam) reverse-updated into LANAACPB-SP01
 
 ## 7. Document History
+
+**[2026-08-30 14:05]**
+- Fixed: wire shapes per `/research` verification (LANAACPB-IN01) - IS-03 capabilities (`promptCapabilities`, top-level `loadSession`), IS-05 usage_update (used/size/cost), IS-09 baseline resource_link acceptance + stopReason-only response, EC-03/TC-16/TC-20 adjusted, TC-43 added (resource_link acceptance), VC-10 re-anchored to LANAACPB-IN01
 
 **[2026-08-30 13:50]**
 - Added: EC-22 (read-loop responsiveness during long sync tool runs - executor dispatch in ACP mode) + TC-42; EC-23 (multi-session registry, turns serialized per connection in MVP-2)

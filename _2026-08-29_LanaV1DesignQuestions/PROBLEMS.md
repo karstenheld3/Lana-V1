@@ -6,6 +6,16 @@ Track problems using ID format: `LANAAGNT-PR-[NNNN]`
 
 ## Open
 
+**LANAACPB-PR-0001: 2026-08-30 ACP INFO refresh contains 4 hallucinated wire shapes**
+- **History**: Added 2026-08-30 14:05 (found by `/research` live-doc verification, LANAACPB-IN01)
+- **Assessment**: `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` claims `promptContentTypes` array (does not exist - real: `promptCapabilities` object + text/resource_link baseline), `agentCapabilities.session.*` nesting (real: top-level `loadSession` + `sessionCapabilities`), `usage_update` with token triple (real: `used`/`size`/`cost`), elicitation title/select fields (real: `message`/`requestedSchema`). The [VERIFIED] tags in that doc set cite sources contradicting the content - labels unreliable. The 2026-06-12 snapshot was correct on all disputed points. Lana docs shielded: LANAACPB-SP01/IP01 corrected, LANAACPB-IN01 is the wire authority.
+- **Decision needed**: user owns the doc refresh (other agent's deliverable) - forward LANAACPB-IN01 section 2 to the producing agent for correction
+
+**LANAACPB-PR-0002: grep_search returns zero matches on ACP INFO doc files with known content**
+- **History**: Added 2026-08-30 14:05
+- **Assessment**: searches for `capabilit`/`agentCapabilities`/`embeddedContext` in both `ACP-AgentClientProtocol_*` folders return nothing although the files contain the terms (verified by direct read; files are plain UTF-8, `# AC` first bytes, no BOM). Some folder-wide queries match (e.g., `resource`), others silently miss. Workaround: `read_file` for ground truth on these folders; do not trust negative grep results there.
+- **Decision needed**: none for the session - recorded so future searches do not draw false negatives
+
 **LANAAGNT-PR-0007: Registry prefix `claude-sonnet-4.5` (dot) never matches dash-form model ids**
 - **History**: Added 2026-08-30 05:45 (observation from /bugfix discovery sweep)
 - **Assessment**: `model-registry.json` `model_id_startswith` has `claude-sonnet-4.5` / `claude-opus-4.5` (dot notation) but all model ids use dashes (`claude-sonnet-4-5-20250929`) - first-match falls through to the `claude-sonnet-4` row, so the 4.5 generator gets max_output 8192 instead of the 16384 the 4.5 row intends. NOT a Lana code bug: the registry is a read-only input (DD-16) and SPEC section 13 forbids hardcoded per-model logic. Functional impact: lower max_tokens ceiling, otherwise correct behavior.

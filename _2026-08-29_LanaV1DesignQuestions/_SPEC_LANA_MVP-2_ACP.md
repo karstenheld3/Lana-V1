@@ -10,7 +10,8 @@
 
 **Depends on:**
 - `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for the Agent core: AgentEvent stream (DD-06), full-recall sessions (FR-08, DD-22), slash expansion (FR-05, DD-13), ExecutionPolicy (FR-12, DD-15), cost tracking (FR-09), headless/test interfaces (FR-14, DD-20)
-- `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` [ACP-IN01..15] for all protocol wire shapes (authoritative per session NOTES.md)
+- `_INFO_LANAACPB-IN01_AcpV1WireShapeVerification.md [LANAACPB-IN01]` for live-verified v1 wire shapes - OVERRIDES the local snapshots on every discrepancy
+- `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` [ACP-IN01..15] for protocol narrative (WARNING: 4 wire shapes in this set are hallucinated - see LANAACPB-IN01 section 2; wire shapes MUST be taken from LANAACPB-IN01)
 
 **Does not depend on:**
 - `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/` (superseded snapshot - do not cite)
@@ -114,8 +115,8 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - EOF on stdin ends the process cleanly (exit 0) after finishing any active turn cancellation
 
 **LANAACPB-FR-02: Initialization Handshake**
-- Respond to `initialize` with `protocolVersion: 1`, `agentInfo` (name `lana`, version from package metadata), and agent capabilities (ACP-IN05)
-- Declared capabilities: `session.loadSession: true`, `promptContentTypes: ["text"]`; nothing else (no `mcp`, no `auth`, no resume/close/delete/list in MVP-2)
+- Respond to `initialize` with `protocolVersion: 1`, `agentInfo` (name `lana`, version from package metadata), and agent capabilities (LANAACPB-IN01, official v1 shape)
+- Declared capabilities: `loadSession: true`, `promptCapabilities: {image: false, audio: false, embeddedContext: false}`; nothing else (no `mcpCapabilities`, no `auth`, no `sessionCapabilities` markers in MVP-2)
 - If the client requests `protocolVersion: 2`, respond with `1` (client decides to continue or disconnect, ACP-IN05 version negotiation)
 - Before `initialize`: send nothing. Before the `initialized` notification: reject session methods with a JSON-RPC error (ACP-IN05 gotchas)
 
@@ -132,10 +133,11 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - Legacy session file without `session_started` → load proceeds with disk assembly + stderr warning (LANAAGNT-FR-08 fallback)
 
 **LANAACPB-FR-05: Prompt Turn**
-- `session/prompt` runs one Agent turn loop (LANAAGNT-FR-04) with the concatenated text of all `text` content blocks as user input
-- Non-text content blocks → reject the request with a JSON-RPC invalid-params error naming the unsupported type (we declared `["text"]`, ACP-IN05: the client decides what to send - be defensive)
+- `session/prompt` runs one Agent turn loop (LANAAGNT-FR-04) with the user input assembled from the prompt's content blocks
+- Accepted blocks (v1 baseline, LANAACPB-IN01): `text` → verbatim; `resource_link` → inline reference line `[resource: <name>](<uri>)` appended to the user input (agents MUST accept both - clients send resource_link for file mentions)
+- Capability-gated blocks we declared false (`image`, `audio`, `resource`) → reject the request with a JSON-RPC invalid-params error naming the unsupported type
 - Streaming: every AgentEvent translates per LANAACPB-FR-06 while the turn runs
-- Response carries `stopReason` and final `usage` (ACP-IN07 v1 shape): `end_turn` (normal completion, including user-declined continue at the tool-call limit), `cancelled` (via session/cancel)
+- Response carries `stopReason` only (official v1 shape - usage flows via `usage_update` notifications): `end_turn` (normal completion, including user-declined continue at the tool-call limit), `cancelled` (via session/cancel)
 - Provider failure mid-turn → JSON-RPC error response on the `session/prompt` id with the self-contained provider message [ASSUMED - the 2026-08-30 INFO lists no `error` stop reason for v1; error response is the JSON-RPC-conformant channel]
 - A second `session/prompt` for a session with an active turn → JSON-RPC error (one turn per session)
 
@@ -146,7 +148,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - `approval_required` → consumed by the PermissionBroker (LANAACPB-FR-08); never forwarded as a `session/update`
 - `tool_call_requested` → `tool_call` (status `pending`, `title` = tool name + primary argument, `kind` per LANAACPB-FR-07)
 - `tool_call_finished` → `tool_call_update` (status `completed`|`failed` from the event status, result text as content)
-- `turn_finished` → `usage_update` with `inputTokens`, `outputTokens`, `totalTokens` (ACP-IN07 stabilized shape)
+- `turn_finished` → `usage_update` with `used` (cumulative session input+output tokens), `size` (generator context window), `cost` (`{amount, currency: "USD"}` from CostTracker) - official v1 shape per LANAACPB-IN01 [ASSUMED - the agent-side accounting mapping; field shape is VERIFIED]
 - `todo_list` tool results additionally → `plan` update (entries content/priority/status map 1:1 to Lana todo items)
 - `user_message` → not echoed (the client already owns the user's message) except during session/load replay
 - `checkpoint_created` → no ACP mapping in v1 (Session Compaction RFD is Draft); one stderr log line documents the omission
@@ -170,9 +172,8 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - The tool-call-limit continue prompt (LANAAGNT-FR-04) → `session/request_permission` with allow_once/reject_once on a synthetic `toolCallId` [ASSUMED - ACP has no dedicated continue mechanism in v1]
 
 **LANAACPB-FR-09: Elicitation Bridge (ask_user_question)**
-- Client advertised `elicitation.form` → `ask_user_question` issues `elicitation/create` (form mode, request scope): question as `title`, options as a required `select` field; `allowMultiple` → multi-select semantics; the tool result is the selected value(s) (ACP-IN15)
+- Client advertised `elicitation.form` (present AND non-null - `{}` does not imply support, LANAACPB-IN01) → `ask_user_question` issues `elicitation/create` (form mode): question as `message`, options as a required string property with `enum` values in `requestedSchema`; `allowMultiple` → multi-select property; response `action: "accept"` → `content` values become the tool result; `decline`/`cancel` → the existing no-answer fallback
 - Client did not advertise it → the tool returns "Client does not support structured questions - ask in plain text" (the Generator then asks inline; mirrors the image-refusal notice pattern of MVP-1)
-- Elicitation response outcome other than `completed` → tool result records "user did not answer"
 - URL mode: not used in MVP-2
 
 **LANAACPB-FR-10: Cancellation**
@@ -270,7 +271,7 @@ Client sends session/cancel (notification, any time during the turn)
 
 **Initialization exchange (agent response):**
 ```json
-{"jsonrpc": "2.0", "id": 0, "result": {"protocolVersion": 1, "agentInfo": {"name": "lana", "version": "0.2.0"}, "agentCapabilities": {"session": {"loadSession": true}, "promptContentTypes": ["text"]}}}
+{"jsonrpc": "2.0", "id": 0, "result": {"protocolVersion": 1, "agentInfo": {"name": "lana", "version": "0.2.0"}, "agentCapabilities": {"loadSession": true, "promptCapabilities": {"image": false, "audio": false, "embeddedContext": false}}}}
 ```
 
 **Tool call with permission round-trip (wire order, one line each):**
@@ -281,9 +282,10 @@ Client sends session/cancel (notification, any time during the turn)
 {"jsonrpc": "2.0", "method": "session/update", "params": {"sessionId": "2026-08-30_120000_a1b2", "update": {"sessionUpdate": "tool_call_update", "toolCallId": "tc_001", "status": "completed", "content": [{"type": "content", "content": {"type": "text", "text": "On branch master..."}}]}}}
 ```
 
-**Prompt response with usage (v1 shape):**
+**Prompt response and preceding usage notification (v1 shapes):**
 ```json
-{"jsonrpc": "2.0", "id": 3, "result": {"stopReason": "end_turn", "usage": {"inputTokens": 1500, "outputTokens": 800, "totalTokens": 2300}}}
+{"jsonrpc": "2.0", "method": "session/update", "params": {"sessionId": "2026-08-30_120000_a1b2", "update": {"sessionUpdate": "usage_update", "used": 2300, "size": 200000, "cost": {"amount": 0.045, "currency": "USD"}}}}
+{"jsonrpc": "2.0", "id": 3, "result": {"stopReason": "end_turn"}}
 ```
 
 ## 11. Logging Requirements
@@ -317,6 +319,10 @@ Client sends session/cancel (notification, any time during the turn)
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-30 14:00]**
+- Fixed: 4 wire shapes corrected per live-doc verification (`/research` → LANAACPB-IN01): FR-02 capabilities (`promptCapabilities` object, top-level `loadSession` - `promptContentTypes` does not exist), FR-05 (accept baseline `resource_link`, response = `stopReason` only), FR-06 (`usage_update` = used/size/cost), FR-09 (elicitation = `message` + `requestedSchema` enum/multi-select), both Data Structures examples
+- Changed: Depends-on - LANAACPB-IN01 added as wire-shape authority over the 2026-08-30 snapshot
 
 **[2026-08-30 13:45]**
 - Added: explicit protocol version scope statement in Context (user decision: v1 latest stable, v2 breaking changes postponed)

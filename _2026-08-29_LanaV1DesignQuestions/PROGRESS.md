@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 14:10]**
+- Added: `_INFO_LANAACPB-IN01_AcpV1WireShapeVerification.md [LANAACPB-IN01]` via `/research` (user directive: compare snapshots, verify live) - 6 discrepancies resolved against https://agentclientprotocol.com official v1 docs; VERDICT: 2026-08-30 refresh hallucinated 4 wire shapes (promptContentTypes, session capability nesting, usage_update token triple, elicitation title/select), 2026-06-12 snapshot was correct on all disputed points; SP01 FR-02/05/06/09 + Data Structures corrected (incl. mandatory resource_link baseline acceptance - Zed file mentions now work), IP01 IS-03/05/09 + EC-03/TC-16/20 + TC-43 synced; LANAACPB-IN01 is now the wire-shape authority; problems LANAACPB-PR-0001 (doc set defect, needs forwarding to producing agent) and PR-0002 (grep false negatives on those folders) recorded
+
 **[2026-08-30 13:30]**
 - Added: `_IMPL_LANA_MVP-2_ACP.md [LANAACPB-IP01]` created via `/write-impl-plan` - 6 phases (jsonrpc core → method router → event translator → permission bridge → session/load → CLI flag), 21 ECs, 13 ISs, 41 TCs, 12 VCs; codebase analysis surfaced two design refinements synced into SP01 Technical Constraints: awaitable callback seam in agent.py (CLI sync callbacks unchanged, TC-40 regression gate) and stdin readline via default executor; verify pass added TC-41 (FR-08 continue prompt); next: `/write-test-plan`
 
