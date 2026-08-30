@@ -1,5 +1,5 @@
 """LanaProc: spawn the real `lana` CLI, inject prompts, parse stdout JSONL, tail the flushed session file (IS-22, TP01 section 8)."""
-import json, os, subprocess, sys, time
+import os, subprocess, sys, time
 from pathlib import Path
 from lana.events import from_jsonl
 

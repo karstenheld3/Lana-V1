@@ -1,6 +1,7 @@
 """TK-024: headless mode, exit codes, non-terminal fallback (IP01 TC-50..52, TC-55; FR-14)."""
 import json
 import pytest
+from lana.events import from_jsonl
 from tests.conftest import write_config_dir, write_prompt_system
 from tests.harness import LanaProc
 from tests.scripted_adapter import write_script
@@ -81,6 +82,26 @@ def test_exit_code_4_on_limit_stop(cli_workspace):
   proc.config_path = limited
   result = proc.run_headless("go")
   assert result.returncode == 4
+
+
+# Improve run 3: jsonl stdout purity - ONLY serialized AgentEvents on stdout, diagnostics on stderr (strict-consumer contract)
+def test_jsonl_stdout_purity(cli_workspace):
+  proc = make_proc(cli_workspace, [{"text": "pure stream", "usage": {"input": 10, "output": 5}}])
+  result = proc.run_headless("hello", output_format="jsonl")
+  assert result.returncode == 0, result.stdout + result.stderr
+  stdout_lines = [line for line in result.stdout.splitlines() if line.strip()]
+  assert stdout_lines, "expected events on stdout"
+  for line in stdout_lines:
+    from_jsonl(line)  # every stdout line MUST parse as an AgentEvent - raises otherwise
+  assert "Lana MVP-1" in result.stderr and "SCRIPTED" in result.stderr  # banner rerouted to stderr
+  assert "Lana MVP-1" not in result.stdout
+
+
+def test_jsonl_unknown_workflow_message_on_stderr(cli_workspace):
+  proc = make_proc(cli_workspace, [])
+  result = proc.run_headless("/nonexistent-workflow", output_format="jsonl")
+  assert result.returncode == 0
+  assert "Unknown workflow" in result.stderr and "Unknown workflow" not in result.stdout
 
 
 # Gap 09 regression: built-ins dispatched in headless -p mode, never sent to the Generator

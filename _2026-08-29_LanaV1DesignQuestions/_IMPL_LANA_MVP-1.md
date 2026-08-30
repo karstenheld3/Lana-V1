@@ -365,7 +365,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Action**: Add `-p/--prompt`, `--output-format text|jsonl`, `--config`/`LANA_CONFIG` override; exit codes 0/2/3/4 per FR-14; non-terminal stdin detection (`sys.stdin.isatty()`) switches to plain line input and auto-denies `approval_required`/`ask_user_question` with the FR-14 messages; built-ins (/help /cost /exit) dispatched before slash expansion in headless mode too (synced 2026-08-30)
 
-**Note**: The jsonl output stream writes the same serialized AgentEvents as the session file - one serializer, two sinks
+**Note**: The jsonl output stream writes the same serialized AgentEvents as the session file - one serializer, two sinks. jsonl purity contract (`/improve` run 3, 2026-08-30): stdout carries ONLY event lines - startup banner, warnings, and error notices route to stderr so strict consumers (jq, log shippers, the MVP-2 ACP frontend) parse stdout directly
 
 ### LANAAGNT-IP01-IS-22: Scripted adapter and CLI test harness (LANAAGNT-DD-20)
 
@@ -543,6 +543,9 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 04:55]**
+- Changed (`/improve` run 3): IS-21 jsonl stdout purity - diagnostics to stderr in headless jsonl mode (evidence: tests/harness.py carried a skip-non-JSON workaround for the contamination); purity regression tests added; 4 unused test imports removed
 
 **[2026-08-30 04:15]**
 - Changed (`/sync` Code→IMPL, body sweep): File Structure notes scripted_adapter package location; IS-07 ignore-directories + image refusal + grep [ASSUMED]→[TESTED]; IS-14 kept_messages + cost seeding; IS-15 BG-0004 markup constraint; IS-16 cache-write rate + usage normalization contract; IS-17 >= threshold, per-turn check, 6-message tail + orphan-tool trim; IS-18 .lana/chunks persistence (replaces JSONL mirroring); IS-21 headless built-ins; TC-12 filesystem-derived counts

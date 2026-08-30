@@ -1,6 +1,5 @@
 """TK-009: registry dispatch, validation, cap_result (IS-06, EC-04/22/23)."""
 import pytest
-from pathlib import Path
 from lana.tools import ToolContext, ToolError, ToolRegistry, cap_result
 
 

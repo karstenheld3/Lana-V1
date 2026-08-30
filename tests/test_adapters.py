@@ -1,8 +1,8 @@
 """TK-016/017: provider adapters - offline mapping units + live smokes (IP01 TC-40..42, marked live)."""
-import asyncio, json, os
+import asyncio, os
 import pytest
 from lana.config import ResolvedRole, load_lana_config
-from lana.models import Message, ThinkingBlock, ToolCall, Usage
+from lana.models import Message, ThinkingBlock, ToolCall
 from lana.providers import openai_adapter, anthropic_adapter
 
 OPENAI_ROLE = ResolvedRole(name="generator", model_id="gpt-4.1-mini", provider="openai", method="temperature", effort="low", max_input=1047576, max_output=1024, params={"temperature": 0.4})

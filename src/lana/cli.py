@@ -2,7 +2,7 @@
 
 Exit codes: 0 = turn completed | 2 = configuration error | 3 = provider/API failure | 4 = stopped without completion.
 """
-import argparse, asyncio, os, platform, sys, time
+import argparse, asyncio, contextlib, os, platform, sys, time
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from lana.agent import Agent, UnknownWorkflowError
@@ -112,7 +112,8 @@ def build_runtime(args, workspace: Path, interactive: bool):
   return app, agent, cost_tracker, prompt_system
 
 
-# Consume one prompt's event stream; returns exit-code-relevant stop reason
+# Consume one prompt's event stream; returns exit-code-relevant stop reason.
+# jsonl mode contract: stdout carries ONLY serialized AgentEvents - diagnostics go to stderr (strict consumers like jq must never see banner text)
 def run_one_prompt(agent: Agent, renderer: Renderer | None, text: str, jsonl_output: bool) -> str | None:
   async def consume():
     async for event in agent.run_prompt(text):
@@ -122,7 +123,7 @@ def run_one_prompt(agent: Agent, renderer: Renderer | None, text: str, jsonl_out
     asyncio.run(consume())
   except KeyboardInterrupt:
     note = agent.note_cancellation()
-    print(f"\n{note} (results kept in conversation).")
+    print(f"\n{note} (results kept in conversation).", file=sys.stderr if jsonl_output else sys.stdout)
   return agent.stop_reason
 
 
@@ -143,7 +144,7 @@ def run_headless(agent: Agent, cost_tracker: CostTracker, prompt: str, output_fo
   try:
     stop_reason = run_one_prompt(agent, renderer, prompt, jsonl_output)
   except UnknownWorkflowError as error:
-    print(str(error))
+    print(str(error), file=sys.stderr if jsonl_output else sys.stdout)
     return EXIT_OK
   if not jsonl_output and agent.final_text and renderer is None: print(agent.final_text)
   return stop_reason_to_exit_code(stop_reason)
@@ -180,8 +181,13 @@ def main() -> int:
   args = build_arg_parser().parse_args()
   workspace = Path.cwd()
   interactive = args.prompt is None and sys.stdin.isatty()
+  jsonl_headless = args.prompt is not None and args.output_format == "jsonl"
   try:
-    app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive)
+    if jsonl_headless:  # startup banner/warnings to stderr - stdout stays pure JSONL for machine consumers
+      with contextlib.redirect_stdout(sys.stderr):
+        app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive)
+    else:
+      app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive)
   except ConfigError as error:
     print(f"ERROR: {error}", file=sys.stderr)
     return EXIT_CONFIG
