@@ -33,6 +33,10 @@ Initialize project, read [Cascade doc] and think hard, which design questions ar
 - **Operation Mode**: IMPL-ISOLATED (research/design only, no code changes)
 - **Output Location**: [SESSION_FOLDER]
 
+## Authoritative ACP Documentation (MVP-2)
+
+**`docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` is the authoritative ACP documentation** (refresh in progress 2026-08-30, replaces `ACP-AgentClientProtocol_2026-06-12/`). All MVP-2 ACP SPEC/IMPL/TEST work MUST cite the 2026-08-30 folder. Key deltas vs 2026-06-12: ACP v2 Draft published (2026-07-20), Elicitation stabilized (`elicitation/create`, 2026-07-24), Request Cancellation stabilized (`$/cancel_request`, 2026-06-29), Boolean Config Options + Terminal Authentication stabilized, Session Compaction + Session Notices RFDs in Draft, Python SDK v0.12.0+ has HTTP/WebSocket transports.
+
 ## Agent Instructions
 
 - All design questions grounded in `HowWindsurfCascadeWorks.md` (Cascade reference) and ACP research docs

@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 04:20]**
+- Added: `_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]` created via `/write-spec` - Option A (native in-process ACP module, hand-rolled JSON-RPC over stdio), protocol v1 only, 11 FRs / 4 NFRs / 9 DDs / 5 IGs; topic `LANAACPB` registered in ID-REGISTRY.md; authoritative ACP docs = `ACP-AgentClientProtocol_2026-08-30/` (recorded in NOTES.md); verify pass fixed FR-06 exhaustiveness (11 event types) and Action Flow nesting; 3 [ASSUMED] items await user validation (provider-error channel, error-event mapping, continue-prompt mechanism); next: `/write-impl-plan`, `/write-test-plan`
+
 **[2026-08-30 03:55]**
 - Added: full-recall session log IMPLEMENTED and green (`/go` + `/implement` via `__STRUT_LANAAGNT_FULLRECALL.md`) - SessionStarted event + turn_finished thinking payloads (events.py), fingerprint (loader.py), first-line write + resume environment authority + fingerprint/model-change warnings (cli.py), tool-definitions override (agent.py), thinking reprojection (session.py), LANA_SCRIPTED_CAPTURE oracle (scripted_adapter.py); tests/test_full_recall.py TC-64..67 + TP01-TC-11; suite 179 offline green (2 session-log assertions extended); VC-12 + TP01-VC-02/03 checked
 
