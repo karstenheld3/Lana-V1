@@ -1,6 +1,6 @@
 {
-  "_version": "1.7.0",
-  "_updated": "2026-07-30",
+  "_version": "1.7.1",
+  "_updated": "2026-08-30",
   "_comment": "Model properties and boundaries. context_window = max input tokens, max_output in tokens, temp_max for temperature models, thinking_max for extended thinking models.",
   
   "models": [
@@ -40,7 +40,7 @@
     {"provider": "anthropic", "model_id": "claude-opus-4-8", "name": "Claude Opus 4.8", "context_window": 1000000, "enabled": false, "status": "untested"},
     {"provider": "anthropic", "model_id": "claude-opus-4-7", "name": "Claude Opus 4.7", "context_window": 1000000, "enabled": false, "status": "untested"},
     {"provider": "anthropic", "model_id": "claude-opus-4-6", "name": "Claude Opus 4.6", "context_window": 200000, "enabled": false, "status": "untested"},
-    {"provider": "anthropic", "model_id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context_window": 1000000, "enabled": false, "status": "untested"},
+    {"provider": "anthropic", "model_id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context_window": 1000000, "enabled": true, "status": "available"},
     {"provider": "anthropic", "model_id": "claude-opus-4-5-20251101", "name": "Claude Opus 4.5", "context_window": 200000, "enabled": true, "status": "available"},
     {"provider": "anthropic", "model_id": "claude-opus-4-1-20250805", "name": "Claude Opus 4.1", "context_window": 200000, "enabled": false, "status": "untested"},
     {"provider": "anthropic", "model_id": "claude-sonnet-4-5-20250929", "name": "Claude Sonnet 4.5", "context_window": 200000, "enabled": true, "status": "available"},
@@ -75,12 +75,14 @@
     { "prefix": "claude-opus-4-8",   "provider": "anthropic", "method": "adaptive_thinking", "max_input": 1000000, "max_output": 128000, "effort": ["low", "medium", "high", "xhigh", "max"] },
     { "prefix": "claude-opus-4-7",   "provider": "anthropic", "method": "adaptive_thinking", "max_input": 1000000, "max_output": 128000, "effort": ["low", "medium", "high", "xhigh", "max"] },
     { "prefix": "claude-opus-4-6",   "provider": "anthropic", "method": "adaptive_thinking", "max_input": 200000, "max_output": 128000, "effort": ["low", "medium", "high", "max"] },
-    { "prefix": "claude-opus-4.5",   "provider": "anthropic", "method": "effort", "max_input": 200000, "max_output": 8192, "effort": ["low", "medium", "high"], "default": "high", "beta": "effort-2025-11-24" },
+    { "prefix": "claude-opus-4-5",   "provider": "anthropic", "method": "effort", "max_input": 200000, "max_output": 8192, "effort": ["low", "medium", "high"], "default": "high", "beta": "effort-2025-11-24" },
     { "prefix": "claude-opus-4",     "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
-    { "prefix": "claude-sonnet-4.5", "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 16384, "thinking_max": 100000 },
+    { "prefix": "claude-sonnet-4-6", "provider": "anthropic", "method": "adaptive_thinking", "max_input": 1000000, "max_output": 128000, "effort": ["low", "medium", "high", "xhigh", "max"] },
+    { "prefix": "claude-sonnet-4-5", "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 16384, "thinking_max": 100000 },
+    { "prefix": "claude-haiku-4-5",  "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
     { "prefix": "claude-sonnet-4",   "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
-    { "prefix": "claude-3.7",        "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
-    { "prefix": "claude-3.5",        "provider": "anthropic", "method": "temperature", "max_input": 200000, "max_output": 8192, "temp_max": 1.0 },
+    { "prefix": "claude-3-7",        "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
+    { "prefix": "claude-3-5",        "provider": "anthropic", "method": "temperature", "max_input": 200000, "max_output": 8192, "temp_max": 1.0 },
     { "prefix": "claude-3",          "provider": "anthropic", "method": "temperature", "max_input": 200000, "max_output": 4096, "temp_max": 1.0 },
     { "prefix": "claude-",           "provider": "anthropic", "method": "temperature", "max_input": 200000, "max_output": 4096, "temp_max": 1.0 }
   ]
