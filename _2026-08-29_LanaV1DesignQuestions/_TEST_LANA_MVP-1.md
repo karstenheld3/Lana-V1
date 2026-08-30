@@ -103,7 +103,7 @@ Four test layers verify Lana MVP-1: unit (pure functions), integration (agent lo
 
 ## 6. Test Cases
 
-Black-box scenarios (Layer 3). Each drives the real CLI and cites the requirements it proves. Unit/integration inventory stays in `LANAAGNT-IP01` section 5 (TC-01..55).
+Black-box scenarios (Layer 3). Each drives the real CLI and cites the requirements it proves. Unit/integration inventory stays in `LANAAGNT-IP01` section 5 (TC-01..60).
 
 ### Category 1: Conversation Scenarios (3 tests)
 
@@ -132,8 +132,8 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 ## 7. Test Phases
 
-1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49 (Layers 1-2), run on every change, no keys, no network
-2. **Phase T2: Black-box CLI** - IP01 TC-50..55 + TP01-TC-01..10 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
+1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..60 (Layers 1-2), run on every change, no keys, no network
+2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58 + TP01-TC-01..10 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
 3. **Phase T3: Live smoke** - IP01 TC-40..45 (Layer 4), keys present, marker `live`, budget-capped
 4. **Phase T4: Acceptance** - IP01 TC-46 offline end-to-end + TC-47 manual live run against DevSystemV4.2; results recorded in PROGRESS.md
 
