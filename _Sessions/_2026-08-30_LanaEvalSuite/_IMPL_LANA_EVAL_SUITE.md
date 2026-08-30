@@ -52,7 +52,7 @@
 
 ## 2. MVP Decisions
 
-- **LANATEST-IP01-DC-01**: Runner runs the test IN the run record folder (scaffold copied once to `[record]/workspace/`, Lana runs there). One copy instead of two; the record is immutable after the run ends. Session logs stay in `workspace/.lana-data/sessions/` - no separate `session/` copy.
+- **LANATEST-IP01-DC-01**: Runner runs the test IN the run record folder (scaffold copied once to `[record]/workspace/`, Lana runs there). One copy instead of two; the record is immutable after the run ends. Session JSONL copied to `[record]/session.jsonl` after the run (single file, from the clean per-test session). `PROMPTS.md` copied to `[record]/` for self-contained audit. Runner purges `.lana-data/sessions/` before each run to guarantee isolation.
 - **LANATEST-IP01-DC-02**: Timeout MVP = one overall subprocess timeout (`step_timeout x step count`); the FR-04 stall-monitoring refinement is deferred.
 - **LANATEST-IP01-DC-03**: Missing `golden/` downgrades to WARNING (runner default `allow_missing_golden: true`) until golden production happens; flip to INVALID (IG-04) afterwards.
 - **LANATEST-IP01-DC-04**: Bucket 2-3 scaffolds reference IPPS content via `scaffold.json` (`copy_lana` list) - the runner copies the listed workflows/skills from the repo `.lana/` at run time. Tests always exercise the CURRENT IPPS, no duplication in the suite.
@@ -77,9 +77,10 @@ evals/suite/
 │   └── T01_WriteSpec/             # scaffold.json copies write-spec workflow + write-documents skill
 └── 03_AdvancedCapabilities/
     └── T01_TranscribeLocal/       # local HTML fixture, Tier 3 rubric
-evals/runs/[YYYY-MM-DD]_[HH-MM]_[Scope]/
-├── REPORT.md | results.json
-└── [TestFolderName]/{workspace/, events.jsonl, stderr.txt, judge/}
+evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/
+├── log.txt | REPORT.md | results.json
+└── [TestKey]/{PROMPTS.md, workspace/, events.jsonl, stderr.txt, session.jsonl, judge/}
+     TestKey = 01-T01_CreateFile (bucket prefix + full test folder name)
 ```
 
 ## 4. Judge Integration (llm-evaluation)
@@ -90,9 +91,9 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 - **Python**: `../.tools/llm-venv/Scripts/python.exe` (skill dependency home)
 - **Model**: `gpt-5-mini` (skill recommendation: best judge calibration), `--response-format json`, `--reasoning-effort medium`
 - **Keys**: `config/.api-keys.txt` via `--keys-file` (env-file format)
-- **Input assembly**: `judge.py` concatenates the test's output files (from `manifest.yaml` globs) into `judge/input.md` with per-file headers; prompt = `judge_prompt_template.md` with the test's `rubric.md` inlined
+- **Input assembly**: `judge.py` builds a structured `judge/input.md` with three sections: `# PROMPTS` (task from PROMPTS.md), `# REFERENCE OUTPUT` (golden files with folder tree, optional), `# AGENT OUTPUT` (output files with folder tree). File contents use adaptive backtick fences (one more backtick than the longest run inside); multiple files separated by `---` lines. Prompt = `judge_prompt_template.md` with the test's `rubric.md` inlined into `judge/prompt.md`
 - **Output contract**: `{"dimensions": [{"name": str, "score": 0-100, "justification": str}]}`; Tier 3 score = mean/100
-- **Audit**: `judge/input.md`, `judge/prompt.md`, `judge/response.json` stored in the TestRunRecord (LANATEST-FR-08)
+- **Audit**: `judge/input.md`, `judge/prompt.md`, `judge/response.json`, `judge/call.log` stored in the TestRunRecord (LANATEST-FR-08)
 - **Retries**: `call-llm.py` built-in (3x exponential backoff); runner adds none (LANATEST-NFR-02)
 
 ## 5. Edge Cases
@@ -227,7 +228,20 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 ├─ Deliverables:
 │   └─ [x] P10-D1: golden/ populated for 8 of 9 tests, 03-T02 documented pending in its TEST.md
 └─> Transitions:
-    - P10-D1 checked → [END]
+    - P10-D1 checked → P11
+
+[x] P11 [IMPLEMENT]: Cost tracking (Lana + judge)
+├─ Objectives:
+│   └─ [x] Per-test and run-level cost breakdown in results.json and REPORT.md ← P11-D1
+├─ Strategy: Lana cost from session.jsonl turn_finished events (cost_usd pre-computed); judge cost from call-llm.py --write-json-metadata + model-pricing.json
+├─ [x] P11-S1 [IMPLEMENT](run_evals.py: extract_lana_cost parsing session.jsonl for turn_finished, summing input/output/cache tokens and cost_usd)
+├─ [x] P11-S2 [IMPLEMENT](judge.py: add --write-json-metadata to call-llm.py command, parse response.meta.json, compute judge cost from pricing, return usage in result)
+├─ [x] P11-S3 [IMPLEMENT](run_evals.py: run_test collects both costs into result dict; main aggregates totals; write_report adds Cost Summary section)
+├─ [x] P11-S4 [IMPLEMENT](runner-config.json: add pricing_file path)
+├─ Deliverables:
+│   └─ [x] P11-D1: results.json has per-test cost.lana and cost.judge; REPORT.md has Cost Summary with totals
+└─> Transitions:
+    - P11-D1 checked → [END]
 ```
 
 ## 7. Test Cases
@@ -245,6 +259,28 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 - [x] **LANATEST-IP01-VC-04**: `/verify` run - IMPL structure (header, MNF, TOC, STRUT template compliance), REPORT.md + results.json inspected on both drive records, privacy scan (fixtures generic: fictional Acme Widgets), IG-03 (runner writes only under `evals/runs/`)
 
 ## 9. Document History
+
+**[2026-08-30 23:55]**
+- Changed: Run folder naming now includes `[ModelId]_[Effort]` from lana-config.json generator role
+- Changed: TestKey includes full test folder name (`01-T01_CreateFile` instead of `01-T01`)
+- Fixed: evaluators.py - section matching tolerates numbered headings (`## 13. Title`); `tool_called` groups `edit`/`multi_edit`; LOG-GN-05 singular/plural in detail strings
+- Fixed: 02-T03 manifest `finding_ids` regex broadened to accept `RV-NNN` variant
+
+**[2026-08-30 23:40]**
+- Added: TeeWriter for `log.txt` in run folder (eager flush for external monitoring)
+- Added: `PROMPTS.md` copy per TestRunRecord (self-contained audit)
+- Changed: DC-01 - record contents updated; file structure updated
+
+**[2026-08-30 22:10]**
+- Added + implemented: STRUT P11 - cost tracking (Lana + judge) per test and run-level totals
+- Changed: run_evals.py - extract_lana_cost (session.jsonl turn_finished), compute_judge_cost (pricing lookup), Cost Summary in REPORT.md, cost totals in results.json and terminal output
+- Changed: judge.py - --write-json-metadata flag, response.meta.json parsing, usage returned
+- Changed: runner-config.json - added pricing_file
+
+**[2026-08-30 22:05]**
+- Changed: DC-01 - session JSONL now copied to `record_dir/session.jsonl`; runner purges `.lana-data/sessions/` before each run (clean session guarantee)
+- Changed: run folder naming `YYYY-MM-DD_HH-MM-SS_[Agent]-[Version]`; TestRunRecord includes `session.jsonl`
+- Changed: judge input assembly - structured three-section format (PROMPTS, REFERENCE OUTPUT, AGENT OUTPUT) with adaptive fences, folder trees, `---` separators; `judge/call.log` added to audit trail
 
 **[2026-08-30 21:50]**
 - Changed (user request): run folder structure now `runs/YYYY-MM-DD_HH-MM-SS/` (seconds added, scope suffix dropped) with one subfolder per test key (`01-T01/`)

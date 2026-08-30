@@ -1,0 +1,850 @@
+{
+  "run": "2026-08-30_22-07-34_Lana-1.1.0_gpt-5.6-terra_medium",
+  "agent": "Lana-1.1.0",
+  "scope": "All",
+  "cost": {
+    "lana_usd": 0.949457,
+    "judge_usd": 0.001067,
+    "total_usd": 0.950524
+  },
+  "tests": [
+    {
+      "key": "01-T01_CreateFile",
+      "name": "T01_CreateFile",
+      "tier1": 1.0,
+      "tier2": 1.0,
+      "tier3": null,
+      "status": "pass",
+      "failed_checks": [],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:hello.py",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "hello.py:pattern:greet_function",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "hello.py:pattern:main_guard",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "hello.py:pattern:greeting_string",
+            "passed": true,
+            "detail": "matched"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "file_created_via_edit_tool",
+            "passed": true,
+            "detail": "1 call of 'write_to_file' (need >= 1)"
+          },
+          {
+            "id": "read_before_edit",
+            "passed": true,
+            "detail": "every edit preceded by a read or create"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "hello.py",
+          "status": "differs",
+          "similarity": 0.98
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 14069,
+          "output_tokens": 312,
+          "cache_read_tokens": 9174,
+          "cost_usd": 0.015369
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.015369
+      }
+    },
+    {
+      "key": "01-T02_EditSequence",
+      "name": "T02_EditSequence",
+      "tier1": 1.0,
+      "tier2": 1.0,
+      "tier3": null,
+      "status": "pass",
+      "failed_checks": [],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:notes.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "notes.md:section:## Alpha",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "notes.md:section:## Beta",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "notes.md:section:## Gamma",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "notes.md:pattern:alpha_fact_kept",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "notes.md:pattern:gamma_references_year",
+            "passed": true,
+            "detail": "matched"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "file_created_via_edit_tool",
+            "passed": true,
+            "detail": "1 call of 'write_to_file' (need >= 1)"
+          },
+          {
+            "id": "read_before_edit",
+            "passed": true,
+            "detail": "every edit preceded by a read or create"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "notes.md",
+          "status": "differs",
+          "similarity": 0.839
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 29571,
+          "output_tokens": 583,
+          "cache_read_tokens": 24161,
+          "cost_usd": 0.022648
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.022648
+      }
+    },
+    {
+      "key": "01-T03_SearchAndRefactor",
+      "name": "T03_SearchAndRefactor",
+      "tier1": 0.9,
+      "tier2": 1.0,
+      "tier3": null,
+      "status": "pass",
+      "failed_checks": [
+        "test_billing.py:forbid:calc_total"
+      ],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:billing.py",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "required:invoice.py",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "required:test_billing.py",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "billing.py:pattern:new_name_defined",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "billing.py:pattern:discount_untouched",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "billing.py:forbid:calc_total",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "invoice.py:pattern:new_name_imported",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "invoice.py:forbid:calc_total",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "test_billing.py:pattern:new_name_used",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "test_billing.py:forbid:calc_total",
+            "passed": false,
+            "detail": "forbidden content 'calc_total' present"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "search_performed",
+            "passed": true,
+            "detail": "2 calls of 'grep_search' (need >= 1)"
+          },
+          {
+            "id": "edits_performed",
+            "passed": true,
+            "detail": "3 calls of 'edit' (need >= 1)"
+          },
+          {
+            "id": "read_before_edit",
+            "passed": true,
+            "detail": "every edit preceded by a read or create"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "billing.py",
+          "status": "match",
+          "similarity": 1.0
+        },
+        {
+          "file": "invoice.py",
+          "status": "match",
+          "similarity": 1.0
+        },
+        {
+          "file": "test_billing.py",
+          "status": "differs",
+          "similarity": 0.957
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 28914,
+          "output_tokens": 1513,
+          "cache_read_tokens": 21604,
+          "cost_usd": 0.037097
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.037097
+      }
+    },
+    {
+      "key": "01-T04_ShellExecution",
+      "name": "T04_ShellExecution",
+      "tier1": 1.0,
+      "tier2": 0.5,
+      "tier3": null,
+      "status": "fail",
+      "failed_checks": [
+        "result_written_via_edit_tool"
+      ],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:count.txt",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "count.txt:pattern:correct_count",
+            "passed": true,
+            "detail": "matched"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "shell_command_executed",
+            "passed": true,
+            "detail": "1 call of 'run_command' (need >= 1)"
+          },
+          {
+            "id": "result_written_via_edit_tool",
+            "passed": false,
+            "detail": "0 calls of 'write_to_file' (need >= 1)"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "count.txt",
+          "status": "differs",
+          "similarity": 0.667
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 9302,
+          "output_tokens": 298,
+          "cache_read_tokens": 4499,
+          "cost_usd": 0.014082
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.014082
+      }
+    },
+    {
+      "key": "02-T01_WriteSpec",
+      "name": "T01_WriteSpec",
+      "tier1": 1.0,
+      "tier2": 1.0,
+      "tier3": null,
+      "status": "pass",
+      "failed_checks": [],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:_SPEC_WORDCOUNT.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:section:## MUST-NOT-FORGET",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:section:## Table of Contents",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:section:## Document History",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:pattern:doc_id",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:pattern:functional_requirements",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:pattern:design_decisions",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_SPEC_WORDCOUNT.md:pattern:goal_line",
+            "passed": true,
+            "detail": "matched"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "spec_template_read",
+            "passed": true,
+            "detail": "1 call of 'read_file' (need >= 1)"
+          },
+          {
+            "id": "spec_written_via_edit_tool",
+            "passed": true,
+            "detail": "1 call of 'write_to_file' (need >= 1)"
+          },
+          {
+            "id": "read_before_edit",
+            "passed": true,
+            "detail": "every edit preceded by a read or create"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "_SPEC_WORDCOUNT.md",
+          "status": "differs",
+          "similarity": 0.132
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 216415,
+          "output_tokens": 5844,
+          "cache_read_tokens": 180240,
+          "cost_usd": 0.178527
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.178527
+      }
+    },
+    {
+      "key": "02-T02_VerifyFix",
+      "name": "T02_VerifyFix",
+      "tier1": 0.917,
+      "tier2": 1.0,
+      "tier3": null,
+      "status": "pass",
+      "failed_checks": [
+        "STATUS.md:pattern:next_step_kept"
+      ],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:STATUS.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "required:FIXLOG.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "STATUS.md:pattern:iso_date",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "STATUS.md:pattern:backend_kept",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "STATUS.md:pattern:frontend_kept",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "STATUS.md:pattern:next_step_kept",
+            "passed": false,
+            "detail": "regex 'end of the quarter' not found"
+          },
+          {
+            "id": "STATUS.md:forbid:✅",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "STATUS.md:forbid:❌",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "STATUS.md:forbid:|--",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "STATUS.md:forbid:03/15/2026",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "STATUS.md:forbid:---",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "FIXLOG.md:pattern:list_items",
+            "passed": true,
+            "detail": "matched"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "status_read_first",
+            "passed": true,
+            "detail": "2 calls of 'read_file' (need >= 1)"
+          },
+          {
+            "id": "fixes_via_edit_tools",
+            "passed": true,
+            "detail": "1 call of 'edit' (need >= 1)"
+          },
+          {
+            "id": "read_before_edit",
+            "passed": true,
+            "detail": "every edit preceded by a read or create"
+          },
+          {
+            "id": "fixlog_written",
+            "passed": true,
+            "detail": "1 call of 'write_to_file' (need >= 1)"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "FIXLOG.md",
+          "status": "differs",
+          "similarity": 0.09
+        },
+        {
+          "file": "STATUS.md",
+          "status": "differs",
+          "similarity": 0.313
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 445527,
+          "output_tokens": 3681,
+          "cache_read_tokens": 396710,
+          "cost_usd": 0.221148
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.221148
+      }
+    },
+    {
+      "key": "02-T03_CritiqueSequence",
+      "name": "T03_CritiqueSequence",
+      "tier1": 1.0,
+      "tier2": 1.0,
+      "tier3": null,
+      "status": "pass",
+      "failed_checks": [],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:_REVIEW_GREETER.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "required:_SPEC_GREETER.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "_REVIEW_GREETER.md:pattern:finding_ids",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_REVIEW_GREETER.md:pattern:vague_flaw_found",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_REVIEW_GREETER.md:pattern:reconcile_decisions",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_SPEC_GREETER.md:pattern:fr01_kept",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "_SPEC_GREETER.md:forbid:handles errors appropriately",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "_SPEC_GREETER.md:forbid:The three supported languages",
+            "passed": true,
+            "detail": "absent"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "spec_read_before_critique",
+            "passed": true,
+            "detail": "4 calls of 'read_file' (need >= 1)"
+          },
+          {
+            "id": "review_written",
+            "passed": true,
+            "detail": "1 call of 'write_to_file' (need >= 1)"
+          },
+          {
+            "id": "spec_fixed_via_edit",
+            "passed": true,
+            "detail": "1 call of 'edit' (need >= 1)"
+          },
+          {
+            "id": "read_before_edit",
+            "passed": true,
+            "detail": "every edit preceded by a read or create"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "_REVIEW_GREETER.md",
+          "status": "differs",
+          "similarity": 0.018
+        },
+        {
+          "file": "_SPEC_GREETER.md",
+          "status": "differs",
+          "similarity": 0.475
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 688735,
+          "output_tokens": 8867,
+          "cache_read_tokens": 638817,
+          "cost_usd": 0.334003
+        },
+        "judge": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cost_usd": 0.0
+        },
+        "total_usd": 0.334003
+      }
+    },
+    {
+      "key": "03-T01_TranscribeLocal",
+      "name": "T01_TranscribeLocal",
+      "tier1": 1.0,
+      "tier2": 1.0,
+      "tier3": 1.0,
+      "status": "pass",
+      "failed_checks": [],
+      "notes": [],
+      "exit_code": 0,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:output/pricing_page.md",
+            "passed": true,
+            "detail": "1 match"
+          },
+          {
+            "id": "output/pricing_page.md:section:Acme Widgets Pricing",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "id": "output/pricing_page.md:pattern:price_starter",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "output/pricing_page.md:pattern:price_pro",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "output/pricing_page.md:pattern:price_enterprise",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "output/pricing_page.md:pattern:trial_note",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "output/pricing_page.md:pattern:vat_note",
+            "passed": true,
+            "detail": "matched"
+          },
+          {
+            "id": "output/pricing_page.md:forbid:<table",
+            "passed": true,
+            "detail": "absent"
+          },
+          {
+            "id": "output/pricing_page.md:forbid:<html",
+            "passed": true,
+            "detail": "absent"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "fixture_read",
+            "passed": true,
+            "detail": "1 call of 'read_file' (need >= 1)"
+          },
+          {
+            "id": "output_written_via_edit_tool",
+            "passed": true,
+            "detail": "1 call of 'write_to_file' (need >= 1)"
+          }
+        ]
+      },
+      "golden": [
+        {
+          "file": "pricing_page.md",
+          "status": "missing",
+          "similarity": 0.0
+        }
+      ],
+      "judge_dimensions": [
+        {
+          "name": "Content Completeness",
+          "score": 100,
+          "justification": "The transcription includes the 14-day trial and monthly cancellation sentence, all three feature items, all three plans with price, seats, and storage values, and all three notes."
+        },
+        {
+          "name": "Structure Fidelity",
+          "score": 100,
+          "justification": "It uses one main heading, three level-two subheadings, a markdown feature list, and a four-column markdown pricing table."
+        },
+        {
+          "name": "No Invention",
+          "score": 100,
+          "justification": "The file contains only the pricing-page headings, prose, list, table, and notes, with no added commentary, metadata, or invented facts."
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 57682,
+          "output_tokens": 1034,
+          "cache_read_tokens": 45234,
+          "cost_usd": 0.046351
+        },
+        "judge": {
+          "input_tokens": 1149,
+          "output_tokens": 194,
+          "cost_usd": 0.000463
+        },
+        "total_usd": 0.046814
+      }
+    },
+    {
+      "key": "03-T02_DeepResearch",
+      "name": "T02_DeepResearch",
+      "tier1": 0.0,
+      "tier2": 0.5,
+      "tier3": 0.25,
+      "status": "fail",
+      "failed_checks": [
+        "required:_INFO_BERLINWALL.md",
+        "file_rules:_INFO_BERLINWALL.md",
+        "info_written_via_edit_tool"
+      ],
+      "notes": [
+        "golden reference pending (DC-03 warning)",
+        "lana exit code 4 (EC-01/EC-02)"
+      ],
+      "exit_code": 4,
+      "check_details": {
+        "tier1": [
+          {
+            "id": "required:_INFO_BERLINWALL.md",
+            "passed": false,
+            "detail": "no file matches '_INFO_BERLINWALL.md'"
+          },
+          {
+            "id": "file_rules:_INFO_BERLINWALL.md",
+            "passed": false,
+            "detail": "no file matches '_INFO_BERLINWALL.md'"
+          }
+        ],
+        "tier2": [
+          {
+            "id": "web_searches_executed",
+            "passed": true,
+            "detail": "13 calls of 'search_web' (need >= 3)"
+          },
+          {
+            "id": "sources_fetched",
+            "passed": true,
+            "detail": "6 calls of 'read_url_content' (need >= 2)"
+          },
+          {
+            "id": "info_written_via_edit_tool",
+            "passed": false,
+            "detail": "0 calls of 'write_to_file' (need >= 1)"
+          }
+        ]
+      },
+      "golden": null,
+      "judge_dimensions": [
+        {
+          "name": "Answer Correctness",
+          "score": 0,
+          "justification": "The workspace contains no `_INFO_BERLINWALL.md` or any answer stating November 9, 1989 or identifying three preceding political events."
+        },
+        {
+          "name": "Citation Auditability",
+          "score": 0,
+          "justification": "No research document, source entries, HTTPS URLs, access dates, or verification labels are present."
+        },
+        {
+          "name": "Source Diversity",
+          "score": 0,
+          "justification": "The output contains no sources from any domains."
+        },
+        {
+          "name": "No Invention",
+          "score": 100,
+          "justification": "The output contains no historical claims, quotations, or source URLs that could be invented or contradicted."
+        }
+      ],
+      "cost": {
+        "lana": {
+          "input_tokens": 94483,
+          "output_tokens": 2271,
+          "cache_read_tokens": 75548,
+          "cost_usd": 0.080232
+        },
+        "judge": {
+          "input_tokens": 936,
+          "output_tokens": 347,
+          "cost_usd": 0.000604
+        },
+        "total_usd": 0.080836
+      }
+    }
+  ]
+}

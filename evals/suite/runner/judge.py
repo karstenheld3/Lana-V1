@@ -64,7 +64,7 @@ def build_judge_prompt(template_path: Path, rubric_path: Path, judge_dir: Path) 
   return prompt_path
 
 
-# Returns {"score": float|None, "dimensions": [...], "error": str|None}; transcripts land in judge_dir (FR-08 audit)
+# Returns {"score": float|None, "dimensions": [...], "error": str|None, "usage": dict|None}; transcripts land in judge_dir (FR-08 audit)
 def evaluate_quality(workspace: Path, manifest: dict, rubric_path: Path, judge_dir: Path, config: dict, golden_dir: Path | None = None, prompts_path: Path | None = None) -> dict:
   judge_dir.mkdir(parents=True, exist_ok=True)
   input_path = build_judge_input(workspace, manifest, judge_dir, golden_dir, prompts_path)
@@ -73,18 +73,24 @@ def evaluate_quality(workspace: Path, manifest: dict, rubric_path: Path, judge_d
   command = [config["judge_python"], config["call_llm_script"],
              "--model", config["judge_model"], "--input-file", str(input_path), "--prompt-file", str(prompt_path),
              "--output-file", str(response_path), "--response-format", "json",
-             "--reasoning-effort", config.get("judge_effort", "medium"), "--keys-file", config["keys_file"]]
+             "--reasoning-effort", config.get("judge_effort", "medium"), "--keys-file", config["keys_file"],
+             "--write-json-metadata"]
   try:
     completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", timeout=config.get("judge_timeout_seconds", 300))
   except subprocess.TimeoutExpired:
-    return {"score": None, "dimensions": [], "error": "judge call timed out"}
+    return {"score": None, "dimensions": [], "error": "judge call timed out", "usage": None}
   (judge_dir / "call.log").write_text(f"command: {' '.join(command)}\nexit: {completed.returncode}\nstdout:\n{completed.stdout}\nstderr:\n{completed.stderr}", encoding="utf-8")
   if completed.returncode != 0:
-    return {"score": None, "dimensions": [], "error": f"call-llm.py exit {completed.returncode} (see judge/call.log)"}
+    return {"score": None, "dimensions": [], "error": f"call-llm.py exit {completed.returncode} (see judge/call.log)", "usage": None}
   try:  # EC-04: unparseable judge output -> Tier 3 null, transcript kept
     payload = json.loads(response_path.read_text(encoding="utf-8"))
     dimensions = payload["dimensions"]
     score = sum(d["score"] for d in dimensions) / len(dimensions) / 100.0
   except (OSError, KeyError, TypeError, ValueError, ZeroDivisionError) as error:
-    return {"score": None, "dimensions": [], "error": f"judge response unparseable ({type(error).__name__}: {error})"}
-  return {"score": round(score, 3), "dimensions": dimensions, "error": None}
+    return {"score": None, "dimensions": [], "error": f"judge response unparseable ({type(error).__name__}: {error})", "usage": None}
+  usage = None
+  meta_path = response_path.with_suffix(".meta.json")
+  if meta_path.exists():
+    try: usage = json.loads(meta_path.read_text(encoding="utf-8")).get("usage")
+    except (OSError, json.JSONDecodeError): pass
+  return {"score": round(score, 3), "dimensions": dimensions, "error": None, "usage": usage}

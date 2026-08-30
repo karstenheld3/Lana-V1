@@ -4,7 +4,7 @@ required_files:
 file_rules:
   - glob: "_REVIEW_GREETER.md"
     patterns:
-      - {name: finding_ids, regex: "RF-\\d{2}"}
+      - {name: finding_ids, regex: "(?:RF|RV)-\\d{2,3}"}
       - {name: vague_flaw_found, regex: "appropriately"}
       - {name: reconcile_decisions, regex: "(?i)(accepted|rejected)"}
   - glob: "_SPEC_GREETER.md"

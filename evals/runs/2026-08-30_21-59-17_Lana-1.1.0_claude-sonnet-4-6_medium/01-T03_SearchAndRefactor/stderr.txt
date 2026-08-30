@@ -1,0 +1,2 @@
+ERROR: Role 'generator' model 'claude-sonnet-4-6' is disabled in 'config/model-registry.json' (enabled=false).
+  HINT: choose an enabled model or set "enabled": true in the registry.

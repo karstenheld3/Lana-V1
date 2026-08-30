@@ -6,7 +6,7 @@
 
 - [x] **EXPLORE** - done: read IPPS concept docs + CSRCMP-IN10 research, inventoried 46 workflows / 23 skills, proposed 3 alternatives, user chose B
 - [x] **DESIGN** - done: `_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]` + `_IMPL_LANA_EVAL_SUITE.md [LANATEST-IP01]` (user chose B, prompt queue format, llm-evaluation judge)
-- [x] **IMPLEMENT** - done: runner, 3 tiers, 9 tests across 3 buckets, goldens 8/9, all offline drives green (STRUT P1-P10 → [END])
+- [x] **IMPLEMENT** - done: runner, 3 tiers, 9 tests across 3 buckets, goldens 8/9, all offline drives green, cost tracking (STRUT P1-P11 → [END])
 - [ ] **VERIFY** - in_progress: harness validated offline (PASS/FAIL/leak/immutability paths); pending: live run with real models (user), 03-T02 golden
 - [ ] **RELEASE** - pending: integrate into CI or manual test run process
 

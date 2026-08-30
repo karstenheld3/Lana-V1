@@ -126,17 +126,19 @@ A **GoldenReference** is the output folder produced by Cascade + IPPS executing 
 
 A **Run** executes a scope (one test, one bucket, or all) and produces one immutable run folder.
 
-**Storage:** `evals/runs/[YYYY-MM-DD]_[HH-MM]_[Scope]/`
-**Scope naming:** bucket folder name (`01_Basics`), test key (`01-T03`), or `All`
+**Storage:** `evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/` (example: `2026-08-30_21-15-03_Lana-1.1.0_claude-sonnet-4-5-20250929_medium`)
 
 **Run folder contents:**
-- `REPORT.md` - Human-readable results summary
-- `results.json` - Machine-readable scores per test and tier
-- `[TestFolderName]/` per executed test (**TestRunRecord**):
+- `log.txt` - Full runner console output (tee'd with eager flush for live monitoring)
+- `REPORT.md` - Human-readable results summary with golden benchmark comparison
+- `results.json` - Machine-readable scores per test, tier, golden comparison, and run metadata (agent tag, scope)
+- `[TestKey]/` per executed test (**TestRunRecord**, example: `01-T01_CreateFile/`):
   - `workspace/` - Final workspace state after all prompt steps
   - `events.jsonl` - Stdout AgentEvents for the full queue run (prompt-boundary events segment steps)
-  - `session/` - Copies of `.lana-data/sessions/*.jsonl` from the test workspace
-  - `judge/` - Judge request/response transcripts (only if Tier 3 ran)
+  - `stderr.txt` - Lana stderr capture
+  - `PROMPTS.md` - Copy of the test's prompt queue file
+  - `session.jsonl` - Copy of the session event log from `.lana-data/sessions/` (one per clean run)
+  - `judge/` - Judge audit trail (only if Tier 3 ran): `input.md` (structured: PROMPTS + REFERENCE OUTPUT + AGENT OUTPUT with adaptive fences and folder trees), `prompt.md` (system prompt with inlined rubric), `response.json`, `call.log`
 
 ### Evaluator
 
@@ -160,7 +162,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - Runner copies `workspace/` scaffold to a fresh working directory per test before execution
 - Bucket 1 scaffolds contain empty `.lana/` (rules/, workflows/, skills/ present but empty)
 - Buckets 2-3 scaffolds reference the IPPS content under test via `scaffold.json` (`copy_lana` path list); the runner copies the listed workflows/skills from the repo `.lana/` at run time - tests always exercise the CURRENT IPPS
-- No state leaks between tests: each test gets its own working directory and `.lana-data/`
+- No state leaks between tests: each test gets its own working directory; the runner purges any `.lana-data/sessions/` before execution to guarantee a clean session
 
 **LANATEST-FR-04: Prompt Queue Execution**
 - Runner passes the test's `PROMPTS.md` to headless Lana via a prompt-file option (JSONL output); Lana executes the queue sequentially within ONE session, one turn per prompt
@@ -170,8 +172,9 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - On step failure (crash, timeout, non-zero exit), remaining queue entries are abandoned and the test is scored with recorded evidence
 
 **LANATEST-FR-05: Run Recording**
-- Every run creates `evals/runs/[YYYY-MM-DD]_[HH-MM]_[Scope]/` containing REPORT.md, results.json, and one TestRunRecord per executed test
-- TestRunRecord captures final workspace, queue stdout events, and session event logs
+- Every run creates `evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/` containing log.txt, REPORT.md, results.json, and one TestRunRecord per executed test
+- TestKey includes full test folder name (e.g. `01-T01_CreateFile`) for self-documenting run folders
+- TestRunRecord captures prompt queue (`PROMPTS.md`), final workspace, queue stdout events, stderr, and session event log (`session.jsonl`)
 - Run folders are immutable: the runner never modifies an existing run folder
 
 **LANATEST-FR-06: Tier 1 - Structural Evaluation**
@@ -185,16 +188,18 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - Tier 2 score = weighted by severity: CRITICAL fail caps the tier score at 0.5
 
 **LANATEST-FR-08: Tier 3 - Content Quality Evaluation**
-- QualityEvaluator submits output files plus `rubric.md` to a fixed judge model via @skills:llm-evaluation `call-llm.py` (tools venv, `--response-format json`) and receives dimension scores (0-100) with justifications
-- Rubric anchors quality expectations with excerpts from `golden/`; the judge never receives the full golden folder as a diff target
-- Judge transcripts stored in the TestRunRecord for audit
+- QualityEvaluator builds a structured judge input with three sections: `# PROMPTS` (the task), `# REFERENCE OUTPUT` (golden files with folder tree, optional), `# AGENT OUTPUT` (output files with folder tree). File contents use adaptive backtick fences (one more backtick than the longest run inside). Sections separated by `---` lines.
+- The judge input plus rubric-inlined system prompt are submitted to a fixed judge model via @skills:llm-evaluation `call-llm.py` (tools venv, `--response-format json`); dimension scores (0-100) with justifications returned
+- Reference-guided judging: golden files calibrate the judge's expectations for depth, precision, and completeness. The judge must NOT penalize different structure/wording when the rubric is met, and must NOT reward mere similarity - rubric compliance is the only criterion
+- Judge audit trail stored in the TestRunRecord: `judge/input.md`, `judge/prompt.md`, `judge/response.json`, `judge/call.log`
 - Tier 3 score = mean of dimension scores / 100
 
 **LANATEST-FR-09: Scoring and Report**
 - Per-test result: tier scores + overall pass/fail against per-test thresholds from `TEST.md`
 - Default thresholds: Tier 1 >= 0.9, Tier 2 >= 0.7, Tier 3 >= 0.7 (overridable per test)
-- `results.json` contains all scores, check-level details, and run metadata (Lana version, model, timestamps)
-- `REPORT.md` lists per-bucket summary, per-test tier scores, and all failed checks
+- `results.json` contains all scores, check-level details, golden comparison, cost breakdown, and run metadata (agent tag `[Agent]-[Version]`, scope, timestamps)
+- `REPORT.md` lists per-bucket summary, per-test tier scores, all failed checks, and a cost summary
+- Per-test cost tracking: Lana token usage and cost (from `turn_finished` session events with `cost_usd`), judge token usage and cost (from `call-llm.py` metadata + model pricing). Run-level totals separate Lana vs eval (judge) costs
 
 **LANATEST-FR-10: Golden Production Mode**
 - Every test is executable by a human driving Cascade + IPPS in Windsurf: open scaffold copy as workspace, paste the fenced prompts from `PROMPTS.md` in order, copy resulting output into `golden/`
@@ -275,7 +280,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 
 - **Manifest distillation**: golden output → human authors normative expectations (files, sections, patterns, counts) into `manifest.yaml`; incidental properties (wording, tool names) are deliberately excluded. Solves golden portability between Cascade and Lana (different agents, same standards).
 - **Process audit over event logs**: `checks.yaml` entries match against session events (tool call types, arguments, ordering). Mirrors `/drift-detect` consuming CHECKS files, automated.
-- **Rubric anchoring**: judge sees the run output + rubric with short golden excerpts as quality anchors, scores dimensions independently, must justify each score.
+- **Reference-guided judging**: judge sees a structured input (PROMPTS + REFERENCE OUTPUT + AGENT OUTPUT with folder trees and adaptive fences) plus rubric as system prompt. Golden files calibrate expectations; the judge scores dimensions independently against the rubric only, must justify each score.
 - **Threshold gating**: per-test thresholds convert tier scores into pass/fail; CRITICAL process check failures cap Tier 2 (a passed-looking output with faked process must not pass).
 - **Unambiguous-answer prompt design**: Bucket 3 research questions are chosen so headline conclusions converge across runs, making conclusion checks stable despite content variance.
 
@@ -284,7 +289,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 ```
 User runs suite with scope
 ├─> Discover tests matching scope in evals/suite/
-├─> Create run folder evals/runs/[timestamp]_[Scope]/
+├─> Create run folder evals/runs/[timestamp]_[Agent]-[Version]/
 ├─> Per test:
 │   ├─> Copy workspace/ scaffold to fresh working directory
 │   ├─> Execute headless Lana with PROMPTS.md queue in working directory
@@ -398,6 +403,26 @@ RESULT: 4 passed, 1 failed, 0 invalid.
 - Session JSONL tool events carry full arguments (`tool_call_requested`: tool + args; `tool_call_finished`: status + result) - Tier 2 path-level and count-level checks are evaluable [VERIFIED: events.py]
 
 ## 13. Document History
+
+**[2026-08-30 23:55]**
+- Changed: FR-05 - run folder naming now includes generator model_id and effort; TestKey includes full test name (e.g. `01-T01_CreateFile`)
+- Changed: FR-06 - StructureEvaluator section matching tolerates numbered headings (`## 13. Title`)
+- Changed: FR-07 - ProcessEvaluator `tool_called` groups `edit` and `multi_edit` as equivalent edit operations
+
+**[2026-08-30 23:40]**
+- Added: Run folder `log.txt` (tee'd stdout with eager flush for external monitoring)
+- Added: TestRunRecord `PROMPTS.md` (copy of prompt queue per test for self-contained audit)
+- Changed: FR-05 - run folder and TestRunRecord contents updated
+
+**[2026-08-30 22:10]**
+- Added: FR-09 - per-test and run-level cost tracking (Lana + judge), sourced from session `turn_finished` events and `call-llm.py --write-json-metadata`
+
+**[2026-08-30 22:05]**
+- Changed: FR-03 - clean session guarantee (runner purges `.lana-data/sessions/` before each test)
+- Changed: FR-05, Run domain object - run folder naming `YYYY-MM-DD_HH-MM-SS_[Agent]-[Version]`, TestRunRecord now includes `session.jsonl`, `stderr.txt`, structured judge audit trail
+- Changed: FR-08 - reference-guided judging with structured three-section input (PROMPTS, REFERENCE OUTPUT, AGENT OUTPUT), adaptive backtick fences, folder trees; golden files for calibration (not diff target)
+- Changed: FR-09 - results.json includes agent tag, golden comparison
+- Changed: Key Mechanisms - rubric anchoring replaced by reference-guided judging
 
 **[2026-08-30 20:20]**
 - Changed: FR-08 - judge calls go through @skills:llm-evaluation `call-llm.py` [user decision]; FR-03 - Bucket 2-3 IPPS content via `scaffold.json` copy_lana (no duplication, synced from LANATEST-IP01 DC-04)

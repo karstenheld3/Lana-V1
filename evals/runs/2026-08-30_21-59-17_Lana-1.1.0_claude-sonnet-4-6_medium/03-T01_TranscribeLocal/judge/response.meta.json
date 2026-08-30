@@ -1,0 +1,10 @@
+{
+  "model": "gpt-5.6-luna",
+  "usage": {
+    "input_tokens": 994,
+    "output_tokens": 270
+  },
+  "timestamp": "2026-08-30T19:59:30.844662+00:00",
+  "input_file": "E:\\Dev\\Lana-V1\\evals\\runs\\2026-08-30_21-59-17_Lana-1.1.0_claude-sonnet-4-6_medium\\03-T01_TranscribeLocal\\judge\\input.md",
+  "prompt_file": "E:\\Dev\\Lana-V1\\evals\\runs\\2026-08-30_21-59-17_Lana-1.1.0_claude-sonnet-4-6_medium\\03-T01_TranscribeLocal\\judge\\prompt.md"
+}

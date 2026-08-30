@@ -58,7 +58,7 @@ That means the entire test suite must be designed so that we can produce the ref
 ## Key Decisions
 
 - **[2026-08-30]** Alternative B chosen: three-tier GRUC-mirrored evaluation (Tier 1 STRUCTURE manifest checks, Tier 2 PROCESS audit over session event logs, Tier 3 QUALITY LLM-judge with golden-anchored rubric). Spec: `_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]`
-- **[2026-08-30]** Suite location `evals/suite/`, run records `evals/runs/[YYYY-MM-DD]_[HH-MM]_[Scope]/` (user-created scaffolds define naming)
+- **[2026-08-30]** Suite location `evals/suite/`, run records `evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]/`
 - **[2026-08-30]** Bucket folders: `01_Basics`, `02_WorkflowsSkills`, `03_AdvancedCapabilities`
 - **[2026-08-30]** Golden output = rubric anchor + manifest distillation source, never diff target (CSRCMP-IN10 evidence)
 - **[2026-08-30]** Bucket 3 variance-band scoring (multiple golden runs) deferred (LANATEST-DD-09)

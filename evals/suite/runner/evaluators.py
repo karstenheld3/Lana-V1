@@ -14,10 +14,10 @@ def evaluate_structure(workspace: Path, manifest: dict) -> dict:
   results = []
   for pattern in manifest.get("required_files", []):
     matches = list(workspace.glob(pattern))
-    results.append(check_result(f"required:{pattern}", bool(matches), f"{len(matches)} match(es)" if matches else f"no file matches '{pattern}'"))
+    results.append(check_result(f"required:{pattern}", bool(matches), f"{len(matches)} {'match' if len(matches) == 1 else 'matches'}" if matches else f"no file matches '{pattern}'"))
   for pattern in manifest.get("forbidden_files", []):
     matches = [path for path in workspace.glob(pattern) if ".lana-data" not in path.parts]
-    results.append(check_result(f"forbidden:{pattern}", not matches, "clean" if not matches else f"forbidden file(s): {', '.join(str(p.relative_to(workspace)) for p in matches)}"))
+    results.append(check_result(f"forbidden:{pattern}", not matches, "clean" if not matches else f"forbidden {'file' if len(matches) == 1 else 'files'}: {', '.join(str(p.relative_to(workspace)) for p in matches)}"))
   for rule in manifest.get("file_rules", []):
     glob_pattern = rule["glob"]
     files = [path for path in workspace.glob(glob_pattern) if ".lana-data" not in path.parts]
@@ -26,7 +26,13 @@ def evaluate_structure(workspace: Path, manifest: dict) -> dict:
       continue
     text = "\n\n".join(path.read_text(encoding="utf-8", errors="replace") for path in files)
     for section in rule.get("required_sections", []):
-      results.append(check_result(f"{glob_pattern}:section:{section}", section in text, "present" if section in text else f"section '{section}' missing"))
+      # Match both '## Title' and '## N. Title' (agents may number headings)
+      if section.startswith("## "):
+        escaped = re.escape(section[3:])
+        found = bool(re.search(rf"^##\s+(?:\d+\.\s+)?{escaped}", text, re.MULTILINE))
+      else:
+        found = section in text
+      results.append(check_result(f"{glob_pattern}:section:{section}", found, "present" if found else f"section '{section}' missing"))
     for spec in rule.get("patterns", []):
       found = re.search(spec["regex"], text, re.MULTILINE) is not None
       results.append(check_result(f"{glob_pattern}:pattern:{spec['name']}", found, "matched" if found else f"regex '{spec['regex']}' not found"))
@@ -50,7 +56,7 @@ def load_session_events(workspace: Path) -> list[dict]:
   return events
 
 
-EDIT_TOOLS = ("edit", "multi_edit")  # write_to_file creates new files - no prior read required
+EDIT_TOOLS = {"edit", "multi_edit"}  # both are edit operations on existing files; write_to_file creates new files - no prior read required
 PATH_KEYS = ("file_path", "TargetFile", "AbsolutePath")
 
 
@@ -66,16 +72,18 @@ def event_path(event: dict) -> str:
 
 
 def assert_tool_called(events, spec) -> tuple[bool, str]:
-  calls = [event for event in tool_events(events) if event.get("tool") == spec["tool"]]
+  target = spec["tool"]
+  match_tools = EDIT_TOOLS if target in EDIT_TOOLS else {target}
+  calls = [event for event in tool_events(events) if event.get("tool") in match_tools]
   if spec.get("args_regex"):
     calls = [event for event in calls if re.search(spec["args_regex"], json.dumps(event.get("args", {}), ensure_ascii=False))]
   minimum = spec.get("min", 1)
-  return len(calls) >= minimum, f"{len(calls)} call(s) of '{spec['tool']}' (need >= {minimum})"
+  return len(calls) >= minimum, f"{len(calls)} {'call' if len(calls) == 1 else 'calls'} of '{target}' (need >= {minimum})"
 
 
 def assert_forbidden_tool(events, spec) -> tuple[bool, str]:
   calls = [event for event in tool_events(events) if event.get("tool") == spec["tool"]]
-  return not calls, ("never called" if not calls else f"'{spec['tool']}' called {len(calls)} time(s)")
+  return not calls, ("never called" if not calls else f"'{spec['tool']}' called {len(calls)} {'time' if len(calls) == 1 else 'times'}")
 
 
 def assert_read_before_edit(events, spec) -> tuple[bool, str]:
