@@ -59,7 +59,8 @@ def test_tp01_tc03_todo_survives_compaction(tmp_path):
     {"text": "big turn done", "usage": {"input": 5000, "output": 100}},
     {"text": "# Objective:\nDemo.\n# Session Summary:\nWorked.\n# Code Interaction Summary:\nTools."},
   ]
-  proc = build_scenario_proc(tmp_path, "tc03", turns, lana_overrides={"compaction_threshold_max_tokens": 40})
+  # FR-07 per-turn semantics: 4000 keeps the two small todo turns uncompacted, fires after the big turn
+  proc = build_scenario_proc(tmp_path, "tc03", turns, lana_overrides={"compaction_threshold_max_tokens": 4000})
   result = proc.run_headless("/prime-like")
   assert result.returncode == 0, result.stdout + result.stderr
   checkpoints = [event for event in proc.events() if event.type == "checkpoint_created"]

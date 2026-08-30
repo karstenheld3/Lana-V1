@@ -8,7 +8,7 @@ import datetime, json, uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
-from lana.events import AgentEvent, from_jsonl
+from lana.events import from_jsonl
 from lana.models import Message, ToolCall, Usage
 
 CANCELLATION_NOTE_PREFIX = "turn cancelled after"

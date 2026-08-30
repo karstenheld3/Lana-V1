@@ -4,7 +4,9 @@ Exit codes: 0 = turn completed | 2 = configuration error | 3 = provider/API fail
 """
 import argparse, asyncio, os, platform, sys, time
 from pathlib import Path
+from prompt_toolkit import PromptSession
 from lana.agent import Agent, UnknownWorkflowError
+from lana.compaction import make_compactor
 from lana.config import ConfigError, load_lana_config
 from lana.cost import CostTracker
 from lana.loader import BUILTIN_COMMANDS, load_prompt_systems
@@ -69,9 +71,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
   roles_banner = " | ".join(f"{name}: {short_model_name(role.model_id)} ({role.effort})" for name, role in app.roles.items())
   scripted_marker = " | SCRIPTED" if scripted else ""
   print(f"Lana MVP-1 | {roles_banner}{scripted_marker}")
-  prompt_system = None
   started = time.perf_counter()
-  from lana.loader import PromptSystem
   if app.lana.prompt_system_paths:
     for path in app.lana.prompt_system_paths: print(f"Loading prompt system '{path}'...")
   prompt_system = load_prompt_systems(app.lana.prompt_system_paths, app.lana.rule_block_max_chars)
@@ -107,7 +107,6 @@ def build_runtime(args, workspace: Path, interactive: bool):
     approve_callback, continue_callback = prompt_approval, prompt_continue
   else:
     approve_callback, continue_callback = None, None  # non-interactive auto-deny (FR-14)
-  from lana.compaction import make_compactor
   agent = Agent(app, prompt_system, system_prompt, registry, tool_context, session, messages=messages,
                 approve_callback=approve_callback, continue_callback=continue_callback, cost_fn=cost_tracker.record, compactor=make_compactor(app))
   return app, agent, cost_tracker, prompt_system
@@ -135,6 +134,11 @@ def stop_reason_to_exit_code(stop_reason: str | None) -> int:
 
 def run_headless(agent: Agent, cost_tracker: CostTracker, prompt: str, output_format: str) -> int:
   jsonl_output = output_format == "jsonl"
+  command = prompt.strip().split()[0].lstrip("/") if prompt.strip().startswith("/") else ""
+  if command in BUILTIN_COMMANDS:  # built-ins never reach the Generator (FR-05), headless included
+    if command == "help": print_help(agent.prompt_system)
+    elif command == "cost": print(cost_tracker.summary())
+    return EXIT_OK
   renderer = None if jsonl_output else Renderer(cost_tracker=cost_tracker, policy=agent.app.lana.execution_policy)
   try:
     stop_reason = run_one_prompt(agent, renderer, prompt, jsonl_output)
@@ -153,11 +157,7 @@ def print_help(prompt_system) -> None:
 
 def repl(agent: Agent, cost_tracker: CostTracker, prompt_system) -> int:
   renderer = Renderer(cost_tracker=cost_tracker, policy=agent.app.lana.execution_policy)
-  is_tty = sys.stdin.isatty()
-  prompt_session = None
-  if is_tty:
-    from prompt_toolkit import PromptSession  # terminal-dependent input only on a real terminal (FR-14)
-    prompt_session = PromptSession()
+  prompt_session = PromptSession() if sys.stdin.isatty() else None  # terminal-dependent input only on a real terminal (FR-14)
   while True:
     try:
       text = prompt_session.prompt("> ") if prompt_session else input("> ")

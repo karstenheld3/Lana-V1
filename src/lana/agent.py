@@ -4,7 +4,7 @@ The loop is a pure async generator over AgentEvents - frontends only consume eve
 Every event is appended to the session JSONL at occurrence, user events before the turn starts (IG-02).
 Per-turn variability (date, cwd) lives in the user message metadata block, never in the system prompt (IG-01).
 """
-import datetime, difflib, json
+import datetime, difflib
 from typing import AsyncIterator, Callable, Optional
 from lana.config import AppConfig
 from lana.events import ApprovalRequired, ErrorEvent, TextDelta, ThinkingDelta, ToolCallFinished, ToolCallRequested, TurnFinished, TurnStarted, UserMessage
@@ -18,6 +18,13 @@ from lana.tools import ToolContext, ToolError, ToolRegistry
 APPROVAL_DENIED_NON_INTERACTIVE = "approval denied (non-interactive session)"
 APPROVAL_DENIED_BY_USER = "approval denied by user"
 WRITE_TOOLS = ("edit", "multi_edit", "write_to_file")
+CONTEXT_OVERFLOW_MARKERS = ("context_length_exceeded", "maximum context length", "prompt is too long", "too many tokens", "context window", "input length exceeds")
+
+
+# Provider 400 "too long" detection (EC-20) - message-based, both providers covered
+def is_context_overflow(error_text: str) -> bool:
+  lowered = error_text.casefold()
+  return any(marker in lowered for marker in CONTEXT_OVERFLOW_MARKERS)
 
 
 class UnknownWorkflowError(Exception):
@@ -129,7 +136,9 @@ class Agent:
           elif delta.kind == "usage": usage = delta.usage
       except Exception as error:
         self.stop_reason = "provider_error"
-        yield self.emit(ErrorEvent(message=f"Provider error: {error}"))
+        message = f"Provider error: {error}"
+        if is_context_overflow(str(error)): message += " - the conversation exceeds the model's context window. Switch the generator to a larger-window model or start a new session; the request was not retried (EC-20)."
+        yield self.emit(ErrorEvent(message=message))
         return
       assistant = Message(role="assistant", content="".join(text_parts), tool_calls=tool_calls, thinking=thinking_blocks, usage=usage)
       self.messages.append(assistant)
@@ -139,6 +148,7 @@ class Agent:
                               cache_read_tokens=usage.cache_read_tokens if usage else 0, cost_usd=cost)
       if not tool_calls:
         yield self.emit(finished)
+        async for event in self.maybe_compact(): yield event
         break
       for call in tool_calls:
         yield self.emit(ToolCallRequested(id=call.id, tool=call.name, args=self.safe_args(call), args_json=call.args_json))
@@ -163,8 +173,12 @@ class Agent:
             yield self.emit(ErrorEvent(message=f"tool call limit reached ({self.app.lana.max_tool_calls_per_prompt} calls) - continue by sending a new prompt or set auto_continue"))
             return
       yield self.emit(finished)
-    if self.compactor:
-      async for event in self.compactor(self): yield self.emit(event)
+      async for event in self.maybe_compact(): yield event  # FR-07: checked after EACH turn, not only post-prompt
+
+  # Post-turn compaction hook (FR-07); events emitted and persisted like all others
+  async def maybe_compact(self):
+    if self.compactor is None: return
+    async for event in self.compactor(self): yield self.emit(event)
 
   @staticmethod
   def safe_args(call: ToolCall) -> dict:

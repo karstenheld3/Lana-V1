@@ -134,6 +134,15 @@ def test_tc41_anthropic_round_trip_and_cache(tmp_path):
 
 
 @pytest.mark.live
+def test_anthropic_web_search_branch(tmp_path):
+  if not os.environ.get("ANTHROPIC_API_KEY"): pytest.skip("ANTHROPIC_API_KEY not set")
+  adapter = anthropic_adapter.AnthropicAdapter(api_key=os.environ["ANTHROPIC_API_KEY"])
+  role = ResolvedRole(name="websearch", model_id="claude-haiku-4-5-20251001", provider="anthropic", method="thinking", effort="low", max_input=200000, max_output=2048, params={"thinking_budget": 0})
+  results = adapter.run_web_search("Python programming language official documentation", None, role)
+  assert results and any(result.get("url", "").startswith("http") for result in results)  # BG-0003 regression: request accepted, results parsed
+
+
+@pytest.mark.live
 def test_tc42_openai_reasoning_model_tool_call(tmp_path):
   if not os.environ.get("OPENAI_API_KEY"): pytest.skip("OPENAI_API_KEY not set")
   adapter = openai_adapter.OpenAIAdapter(api_key=os.environ["OPENAI_API_KEY"])

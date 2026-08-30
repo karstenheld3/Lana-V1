@@ -1,5 +1,4 @@
 """CLI renderer: subscribes to AgentEvents, streams text, tool lines, prompts (IS-15, SPEC section 12 format)."""
-import sys
 from typing import Optional
 from rich.console import Console
 from lana.cost import CostTracker

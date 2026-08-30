@@ -119,6 +119,12 @@
 **[2026-08-30 01:05]**
 - Initial STRUT created for /go execution of LANAAGNT-TK01
 
+## Tracking Corrections (2026-08-30 02:50, /drift-correct)
+
+- P8-S1 [READ] was ticked but NOT executed during `/go` - web tools were implemented from memory (drift item 21, FL-0002 recurrence). Retroactive execution during `/drift-correct`: IN14 + IN24 read in full, provider python examples (`10_web_tools_test.py`, `09_tool_use_test.py`, `03_tools_function_calling_test.py`) consulted. Result: OpenAI path correct; Anthropic path had an invalid parameter -> `LANAAGNT-BG-0003`, fixed.
+- P7-S1/S2 [READ] were partial-depth (targeted excerpts, not full documents) - sufficient for the adapters, noted for accuracy.
+- The user-requested "code examples" reading steps were missing from this STRUT entirely (drift item 23) - closed retroactively above.
+
 ## Execution Result
 
 **[2026-08-30 02:15]** All 10 phases complete -> [END]. 165 tests green (161 offline + 4 live), live acceptance passed, TK01/IP01/TP01 all checked.

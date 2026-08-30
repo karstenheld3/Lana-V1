@@ -1,5 +1,5 @@
 """Shell tool executors: run_command (pwsh, Blocking/WaitMsBeforeAsync) and command_status (IS-09)."""
-import subprocess, threading, time, uuid
+import os, subprocess, threading, time, uuid
 from dataclasses import dataclass, field
 from lana.tools import ToolContext, ToolError
 
@@ -27,7 +27,8 @@ def drain_output(process: BackgroundProcess) -> None:
 
 
 def start_process(command_line: str, cwd: str) -> subprocess.Popen:
-  return subprocess.Popen(["pwsh", "-NoProfile", "-Command", command_line], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+  environment = dict(os.environ, PAGER="cat")  # Cascade contract: commands run with PAGER=cat (run_command description)
+  return subprocess.Popen(["pwsh", "-NoProfile", "-Command", command_line], cwd=cwd, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
 
 
 def execute_run_command(args: dict, context: ToolContext) -> str:

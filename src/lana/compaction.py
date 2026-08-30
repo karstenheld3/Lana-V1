@@ -101,6 +101,7 @@ def make_compactor(app: AppConfig):
     todo_json = extract_todo_json(agent.tool_context.todo_state)
     checkpoint_text = build_checkpoint(objective, summary, code_history, todo_json)
     tail = agent.messages[-KEEP_TAIL_MESSAGES:] if len(agent.messages) > KEEP_TAIL_MESSAGES else list(agent.messages)
+    while tail and tail[0].role == "tool": tail = tail[1:]  # never keep a tool result whose tool_use partner was truncated (provider 400 guard)
     truncated_count = len(agent.messages) - len(tail)
     agent.messages = [Message(role="user", content=checkpoint_text)] + tail
     yield CheckpointCreated(text=checkpoint_text, truncated_messages=truncated_count, kept_messages=len(tail))

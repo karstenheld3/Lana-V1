@@ -30,6 +30,17 @@ def test_tc16b_read_file_updates_ledger_and_errors(tmp_path, context):
   with pytest.raises(ToolError): execute_read_file({"file_path": str(tmp_path / "missing.txt")}, context)
 
 
+# Gap 08: image files refused with a clear message (no visual presentation in the CLI)
+def test_read_file_refuses_images(tmp_path, context):
+  image = tmp_path / "shot.png"
+  image.write_bytes(b"\x89PNG fake")
+  with pytest.raises(ToolError) as error: execute_read_file({"file_path": str(image)}, context)
+  assert "image" in str(error.value) and "MVP-1" in str(error.value)
+  svg = tmp_path / "diagram.svg"
+  svg.write_text("<svg><text>readable</text></svg>", encoding="utf-8")
+  assert "readable" in execute_read_file({"file_path": str(svg)}, context)  # SVG stays readable as text
+
+
 def test_read_file_empty_reminder(tmp_path, context):
   target = tmp_path / "empty.txt"
   target.write_text("", encoding="utf-8")

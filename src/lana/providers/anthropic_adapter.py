@@ -121,10 +121,10 @@ class AnthropicAdapter:
 
   # One-shot provider-native web search for the websearch role (FR-13); sync - callable from tool executors
   def run_web_search(self, query: str, domain: Optional[str], role: ResolvedRole) -> list[dict]:
-    tool: dict = {"type": "web_search_20250305", "name": "web_search", "max_uses": 1}
-    if domain: tool["allowed_domains"] = [domain]
+    tool: dict = {"type": "web_search_20250305", "name": "web_search", "max_uses": 1}  # allowed_domains is web_fetch-only (IN24, BG-0003)
+    prompt = f"Search the web for: {query}" + (f" (restrict to site {domain})" if domain else "")
     try:
-      response = self.sync_client.messages.create(model=role.model_id, max_tokens=min(role.max_output, 2048), messages=[{"role": "user", "content": f"Search the web for: {query}"}], tools=[tool])
+      response = self.sync_client.messages.create(model=role.model_id, max_tokens=min(role.max_output, 2048), messages=[{"role": "user", "content": prompt}], tools=[tool])
     except anthropic.AnthropicError as error:
       raise ProviderError(f"Anthropic web search failed: {error}") from None
     results, text_parts = [], []

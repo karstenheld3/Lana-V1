@@ -29,13 +29,14 @@ def test_tc36b_compaction_fires_end_to_end(agent_factory):
 
 
 # TC-37: checkpoint content: 3 anchors present, todo JSON byte-identical (IG-04)
+# FR-07 per-turn semantics: threshold 4000 stays quiet after the small todo turn, fires after the large final turn
 def test_tc37_checkpoint_anchors_and_todo(agent_factory):
   turns = [
     {"text": "planning", "tool_calls": [{"name": "todo_list", "args": {"todos": TODOS}}], "usage": {"input": 500, "output": 20}},
-    {"text": "turn done", "usage": {"input": 900, "output": 30}},
+    {"text": "turn done", "usage": {"input": 5000, "output": 100}},
     {"text": SUMMARY_TEXT},  # summarizer
   ]
-  agent = agent_factory(turns, lana_overrides=FIRE_OVERRIDES, use_compactor=True)
+  agent = agent_factory(turns, lana_overrides={"compaction_threshold_max_tokens": 4000}, use_compactor=True)
   events = collect_events(agent, "go")
   checkpoint = [event for event in events if event.type == "checkpoint_created"][0]
   assert ANCHOR_TODO_TITLE in checkpoint.text and ANCHOR_TODO_FOOTER in checkpoint.text and ANCHOR_NO_ACK in checkpoint.text
@@ -71,6 +72,24 @@ def test_tc39_no_todo_section_omitted(agent_factory):
   checkpoint = [event for event in events if event.type == "checkpoint_created"][0]
   assert ANCHOR_TODO_TITLE not in checkpoint.text and ANCHOR_TODO_FOOTER not in checkpoint.text
   assert ANCHOR_NO_ACK in checkpoint.text
+
+
+# Gap 02 regression (FR-07 "checked after each turn"): compaction fires MID-PROMPT, between tool-loop turns
+def test_compaction_fires_mid_prompt(agent_factory, tmp_path):
+  target_dir = str(tmp_path / "ws")
+  turns = [
+    {"text": "big turn with tool call " * 10, "tool_calls": [{"name": "list_dir", "args": {"DirectoryPath": target_dir}}], "usage": {"input": 3000, "output": 100}},
+    {"text": SUMMARY_TEXT},  # summarizer side-call fired directly after turn 1
+    {"text": "second turn continues after compaction", "usage": {"input": 500, "output": 20}},
+  ]
+  agent = agent_factory(turns, lana_overrides=FIRE_OVERRIDES, use_compactor=True)
+  events = collect_events(agent, "go")
+  types = [event.type for event in events]
+  checkpoint_index = types.index("checkpoint_created")
+  assert checkpoint_index < len(types) - 1 and "turn_started" in types[checkpoint_index:], "checkpoint must occur before the next turn, not post-prompt"
+  assert agent.final_text == "second turn continues after compaction"
+  assert agent.messages[0].content.startswith("The following is a summary")
+  assert not any(message.role == "tool" and agent.messages.index(message) == 1 for message in agent.messages[:2])  # no orphan tool result after checkpoint
 
 
 def test_extract_todo_json_deterministic():

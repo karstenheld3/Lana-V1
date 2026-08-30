@@ -83,6 +83,16 @@ def test_exit_code_4_on_limit_stop(cli_workspace):
   assert result.returncode == 4
 
 
+# Gap 09 regression: built-ins dispatched in headless -p mode, never sent to the Generator
+def test_headless_builtins(cli_workspace):
+  proc = make_proc(cli_workspace, [])
+  help_result = proc.run_headless("/help", output_format="text")
+  assert help_result.returncode == 0 and "/prime: Prime" in help_result.stdout
+  cost_result = proc.run_headless("/cost", output_format="text")
+  assert cost_result.returncode == 0 and "No usage recorded" in cost_result.stdout
+  assert "Unknown workflow" not in help_result.stdout + cost_result.stdout
+
+
 # TC-55: piped stdin session -> workflow list printed, clean exit (non-terminal fallback)
 def test_tc55_piped_stdin_help(cli_workspace):
   proc = make_proc(cli_workspace, [])

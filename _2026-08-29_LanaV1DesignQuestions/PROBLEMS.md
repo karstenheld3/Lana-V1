@@ -10,6 +10,11 @@ Track problems using ID format: `LANAAGNT-PR-[NNNN]`
 
 ## Resolved
 
+**LANAAGNT-PR-0004: Anthropic web_search built with invalid allowed_domains parameter**
+- **History**: Added 2026-08-30 02:40 | Resolved 2026-08-30 02:45 | → Now tracked as LANAAGNT-BG-0003
+- **Solution**: Parameter removed (web_fetch-only per ANTAPI-IN24); domain folded into the search prompt; live smoke added for the branch (see `_BugFixes/LANAAGNT-BG-0003_AnthropicWebSearchBadParam/`)
+- **Verification**: `test_anthropic_web_search_branch` live green; found by `/drift-correct` retroactive doc verification (drift item 21)
+
 **LANAAGNT-PR-0003: /cost empty after --resume**
 - **History**: Added 2026-08-30 01:48 | Resolved 2026-08-30 01:55 | → Now tracked as LANAAGNT-BG-0002
 - **Solution**: `CostTracker.seed()` restores usage/cost/turn totals from the resumed log; wired in `cli.build_runtime` (see `_BugFixes/LANAAGNT-BG-0002_ResumeCostNotSeeded/`)

@@ -16,6 +16,7 @@ UNAVAILABLE_TOOLS = [
   ("deploy_web_app, read_deployment_config, check_deploy_status", "state that deployment tools are unavailable"),
   ("edit_notebook, read_notebook", "state that notebook tools are unavailable; use read_file on .ipynb as plain text if needed"),
   ("list_resources, read_resource, view_content_chunk is available; other resource tools", "state that resource tools are unavailable"),
+  ("read_file on image files", "visual presentation is unavailable in this CLI - image reads are refused with an explanatory error"),
 ]
 
 IDENTITY = """You are Lana, a powerful agentic AI coding assistant.

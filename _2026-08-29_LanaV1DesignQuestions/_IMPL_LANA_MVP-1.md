@@ -528,11 +528,14 @@ Turn cancelled after 3 tool calls (results kept in conversation).
 
 ### Validation
 - [x] **LANAAGNT-IP01-VC-12**: All 55 test cases pass (live ones with keys present)
-- [x] **LANAAGNT-IP01-VC-13**: NFR-01 network capture clean; NFR-02 kill/resume; NFR-03 startup < 2 s + cache hits; NFR-05 risk notice on auto/turbo
+- [x] **LANAAGNT-IP01-VC-13**: NFR-01 verified by code review (only api.openai.com/api.anthropic.com contacted; `urllib` fetch gated by approval) + secret-leak sweeps in every black-box scenario - a literal packet capture was NOT performed [ASSUMED clean]; NFR-02 kill/resume (TP01-TC-06); NFR-03 startup < 2 s + cache hits (TC-41 live); NFR-05 risk notice on auto/turbo
 - [x] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 02:50]**
+- Changed (`/drift-correct`): FR-07 compaction check moved inside the tool loop (after every turn), EC-20 overflow advisory added, PAGER=cat set, image reads refused with notice, headless built-ins dispatched; VC-13 reworded to the evidence actually collected; BG-0003 fixed (Anthropic web_search allowed_domains is a web_fetch-only parameter per ANTAPI-IN24)
 
 **[2026-08-30 02:10]**
 - Changed (implementation sync): scripted adapter lives in `src/lana/providers/scripted_adapter.py` (not `tests/`) - the installed executable must load it via LANA_SCRIPTED_ADAPTER; `tests/scripted_adapter.py` re-exports it plus script helpers (IS-22 deviation)

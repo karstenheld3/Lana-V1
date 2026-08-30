@@ -98,7 +98,18 @@ def test_provider_error_stops_with_error_event(agent_factory):
   agent = agent_factory([{"error": "simulated 500"}])
   events = collect_events(agent, "go")
   assert agent.stop_reason == "provider_error"
-  assert any(event.type == "error" and "simulated 500" in event.message for event in events)
+  errors = [event for event in events if event.type == "error"]
+  assert "simulated 500" in errors[0].message and "EC-20" not in errors[0].message
+
+
+# EC-20: provider "too long" error -> advisory message, no auto-retry
+def test_ec20_context_overflow_advice(agent_factory):
+  agent = agent_factory([{"error": "400 Bad Request: maximum context length exceeded (200000 tokens)"}])
+  events = collect_events(agent, "go")
+  assert agent.stop_reason == "provider_error"
+  overflow_error = [event for event in events if event.type == "error"][0]
+  assert "larger-window model or start a new session" in overflow_error.message and "not retried" in overflow_error.message
+  assert sum(1 for event in events if event.type == "turn_started") == 1  # no auto-retry with the same payload
 
 
 def test_denylisted_command_denied_without_callback(agent_factory, tmp_path):

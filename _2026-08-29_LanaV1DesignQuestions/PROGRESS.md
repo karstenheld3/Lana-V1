@@ -49,12 +49,16 @@
 - [x] [DECISION] Phase order E-G before D - key-free corridor already permitted by TK01 dependency graph; consulted TK01 Task 0 note + DF01 D-03 - risk isolation per IP01 Impact Analysis
 - [x] [DECISION] definitions.py generated from IN02 instead of hand-transcribed - guarantees the IS-06 zero-diff acceptance rule against invisible whitespace; consulted IN02 transcription rules + FL-0003 lesson
 - [x] [DECISION] `/bugfix` ceremony applied to defects surviving a task's green gate or crossing module boundaries (BG-0001/0002); first-pass red tests within a task's own implement-test cycle fixed directly - consulted bugfix.md Step 4 bug definition + TK01 small-cycles rule
+- [x] `/drift-detect` + `/drift-correct` (2026-08-30 02:55): 10 FAIL gaps closed - FR-07 per-turn compaction + orphan-tail guard, EC-20 overflow advisory, real `/verify` pass (6 import fixes), VC-13 evidence rewording, PAGER=cat, image refusal + notice, headless built-ins, STRUT tracking corrections, provider docs + code examples retroactively verified -> found and fixed `LANAAGNT-BG-0003` (Anthropic web_search allowed_domains invalid, web_fetch-only per IN24), Anthropic websearch live smoke added; 8 MISSED items recorded in `__DRIFT_LANAAGNT.md`; suite after corrections: 165 offline + 5 live green
 
 ## Tried But Not Used
 
 - (none)
 
 ## Progress Changes
+
+**[2026-08-30 02:55]**
+- Added: drift detection + correction complete (10 gaps closed, BG-0003 found and fixed, 8 MISSED recorded)
 
 **[2026-08-30 02:15]**
 - Added: `/go` implementation execution complete - all 36 tasks, 165 tests green, live acceptance passed, 2 bugs fixed, deviations synced; To Do reduced to manual-terminal residue + /cleanup

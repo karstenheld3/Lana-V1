@@ -6,6 +6,7 @@ from lana.tools import ToolContext, ToolError
 MAX_LINE_CHARS = 2000
 FIND_RESULT_CAP = 50
 GREP_LINE_CAP = 200
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".tiff", ".ico", ".heic", ".heif")
 
 
 def normalize(path: str | Path) -> str:
@@ -18,6 +19,7 @@ def execute_read_file(args: dict, context: ToolContext) -> str:
   path = Path(args["file_path"])
   if not path.exists(): raise ToolError(f"File not found: '{path}'")
   if path.is_dir(): raise ToolError(f"'{path}' is a directory - use list_dir")
+  if path.suffix.lower() in IMAGE_EXTENSIONS and path.suffix.lower() != ".svg": raise ToolError(f"'{path.name}' is an image - visual presentation is not available in this CLI environment (MVP-1 limitation)")
   try:
     text = path.read_text(encoding="utf-8", errors="replace")
   except OSError as error:
