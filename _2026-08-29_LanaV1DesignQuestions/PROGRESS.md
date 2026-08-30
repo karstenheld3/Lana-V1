@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 15:20]**
+- Added: `_INFO_ROBUSTNESS_HAZARDS.md [LANAAGNT-IN03]` via `/write-info` - hazard analysis over all SPECs/IMPLs + full code inspection: 4 crash findings (CR-01/02 [HIGH]: CLI catches only ConfigError at startup and only UnknownWorkflowError in REPL), 7 blocking findings (BL-01 [HIGH]: ACP stdout backpressure freezes the event loop incl. cancel; BL-02: task.cancel cannot stop executor-thread tools; BL-03: unbounded command_status wait), 6 responsiveness findings (UX-01 [HIGH]: nothing renders between Enter and first token; UX-02: thinking hidden by default; UX-04: silent compaction), 5 verified non-findings (all SPECed fail-safes hold); prioritized next steps - awaiting scoping decision (MVP-2 hardening vs MVP-3 backlog)
+
 **[2026-08-30 15:15]**
 - Added: ACP frontend IMPLEMENTED and green (`/go` + `/implement` per LANAACPB-IP01) - all 6 phases: `acp/jsonrpc.py` (codec, Connection, dual id spaces), `acp/server.py` (handshake, router, session/new+load, prompt-as-task, both cancellation paths), `acp/translator.py` (FR-06 exhaustive), `acp/bridge.py` (Permission+Elicitation brokers), agent.py awaitable seam + off-loop executor dispatch, tools dispatch awaitable passthrough, cli.py --acp; tests: 48 ACP (test_acp_jsonrpc/handshake/turn/load/scenarios + AcpClient harness); FULL SUITE 227 OFFLINE GREEN (179 MVP-1 regression + 48 ACP); IP01 all VCs checked except VC-11, TP01 VC-01..05 checked; SPEC synced (FR-06 usage mapping, FR-10 benign race)
 - [DECISION] --acp flag wired in Phase 2 instead of Phase 6 - harness-driven Categories 2-8 need the entry point; consulted IP01 phase gates (still verified in order)
