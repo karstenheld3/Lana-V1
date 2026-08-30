@@ -45,6 +45,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--config", metavar="PATH", help="config file override (env LANA_CONFIG)")
   parser.add_argument("--policy", choices=["manual", "auto", "turbo"], help="execution policy override")
   parser.add_argument("--debug", action="store_true", help="write redacted request/response JSON to .lana/logs/")
+  parser.add_argument("--acp", action="store_true", help="ACP agent mode: JSON-RPC 2.0 over stdio (MVP-2, LANAACPB-SP01)")
   return parser
 
 
@@ -208,6 +209,12 @@ def repl(agent: Agent, cost_tracker: CostTracker, prompt_system) -> int:
 
 def main() -> int:
   args = build_arg_parser().parse_args()
+  if args.acp:
+    if args.prompt is not None or args.resume:  # DD-09: one process serves either the CLI or ACP, never both
+      print("ERROR: --acp is mutually exclusive with -p and --resume (ACP sessions come from session/new and session/load).", file=sys.stderr)
+      return EXIT_CONFIG
+    from lana.acp.server import run_acp  # lazy: acp.server imports build_runtime lazily as well
+    return asyncio.run(run_acp(args))
   workspace = Path.cwd()
   interactive = args.prompt is None and sys.stdin.isatty()
   jsonl_headless = args.prompt is not None and args.output_format == "jsonl"
