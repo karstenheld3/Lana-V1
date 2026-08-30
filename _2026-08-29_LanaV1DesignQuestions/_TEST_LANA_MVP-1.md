@@ -168,13 +168,16 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 ## 10. Verification Checklist
 
 - [x] **LANAAGNT-TP01-VC-01**: Phases T1+T2 green locally with zero keys configured (proves offline completeness)
-- [ ] **LANAAGNT-TP01-VC-02**: All 11 TP01 scenarios pass against the installed executable (not in-process imports; TC-11 pending full-recall implementation)
-- [ ] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..15 and IG-01..07 is cited by at least one passing IP01 TC or TP01 TC (traceability sweep over both documents; re-run after full-recall implementation)
+- [x] **LANAAGNT-TP01-VC-02**: All 11 TP01 scenarios pass against the installed executable (not in-process imports; TC-11 green 2026-08-30 in tests/test_full_recall.py)
+- [x] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..15 and IG-01..07 is cited by at least one passing IP01 TC or TP01 TC (FR-08/IG-06/IG-07/DD-22 covered by TC-64..67 + TP01-TC-11)
 - [x] **LANAAGNT-TP01-VC-04**: `assert_no_secret_leak` wired into every black-box scenario (NFR-01)
 - [x] **LANAAGNT-TP01-VC-05**: T3 live smoke green with keys; spend under budget cap
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 03:50]**
+- Changed: VC-02/VC-03 checked - TP01-TC-11 green (combined with IP01 TC-65 in tests/test_full_recall.py), full offline suite 179 passed
 
 **[2026-08-30 03:35]**
 - Added: Category 6 full-recall resume scenario TP01-TC-11 (fingerprint warning + model-change report + recorded-environment authority, SP01 FR-08/IG-07/DD-22 rev 03:20)

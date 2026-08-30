@@ -28,7 +28,8 @@ def test_tp01_tc01_workflow_round_trip(tmp_path):
   assert_event_order(events, ["user_message", "turn_started", "tool_call_requested", "tool_call_finished", "tool_call_requested", "tool_call_finished", "turn_finished", "turn_started", "turn_finished"])
   assert (proc.workspace / "output.md").read_text(encoding="utf-8") == "workflow output"
   session_types = [event.type for event in proc.read_session_events()]
-  assert session_types == [event.type for event in events]  # IG-02: stream == session log
+  assert session_types[0] == "session_started"  # full-recall environment record, session file only (FR-08)
+  assert session_types[1:] == [event.type for event in events]  # IG-02: stream == session log after the environment record
   assert_no_secret_leak([result.stdout], ["sk-test-openai", "sk-test-anthropic"])
 
 

@@ -1,4 +1,4 @@
-"""AgentEvent union - the 10 event types from LANAAGNT-SP01 Domain Objects, JSONL serialization (IS-02)."""
+"""AgentEvent union - the 11 event types from LANAAGNT-SP01 Domain Objects, JSONL serialization (IS-02, IS-24)."""
 import datetime, json
 from typing import Annotated, Any, Literal, Optional, Union
 from pydantic import BaseModel, Field, TypeAdapter
@@ -13,6 +13,15 @@ class EventBase(BaseModel):
 
   def to_jsonl(self) -> str:
     return json.dumps(self.model_dump(exclude_none=True), ensure_ascii=False, separators=(",", ":"))
+
+
+# Full-recall environment record - FIRST line of every session file (FR-08, IG-07)
+class SessionStarted(EventBase):
+  type: Literal["session_started"] = "session_started"
+  system_prompt: str
+  tool_definitions: list[dict[str, Any]] = Field(default_factory=list)
+  config_snapshot: dict[str, Any] = Field(default_factory=dict)
+  prompt_system_fingerprint: dict[str, Any] = Field(default_factory=dict)
 
 
 class UserMessage(EventBase):
@@ -73,6 +82,7 @@ class TurnFinished(EventBase):
   output_tokens: int = 0
   cache_read_tokens: int = 0
   cost_usd: Optional[float] = None  # None when model missing from pricing (EC-24)
+  thinking_payloads: Optional[list[dict[str, Any]]] = None  # the turn's resendable thinking blocks [{provider, payload}] (FR-08 full recall)
 
 
 class ErrorEvent(EventBase):
@@ -80,7 +90,7 @@ class ErrorEvent(EventBase):
   message: str
 
 
-AgentEvent = Annotated[Union[UserMessage, TurnStarted, TextDelta, ThinkingDelta, ToolCallRequested, ToolCallFinished, ApprovalRequired, CheckpointCreated, TurnFinished, ErrorEvent], Field(discriminator="type")]
+AgentEvent = Annotated[Union[SessionStarted, UserMessage, TurnStarted, TextDelta, ThinkingDelta, ToolCallRequested, ToolCallFinished, ApprovalRequired, CheckpointCreated, TurnFinished, ErrorEvent], Field(discriminator="type")]
 EVENT_ADAPTER: TypeAdapter = TypeAdapter(AgentEvent)
 
 

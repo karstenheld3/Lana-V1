@@ -53,7 +53,8 @@ def expand_slash_command(user_input: str, prompt_system: PromptSystem) -> tuple[
 class Agent:
   def __init__(self, app: AppConfig, prompt_system: PromptSystem, system_prompt: str, registry: ToolRegistry, tool_context: ToolContext, session: SessionStore,
                messages: Optional[list[Message]] = None, approve_callback: Optional[Callable[[str, str], bool]] = None,
-               continue_callback: Optional[Callable[[int], bool]] = None, cost_fn: Optional[Callable] = None, compactor: Optional[Callable] = None):
+               continue_callback: Optional[Callable[[int], bool]] = None, cost_fn: Optional[Callable] = None, compactor: Optional[Callable] = None,
+               tool_definitions: Optional[list[dict]] = None):
     self.app = app
     self.prompt_system = prompt_system
     self.system_prompt = system_prompt
@@ -65,6 +66,7 @@ class Agent:
     self.continue_callback = continue_callback  # (calls_done) -> bool; None = stop at limit (EC-11)
     self.cost_fn = cost_fn                      # (role_name, usage) -> float | None (FR-09; EC-24 -> None)
     self.compactor = compactor                  # post-turn compaction hook (FR-07, wired in Phase G)
+    self.tool_definitions = tool_definitions    # recorded definitions override on resume (FR-08 full recall, IS-24)
     self.stop_reason: Optional[str] = None      # None | "limit" | "cancelled" | "provider_error"
     self.current_turn_completed_calls = 0
     self.final_text = ""
@@ -127,7 +129,7 @@ class Agent:
       yield self.emit(TurnStarted(role="generator"))
       text_parts, thinking_blocks, tool_calls, usage = [], [], [], None
       try:
-        async for delta in adapter.stream_turn(self.system_prompt, self.registry.definition_list(), self.messages, role):
+        async for delta in adapter.stream_turn(self.system_prompt, self.tool_definitions or self.registry.definition_list(), self.messages, role):
           if delta.kind == "text": text_parts.append(delta.text); yield self.emit(TextDelta(text=delta.text))
           elif delta.kind == "thinking":
             if delta.thinking: thinking_blocks.append(delta.thinking)
@@ -144,8 +146,9 @@ class Agent:
       self.messages.append(assistant)
       self.final_text = assistant.content or self.final_text
       cost = self.cost_fn("generator", usage) if (self.cost_fn and usage) else None
+      payloads = [{"provider": block.provider, "payload": block.payload} for block in thinking_blocks] or None  # FR-08 full recall
       finished = TurnFinished(role="generator", input_tokens=usage.input_tokens if usage else 0, output_tokens=usage.output_tokens if usage else 0,
-                              cache_read_tokens=usage.cache_read_tokens if usage else 0, cost_usd=cost)
+                              cache_read_tokens=usage.cache_read_tokens if usage else 0, cost_usd=cost, thinking_payloads=payloads)
       if not tool_calls:
         yield self.emit(finished)
         async for event in self.maybe_compact(): yield event

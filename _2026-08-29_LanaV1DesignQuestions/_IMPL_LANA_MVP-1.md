@@ -594,12 +594,15 @@ Resuming session '.lana/sessions/2026-08-30_025545_54286c.jsonl'...
 - [x] **LANAAGNT-IP01-VC-11**: Commit after each green phase (`/commit`)
 
 ### Validation
-- [ ] **LANAAGNT-IP01-VC-12**: All 67 test cases pass (live ones with keys present; TC-56..60 synced, TC-61..63 trajectory search, TC-64..67 full recall added 2026-08-30 - TC-64..67 NOT yet implemented)
+- [x] **LANAAGNT-IP01-VC-12**: All 67 test cases pass (live ones with keys present; TC-56..60 synced, TC-61..63 trajectory search, TC-64..67 full recall implemented and green 2026-08-30)
 - [x] **LANAAGNT-IP01-VC-13**: NFR-01 verified by code review (only api.openai.com/api.anthropic.com contacted; `urllib` fetch gated by approval) + secret-leak sweeps in every black-box scenario - a literal packet capture was NOT performed [ASSUMED clean]; NFR-02 kill/resume (TP01-TC-06); NFR-03 startup < 2 s + cache hits (TC-41 live); NFR-05 risk notice on auto/turbo
 - [x] **LANAAGNT-IP01-VC-14**: Live acceptance (TC-47) executed and logged
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-30 03:50]**
+- Changed: IS-24 implemented and green - 179 offline tests (TC-64..67 in tests/test_full_recall.py, TC-46b + TP01-TC-01 session-log assertions extended by the leading session_started line); VC-12 checked
 
 **[2026-08-30 03:40]**
 - Changed (verify pass): thinking payloads carried on `turn_finished.thinking_payloads` instead of a 12th event type (SP01 AgentEvent consistency); LANA_SCRIPTED_CAPTURE request-dump mechanism added to IS-24 (the TC-65/TP01-TC-11 byte-identity oracle was unspecified); fingerprint determinism [ASSUMED] label; Goal repointed to SP01 rev 03:40

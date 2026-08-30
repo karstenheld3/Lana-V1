@@ -5,8 +5,10 @@ env var is set - the harness spawns real subprocesses that cannot import the tes
 Script format: JSONL, one line per Generator turn:
   {"text": str, "thinking": str?, "tool_calls": [{"name": str, "args": {}}]?, "usage": {"input": int, "output": int}?}
   {"error": str}   -> raises a simulated provider failure (deterministic exit-code-3 testing)
+LANA_SCRIPTED_CAPTURE=<path>: append {"system": ..., "tools": ...} per call - the byte-identity
+oracle for what the Generator actually received (FR-08 full recall, TC-65/TP01-TC-11).
 """
-import json
+import json, os
 from pathlib import Path
 from typing import AsyncIterator
 from lana.config import ResolvedRole
@@ -26,6 +28,10 @@ class ScriptedAdapter:
     return False
 
   async def stream_turn(self, system: str, tools: list[dict], messages: list[Message], role: ResolvedRole) -> AsyncIterator[AdapterDelta]:
+    capture_path = os.environ.get("LANA_SCRIPTED_CAPTURE")
+    if capture_path:  # request oracle (FR-08 full recall)
+      with open(capture_path, "a", encoding="utf-8", newline="\n") as capture_file:
+        capture_file.write(json.dumps({"system": system, "tools": tools}, ensure_ascii=False) + "\n")
     if self.position >= len(self.turns): raise ProviderError(f"Scripted adapter exhausted after {len(self.turns)} turns (script '{self.script_path.name}')")
     turn = self.turns[self.position]
     self.position += 1

@@ -45,4 +45,5 @@ def test_tc46b_full_suite_event_log_matches_stdout(tmp_path):
   result = proc.run_headless("hello", output_format="jsonl")
   stdout_types = [event.type for event in proc.events(result)]
   session_types = [event.type for event in proc.read_session_events()]
-  assert stdout_types == session_types  # one serializer, two sinks (IS-21)
+  assert session_types[0] == "session_started"  # full-recall environment record, session file only (FR-08)
+  assert stdout_types == session_types[1:]  # one serializer, two sinks (IS-21)

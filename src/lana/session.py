@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 from lana.events import from_jsonl
-from lana.models import Message, ToolCall, Usage
+from lana.models import Message, ThinkingBlock, ToolCall, Usage
 
 CANCELLATION_NOTE_PREFIX = "turn cancelled after"
 
@@ -43,6 +43,11 @@ class ResumedState:
   cost_by_role: dict[str, float] = field(default_factory=dict)
   turns_by_role: dict[str, int] = field(default_factory=dict)
   skipped_lines: int = 0
+  # Full-recall environment from session_started (FR-08, IS-24); all None on legacy files (EC-28)
+  system_prompt: Optional[str] = None
+  tool_definitions: Optional[list[dict]] = None
+  config_snapshot: Optional[dict] = None
+  prompt_system_fingerprint: Optional[dict] = None
 
 
 # ----------------------------------------- START: Resume Projection ----------------------------------------------------------
@@ -58,9 +63,9 @@ class _Projector:
     self.in_turn = False
     self.cancelled_call_count = 0
 
-  def flush_assistant(self, usage: Optional[Usage] = None) -> None:
+  def flush_assistant(self, usage: Optional[Usage] = None, thinking: Optional[list[ThinkingBlock]] = None) -> None:
     if self.text_parts or self.tool_calls:
-      self.messages.append(Message(role="assistant", content="".join(self.text_parts), tool_calls=self.tool_calls, usage=usage))
+      self.messages.append(Message(role="assistant", content="".join(self.text_parts), tool_calls=self.tool_calls, thinking=thinking or [], usage=usage))
       self.messages.extend(self.results)
     self.text_parts, self.tool_calls, self.results = [], [], []
 
@@ -82,7 +87,8 @@ class _Projector:
       self.results.append(Message(role="tool", content=event.result, tool_call_id=event.id))
     elif kind == "turn_finished":
       usage = Usage(input_tokens=event.input_tokens, output_tokens=event.output_tokens, cache_read_tokens=event.cache_read_tokens)
-      self.flush_assistant(usage)
+      thinking = [ThinkingBlock(provider=item["provider"], payload=item["payload"]) for item in (event.thinking_payloads or [])]  # FR-08 full recall
+      self.flush_assistant(usage, thinking)
       self.in_turn = False
     elif kind == "checkpoint_created":
       self.flush_assistant()
@@ -109,6 +115,11 @@ def resume(path: Path) -> ResumedState:
       continue
     state.events.append(event)
     projector.apply(event)
+    if event.type == "session_started":  # full-recall environment record (FR-08, IS-24)
+      state.system_prompt = event.system_prompt
+      state.tool_definitions = event.tool_definitions
+      state.config_snapshot = event.config_snapshot
+      state.prompt_system_fingerprint = event.prompt_system_fingerprint
     if event.type == "tool_call_finished" and event.result.startswith("Todo list updated:"):
       try:
         state.todo_state = json.loads(event.result.split("Todo list updated:\n", 1)[1])

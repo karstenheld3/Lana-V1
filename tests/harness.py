@@ -12,6 +12,7 @@ class LanaProc:
     self.config_path = config_path
     self.script_path = script_path
     self.policy = policy
+    self.extra_env: dict = {}  # e.g. LANA_SCRIPTED_CAPTURE request oracle (IS-24)
     self.last_result: subprocess.CompletedProcess | None = None
 
   def build_env(self) -> dict:
@@ -21,6 +22,7 @@ class LanaProc:
     if self.config_path: env["LANA_CONFIG"] = str(self.config_path)
     if self.script_path: env["LANA_SCRIPTED_ADAPTER"] = str(self.script_path)
     else: env.pop("LANA_SCRIPTED_ADAPTER", None)
+    env.update(self.extra_env)
     return env
 
   def build_command(self, extra_args: list[str]) -> list[str]:

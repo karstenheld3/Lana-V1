@@ -9,7 +9,8 @@ from lana.agent import Agent, UnknownWorkflowError
 from lana.compaction import make_compactor
 from lana.config import ConfigError, load_lana_config
 from lana.cost import CostTracker
-from lana.loader import BUILTIN_COMMANDS, load_prompt_systems
+from lana.events import SessionStarted
+from lana.loader import BUILTIN_COMMANDS, compute_fingerprint, load_prompt_systems
 from lana.prompt import build_system_prompt
 from lana.providers import scripted_script_path
 from lana.render import Renderer, prompt_approval, prompt_continue, prompt_question
@@ -95,6 +96,12 @@ def build_runtime(args, workspace: Path, interactive: bool):
   tool_context = ToolContext(workspace=workspace, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
   messages = []
   cost_tracker = CostTracker(app)
+  fingerprint = compute_fingerprint(prompt_system, app.lana.prompt_system_paths)
+  config_snapshot = {"roles": {name: {"model_id": role.model_id, "effort": role.effort, "provider": role.provider} for name, role in app.roles.items()},
+                     "execution_policy": app.lana.execution_policy, "max_tool_calls_per_prompt": app.lana.max_tool_calls_per_prompt,
+                     "tool_result_max_chars": app.lana.tool_result_max_chars, "compaction_threshold_fraction": app.lana.compaction_threshold_fraction,
+                     "compaction_threshold_max_tokens": app.lana.compaction_threshold_max_tokens}
+  tool_definitions = None
   if args.resume:
     resume_path = Path(args.resume)
     if not resume_path.is_file():  # IG-05: startup inputs fail with self-contained errors, never tracebacks (BG-0005)
@@ -104,17 +111,33 @@ def build_runtime(args, workspace: Path, interactive: bool):
     tool_context.todo_state = resumed.todo_state
     cost_tracker.seed(resumed)  # IG-06: /cost totals survive resume (BG-0002)
     if resumed.skipped_lines: print(f"  WARNING: {resumed.skipped_lines} corrupt line" + ("s" if resumed.skipped_lines != 1 else "") + " skipped during resume.")
+    if resumed.system_prompt is not None:  # FR-08 full recall: recorded environment wins for Generator calls
+      system_prompt = resumed.system_prompt
+      tool_definitions = resumed.tool_definitions or None
+      recorded_fp = resumed.prompt_system_fingerprint or {}
+      if recorded_fp and recorded_fp.get("content_hash") != fingerprint["content_hash"]:
+        recorded_counts, current_counts = recorded_fp.get("counts", {}), fingerprint["counts"]
+        print(f"  WARNING: prompt system changed since recording (recorded {recorded_counts.get('rules', '?')}/{recorded_counts.get('workflows', '?')}/{recorded_counts.get('skills', '?')},"
+              f" current {current_counts['rules']}/{current_counts['workflows']}/{current_counts['skills']} rules/workflows/skills). Recorded system prompt stays active for this session.")
+      recorded_generator = ((resumed.config_snapshot or {}).get("roles", {}).get("generator", {})).get("model_id", "")
+      if recorded_generator and recorded_generator != app.roles["generator"].model_id:
+        print(f"  WARNING: generator changed (recorded {recorded_generator}, current {app.roles['generator'].model_id}). Full context re-sent - first turn runs without provider cache.")
+    else:  # EC-28: legacy session file without session_started
+      print("  WARNING: legacy session file - recorded environment unavailable, system prompt assembled from current prompt system.")
     print(f"Resumed session '{args.resume}': {len(messages)} messages.")
     session = SessionStore(Path(args.resume))
   else:
     session = SessionStore.create(workspace)
+    session.append(SessionStarted(system_prompt=system_prompt, tool_definitions=registry.definition_list(),
+                                  config_snapshot=config_snapshot, prompt_system_fingerprint=fingerprint))  # FR-08: FIRST line
   if interactive:
     tool_context.ask_user = prompt_question
     approve_callback, continue_callback = prompt_approval, prompt_continue
   else:
     approve_callback, continue_callback = None, None  # non-interactive auto-deny (FR-14)
   agent = Agent(app, prompt_system, system_prompt, registry, tool_context, session, messages=messages,
-                approve_callback=approve_callback, continue_callback=continue_callback, cost_fn=cost_tracker.record, compactor=make_compactor(app))
+                approve_callback=approve_callback, continue_callback=continue_callback, cost_fn=cost_tracker.record, compactor=make_compactor(app),
+                tool_definitions=tool_definitions)
   return app, agent, cost_tracker, prompt_system
 
 

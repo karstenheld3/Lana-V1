@@ -1,4 +1,5 @@
 """PromptSystem loading: rules, workflows, skills with frontmatter parsing and path precedence (LANAAGNT-FR-02, IS-04)."""
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -106,6 +107,18 @@ def load_skill(skill_md: Path, warnings: list[str]) -> SkillFolder:
   if warning: warnings.append(warning)
   supporting_files = sorted(str(candidate.relative_to(folder)).replace("\\", "/") for candidate in folder.rglob("*") if candidate.is_file() and candidate != skill_md)
   return SkillFolder(name=str(meta.get("name", folder.name)).strip() or folder.name, description=str(meta.get("description", "")).strip(), content=body.strip(), supporting_files=supporting_files, path=folder)
+
+
+# Deterministic prompt system fingerprint for the session_started record (FR-08, IS-24).
+# Hash over sorted (kind:name:content) of loaded items - mtime-independent, survives copies/checkouts.
+def compute_fingerprint(system: PromptSystem, paths: list[str | Path]) -> dict:
+  parts = sorted([f"rule:{rule.filename}:{rule.content}" for rule in system.rules]
+                 + [f"workflow:{workflow.name}:{workflow.content}" for workflow in system.workflows]
+                 + [f"skill:{skill.name}:{skill.content}" for skill in system.skills])
+  digest = hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+  return {"paths": [str(path) for path in paths],
+          "counts": {"rules": len(system.rules), "workflows": len(system.workflows), "skills": len(system.skills)},
+          "content_hash": f"sha256:{digest}"}
 
 
 def load_prompt_systems(paths: list[str | Path], rule_block_max_chars: int = 6000) -> PromptSystem:

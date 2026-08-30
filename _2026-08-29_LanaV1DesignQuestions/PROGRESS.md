@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 03:55]**
+- Added: full-recall session log IMPLEMENTED and green (`/go` + `/implement` via `__STRUT_LANAAGNT_FULLRECALL.md`) - SessionStarted event + turn_finished thinking payloads (events.py), fingerprint (loader.py), first-line write + resume environment authority + fingerprint/model-change warnings (cli.py), tool-definitions override (agent.py), thinking reprojection (session.py), LANA_SCRIPTED_CAPTURE oracle (scripted_adapter.py); tests/test_full_recall.py TC-64..67 + TP01-TC-11; suite 179 offline green (2 session-log assertions extended); VC-12 + TP01-VC-02/03 checked
+
 **[2026-08-30 03:45]**
 - Added: full-recall session log PLANNED through the chain (user directive: JSONL must recover a full session including model change on resume - provider caches are ephemeral) - SP01 FR-08 rewrite + IG-07 + DD-22 [ASSUMED] (rev 03:20-03:40, verified), IP01 IS-24/EC-28/EC-29/TC-64..67 (rev 03:30-03:40, verified), TP01 TC-11 scenario + coverage contract FR-15/IG-07 (rev 03:35, verified); VC-12, TP01-VC-02/03 unchecked - implementation awaits confirmation
 
