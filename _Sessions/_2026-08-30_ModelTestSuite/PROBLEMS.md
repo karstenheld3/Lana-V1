@@ -6,19 +6,17 @@ Track problems using ID format: `LANATEST-PR-[NNNN]`
 
 ## Open
 
+## Resolved
+
 **LANATEST-PR-0001: No test coverage for most available models**
-- **History**: Added 2026-08-30 22:06
-- **Description**: Only 3 models tested (claude-sonnet-4-5, claude-haiku-4-5, gpt-5-mini). Registry has 20 enabled+available models (15 OpenAI, 5 Anthropic); 17 have zero coverage.
-- **Impact**: Regressions in adapter code for untested model families go undetected
-- **Next Steps**: Create parametrized test reading from model-registry.json
+- **History**: Added 2026-08-30 22:06 | Resolved 2026-08-30 22:44
+- **Description**: Only 3 models tested. Registry has 20 enabled+available models (15 OpenAI, 5 Anthropic); 17 had zero coverage.
+- **Fix**: `/selftest` category 04 (Model Sweep) round-trips every enabled+available model dynamically from the registry. [PROVEN] Live-verified on common models: gpt-5-nano, gpt-5-mini, gpt-4.1-mini, gpt-4o-mini, claude-sonnet-4-5, claude-haiku-4-5, claude-sonnet-4-6 -- all pass. Full 20-model sweep available via `selftest.py 04`.
 
 **LANATEST-PR-0002: No effort parameter variant testing**
-- **History**: Added 2026-08-30 22:06
-- **Description**: Each model family supports different effort params (temperature, reasoning_effort, thinking_budget). Only one effort level tested per model.
-- **Impact**: Effort-dependent code paths (e.g., reasoning_effort mapping, thinking budget calc) untested
-- **Next Steps**: For one representative model per provider, test all supported effort levels
-
-## Resolved
+- **History**: Added 2026-08-30 22:06 | Resolved 2026-08-30 22:44
+- **Description**: Each model family supports different effort params. Only one effort level tested per model.
+- **Fix**: `/selftest` category 05 (Effort Matrix) tests cheapest model per method at every supported effort level. [PROVEN] Live run: 5 methods, 18 effort combinations, 17 pass + 1 registry correction (sonnet-4-6 xhigh unsupported -- fixed in registry v1.7.2, re-run 4/4 pass).
 
 **LANATEST-PR-0004: Interpreter discovery for selftest.py in binary distribution**
 - **History**: Added 2026-08-30 22:18 (found during /verify of LANATEST-SP01) | Resolved 2026-08-30 22:32
@@ -29,7 +27,7 @@ Track problems using ID format: `LANATEST-PR-[NNNN]`
 - **History**: Added 2026-08-30 22:18 (found during /verify of LANATEST-SP01) | Resolved 2026-08-30 22:28
 - **Description**: Prefix entries `claude-opus-4.5`, `claude-sonnet-4.5`, `claude-3.7`, `claude-3.5` in `model-registry.json` used dots, but model IDs use dashes -- `startswith()` never matched. Opus 4.5 lost its `effort` method + beta header, Haiku 4.5 fell to `claude-` fallback (temperature), Sonnet 4.6 had no dedicated entry.
 - **Fix**: [ACTOR approved] Registry v1.7.1: dot prefixes -> dash (`claude-opus-4-5`, `claude-sonnet-4-5`, `claude-3-7`, `claude-3-5`), added `claude-haiku-4-5` (thinking) and `claude-sonnet-4-6` (adaptive_thinking, 1M context mirroring opus-4-7 pattern [ASSUMED - confirm effort levels against Anthropic docs]).
-- **Verification**: [TESTED] `.tmp_verify_registry.py` -- all 20 available models resolve, all 5 methods represented, all 3 config JSONs valid. Offline pytest: 261 passed, 0 regressions.
+- **Verification**: [PROVEN] All 20 available models resolve, all 5 methods represented. Live effort matrix confirmed opus-4-5 `effort` method with beta header and sonnet-4-6 `adaptive_thinking`. Correction from live run: sonnet-4-6 supports low/medium/high/max but NOT xhigh -- registry v1.7.2 removed it (API error message was the source).
 
 ## Deferred
 
