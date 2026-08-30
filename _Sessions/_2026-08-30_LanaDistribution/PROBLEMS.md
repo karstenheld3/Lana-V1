@@ -20,7 +20,7 @@
 - **History**: Added 2026-08-30 16:05 | Partially resolved 2026-08-30 18:00
 - **Description**: PyApp builds via cargo. Build machine ALSO needs MSVC Build Tools (link.exe) - stable-gnu fails on missing dlltool.exe.
 - **Impact**: ~4 GB one-time build machine setup (rustup + VS Build Tools VC workload)
-- **Next Steps**: _ship.ps1 offers rustup install; MSVC Build Tools documented. CI runner setup (PR-0004) must include both.
+- **Next Steps**: _build.ps1 offers rustup install; MSVC Build Tools documented. CI runner setup (PR-0004) must include both.
 
 **LANADIST-PR-0004: No CI/CD pipeline yet**
 - **History**: Added 2026-08-30 16:05

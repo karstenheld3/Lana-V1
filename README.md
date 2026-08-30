@@ -1,6 +1,6 @@
 # Lana
 
-Lana is an AI coding assistant that runs in your terminal. You type requests, Lana reads your files, writes code, runs commands, and manages work sessions -- powered by OpenAI or Anthropic models.
+Lana is an ACP-compatible AI agent that runs in your terminal. You type requests, Lana reads your files, writes code, runs commands, and manages work sessions -- powered by OpenAI or Anthropic models.
 
 Lana loads a **prompt system** called IPPS (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.lana/` folder.
 
@@ -92,15 +92,18 @@ Build a standalone `lana.exe` that includes Python and all dependencies (no Pyth
 
 ```powershell
 _InstallAndCompileDependencies.bat   # once: creates .venv
-_ship.bat                            # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
+_build.bat                           # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
+_ship.bat                            # bumps version in pyproject.toml based on commit types
 ```
+
+Then run `/project-release` to create release notes, tag the repo, and publish a GitHub release with the binary attached.
 
 - **Build requirements**: Rust toolchain + MSVC Build Tools (the script offers to install Rust), network access
 - **Two modes**: `lana.exe` (interactive CLI) and `lana.exe --acp` (ACP agent for IDEs)
 - **First run**: 1-5 minutes (extracts embedded Python, installs dependencies from PyPI -- requires network); subsequent starts take ~1.3 seconds
 - **Interrupted first run**: local cache is broken -- fix with `lana.exe self restore` or delete `%LOCALAPPDATA%\pyapp\data\lana\`
 - **Updates**: replace the `lana.exe` file
-- **Code signing**: set `LANA_SIGN_THUMBPRINT` to an installed certificate thumbprint before running `_ship.bat`
+- **Code signing**: set `LANA_SIGN_THUMBPRINT` to an installed certificate thumbprint before running `_build.bat`
 
 ## Specifications
 

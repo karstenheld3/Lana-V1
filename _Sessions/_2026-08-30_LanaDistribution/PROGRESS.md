@@ -6,7 +6,7 @@
 
 - [x] **EXPLORE** - Research complete (PYDISTBN session, 13 INFO docs, 8 tools evaluated)
 - [x] **DESIGN** - SPEC [LANADIST-SP01] + IMPL plan [LANADIST-IP01] complete
-- [x] **IMPLEMENT** - `_ship.bat` + `_ship.ps1` + bundled payload + `--version`; pipeline green (23 MB binary)
+- [x] **IMPLEMENT** - `_ship.bat` + `_build.ps1` + bundled payload + `--version`; pipeline green (23 MB binary)
 - [x] **VERIFY** - pytest 247 green; pipeline TC-03/05/06/16/17; binary TC-07/08/09/10 pass; signing path untested (no cert)
 - [ ] **RELEASE** - CI/CD pipeline, code signing cert, VirusTotal scan, privacy review, first tagged release
 
@@ -24,7 +24,7 @@
 
 ## Done
 
-- [x] Implementation: `_ship.bat` + `_ship.ps1` (7-step pipeline), `--version` flag, bundled payload (FR-08), materialization, key-leak guard
+- [x] Implementation: `_ship.bat` + `_build.ps1` (7-step pipeline), `--version` flag, bundled payload (FR-08), materialization, key-leak guard
 - [x] Build: `dist/lana-0.1.0-win-x64.exe` (23 MB, unsigned) + SHA256SUMS.txt - pipeline green end-to-end
 - [x] Tests: 247 passed 4 skipped (7 new distribution tests); binary probes TC-07..10 pass; PR-0005 + PR-0008 resolved
 - [x] Build machine setup: .venv, rustup + cargo 1.98, MSVC Build Tools (winget)

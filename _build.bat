@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 
-REM Lana version bump launcher. Analyzes commits since last tag, determines semver bump, updates pyproject.toml.
+REM Lana build pipeline launcher (LANADIST-SP01 FR-03). Logic lives in _build.ps1.
 where pwsh >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] PowerShell 7 'pwsh' not found. Install: winget install Microsoft.PowerShell
@@ -9,10 +9,10 @@ if errorlevel 1 (
   exit /b 1
 )
 
-pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0_ship.ps1"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0_build.ps1"
 if errorlevel 1 (
   echo.
-  echo [ERROR] Version bump failed. See output above.
+  echo [ERROR] Build pipeline failed. See output above.
   pause
   exit /b 1
 )

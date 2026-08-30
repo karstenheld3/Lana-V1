@@ -5,8 +5,8 @@
 **Goal**: Define how Lana is built, packaged, signed, and shipped as a single Windows x64 binary serving both CLI and Agent Client Protocol (ACP) client use
 **Timeline**: Created 2026-08-30
 **Target file(s)**:
-- `_ship.bat` (workspace root)
-- `_ship.ps1` (workspace root)
+- `_build.bat` (workspace root)
+- `_build.ps1` (workspace root)
 
 **Depends on:**
 - `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for CLI entry point and zero-setup behavior
@@ -50,7 +50,7 @@
 - Build one self-sufficient `lana.exe` with PyApp (Rust wrapper embedding Python distribution + Lana wheel)
 - The wheel carries the default payload as package data: model config files and the default prompt library (`.lana` rules/workflows/skills); zero-setup materializes them on first run (FR-08)
 - Same binary serves CLI mode (`lana.exe`) and ACP mode (`lana.exe --acp`)
-- One script pair in workspace root produces the shippable artifact: `_ship.bat` (launcher) + `_ship.ps1` (implementation)
+- One script pair in workspace root produces the shippable artifact: `_build.bat` (launcher) + `_build.ps1` (implementation)
 - Distribute via GitHub Release assets; users update by re-downloading `lana.exe` (V1); `lana.exe self update` becomes available once Lana is published to PyPI
 
 **What we don't want:**
@@ -59,7 +59,7 @@
 - PyInstaller `--onefile` (1.8s startup, AV dropper pattern, temp dir litter)
 - Installer-based distribution (MSI, NSIS) in V1 - single binary needs no install step
 - Requiring Python, Rust, or any runtime on the END USER machine
-- Separate `_build.bat` and `_ship.bat` - PyApp build output IS the distributable, so one script suffices (LANADIST-DD-02)
+- Separate `_build.bat` and `_build.bat` - PyApp build output IS the distributable, so one script suffices (LANADIST-DD-02)
 - Shipping `.tools/` binaries (836 MB; Ghostscript AGPL) inside the distribution (FR-09)
 - Real API keys anywhere near the build pipeline (DD-09, key-leak guard)
 
@@ -88,11 +88,11 @@ A **Distribution Binary** is the shippable `lana.exe` produced by the ship pipel
 
 ### Ship Script Pair
 
-The **Ship Script Pair** is `_ship.bat` + `_ship.ps1` in the workspace root, following the `/deploy` workflow convention (`.bat` launcher delegates to `.ps1` implementation).
+The **Ship Script Pair** is `_build.bat` + `_build.ps1` in the workspace root, following the `/deploy` workflow convention (`.bat` launcher delegates to `.ps1` implementation).
 
 **Key properties:**
-- `_ship.bat` - double-click/CI entry, calls `pwsh -f _ship.ps1`
-- `_ship.ps1` - toolchain check, wheel build, PyApp build, rename, sign, checksum
+- `_build.bat` - double-click/CI entry, calls `pwsh -f _build.ps1`
+- `_build.ps1` - toolchain check, wheel build, PyApp build, rename, sign, checksum
 
 ### Bundled Payload
 
@@ -130,8 +130,8 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 - All existing CLI flags work identically in binary form
 
 **LANADIST-FR-03: Ship Script Behavior**
-- `_ship.bat` runs `_ship.ps1` via `pwsh` and pauses on error for double-click use
-- `_ship.ps1` executes the full pipeline: verify toolchain → build wheel → build PyApp binary → rename → sign (if certificate configured) → checksum → report
+- `_build.bat` runs `_build.ps1` via `pwsh` and pauses on error for double-click use
+- `_build.ps1` executes the full pipeline: verify toolchain → build wheel → build PyApp binary → rename → sign (if certificate configured) → checksum → report
 - Script is self-contained: installs missing build tools (Rust via rustup, `build` package via pip) after user confirmation
 - Script fails fast with a clear message on any step failure; never ships a partial artifact
 
@@ -147,12 +147,12 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 - Release asset additionally provides a stable unversioned name `lana.exe` for stable IDE config paths
 
 **LANADIST-FR-06: Code Signing**
-- When signing certificate is configured (environment variable or config), `_ship.ps1` signs the binary with `signtool` and timestamps the signature
+- When signing certificate is configured (environment variable or config), `_build.ps1` signs the binary with `signtool` and timestamps the signature
 - When no certificate is configured, script prints a NOTICE and produces an unsigned binary (development builds)
 - Release builds MUST be signed once a certificate exists (LANADIST-PR-0002)
 
 **LANADIST-FR-07: Checksum Generation**
-- `_ship.ps1` writes `SHA256SUMS.txt` next to the binary containing the SHA-256 hash
+- `_build.ps1` writes `SHA256SUMS.txt` next to the binary containing the SHA-256 hash
 - Checksum file is published as a release asset alongside the binary
 
 **LANADIST-FR-08: Bundled Default Payload**
@@ -179,7 +179,7 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 - Verification: measure `lana.exe --version` wall time on cached run
 
 **LANADIST-NFR-02: Reliability - Reproducible Builds**
-- Any team member produces an equivalent binary by running `_ship.bat` on a Windows x64 machine
+- Any team member produces an equivalent binary by running `_build.bat` on a Windows x64 machine
 - Pinned inputs: Python version, PyApp version, wheel from current source tree
 - Verification: two consecutive builds from the same commit produce binaries with identical embedded content
 
@@ -197,7 +197,7 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 
 **LANADIST-DD-01:** PyApp is the distribution tool. Rationale: only evaluated tool producing a single binary with built-in project update commands; expected best AV profile (Rust binary, no bootloader extraction) [ASSUMED - VirusTotal test pending, LANADIST-PR-0006]; serves ACP and CLI from one artifact. Scored 75/100 vs PyInstaller 68 and Nuitka 65 in PYDISTBN-IN13 [VERIFIED]. Fallback if PyApp proves unworkable: PyInstaller --onedir with rebuilt bootloader.
 
-**LANADIST-DD-02:** One script pair (`_ship.bat` + `_ship.ps1`), no separate `_build` scripts. Rationale: PyApp's build output IS the final distributable - there is no separate "create setups" step. A build/ship split would duplicate 90% of the pipeline.
+**LANADIST-DD-02:** One script pair (`_build.bat` + `_build.ps1`), no separate `_build` scripts. Rationale: PyApp's build output IS the final distributable - there is no separate "create setups" step. A build/ship split would duplicate 90% of the pipeline.
 
 **LANADIST-DD-03:** Embed the Python distribution (`PYAPP_DISTRIBUTION_EMBED=1`). Rationale: removes the Python-distribution download from the first run. LIMIT [TESTED 2026-08-30]: project dependencies (openai, anthropic, ...) still install from PyPI on first run - first run REQUIRES network and takes 1-5 min. Binary size: 22.6 MB [TESTED]. Fully offline first run (embedded wheelhouse) is not supported by PyApp and stays out of V1 scope.
 
@@ -217,7 +217,7 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 
 ## 7. Implementation Guarantees
 
-**LANADIST-IG-01:** `_ship.ps1` never overwrites a previous `dist/` artifact silently - existing files with the same version are reported before replacement.
+**LANADIST-IG-01:** `_build.ps1` never overwrites a previous `dist/` artifact silently - existing files with the same version are reported before replacement.
 
 **LANADIST-IG-02:** A failed pipeline step aborts the whole run with a non-zero exit code; no partial or unsigned-when-signing-was-requested artifact remains in `dist/`.
 
@@ -246,8 +246,8 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 ## 9. Action Flow
 
 ```
-User runs _ship.bat
-├─> pwsh -f _ship.ps1
+User runs _build.bat
+├─> pwsh -f _build.ps1
 │   ├─> [ 1 / 7 ] Verify toolchain
 │   │   ├─> Python 3.12+ present? (build machine only)
 │   │   ├─> Rust/cargo present? If missing → offer rustup install
@@ -283,12 +283,12 @@ End user (CLI)                      IDE (ACP client)
 ## 10. Logging Requirements
 
 **Applicable logging types:**
-- [x] Script-Level (SC) - `_ship.ps1` build output
+- [x] Script-Level (SC) - `_build.ps1` build output
 - [ ] User-Facing (UF) - covered by existing Lana SPECs, not changed by distribution
 - [ ] App-Level (AP) - N/A: no server component
 
 **Script-Level logging:**
-- **Audience**: Developer running `_ship.bat` locally or reading CI logs
+- **Audience**: Developer running `_build.bat` locally or reading CI logs
 - **Goal**: Know which pipeline step ran, whether it succeeded, and where the artifact is - failures diagnosable from log alone
 - **Key operations**: toolchain check, wheel build, cargo build, smoke test, signing, checksum
 
@@ -353,4 +353,4 @@ DONE: dist/lana-0.1.0-win-x64.exe (42 MB, unsigned)
 - Changed: acronyms ACP, AV, OV written out on first use
 
 **[2026-08-30 16:10]**
-- Initial specification created: PyApp single-binary distribution, _ship.bat + _ship.ps1 pipeline, 7 FRs, 4 NFRs, 6 DDs
+- Initial specification created: PyApp single-binary distribution, _build.bat + _build.ps1 pipeline, 7 FRs, 4 NFRs, 6 DDs

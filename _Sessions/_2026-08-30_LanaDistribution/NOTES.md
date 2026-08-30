@@ -14,7 +14,7 @@ in the [WORKSPACE_FOLDER] we want
 _build.md -> creates binaries
 _ship.md -> creates all setups
 
-of if both would do same, then just _ship.bat
+of if both would do same, then just _build.bat
 
 see deploy.md workflow
 ````
@@ -22,9 +22,9 @@ see deploy.md workflow
 ## Session Info
 
 - **Started**: 2026-08-30
-- **Goal**: Specify Lana distribution mechanism (PyApp-based) and create `_ship.bat` + `_ship.ps1` build/package scripts
+- **Goal**: Specify Lana distribution mechanism (PyApp-based) and create `_build.bat` + `_ship.ps1` build/package scripts
 - **Operation Mode**: IMPL-CODEBASE
-- **Output Location**: `[WORKSPACE_FOLDER]/_ship.bat`, `[WORKSPACE_FOLDER]/_ship.ps1`
+- **Output Location**: `[WORKSPACE_FOLDER]/_build.bat`, `[WORKSPACE_FOLDER]/_ship.ps1`
 
 ## Agent Instructions
 
@@ -38,7 +38,7 @@ see deploy.md workflow
 
 - **LANADIST-DD-01**: PyApp chosen over PyInstaller/Nuitka. Rationale: single binary, best expected AV profile [ASSUMED], serves both ACP and CLI from one distribution. See PYDISTBN-IN13 decision matrix (75/100 score).
 - **LANADIST-DD-07**: V1 updates via binary re-download. PyApp `self update` pip-updates the PROJECT (not the binary) and requires PyPI publication [VERIFIED: ofek.dev/pyapp/latest/runtime/]. Research doc PYDISTBN-IN07 mislabeled this as binary self-update.
-- **LANADIST-DD-02**: Single `_ship.bat` instead of separate `_build.bat` + `_ship.bat`. Rationale: PyApp build output IS the distributable - no separate installer wrapping needed. Build + sign + package in one script.
+- **LANADIST-DD-02**: Single `_build.bat` instead of separate `_build.bat` + `_build.bat`. Rationale: PyApp build output IS the distributable - no separate installer wrapping needed. Build + sign + package in one script.
 
 ## Important Findings
 

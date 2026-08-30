@@ -2,12 +2,12 @@
 
 **Doc ID**: LANADIST-IP01
 **Feature**: lana-distribution
-**Goal**: Implement `_ship.bat` + `_ship.ps1` producing the signed single-binary `lana.exe` distribution per LANADIST-SP01
+**Goal**: Implement `_build.bat` + `_build.ps1` producing the signed single-binary `lana.exe` distribution per LANADIST-SP01
 **Timeline**: Created 2026-08-30
 
 **Target file(s)**:
-- `_ship.bat` (NEW, workspace root, ~20 lines)
-- `_ship.ps1` (NEW, workspace root, ~240 lines)
+- `_build.bat` (NEW, workspace root, ~20 lines)
+- `_build.ps1` (NEW, workspace root, ~240 lines)
 - `src/lana/cli.py` (MODIFY: `--version` flag, bundled agent library materialization)
 - `src/lana/config.py` (MODIFY: bundled config materialization, key template constant)
 - `src/lana/bundled/` (NEW: package data, synced by pipeline, committed)
@@ -43,8 +43,8 @@
 
 ```
 [WORKSPACE_FOLDER]/
-├── _ship.bat                 # Launcher: pwsh -f _ship.ps1, pause on error (~20 lines) [NEW]
-├── _ship.ps1                 # Pipeline: toolchain, sync, wheel, cargo, rename, sign, checksum (~240 lines) [NEW]
+├── _build.bat                 # Launcher: pwsh -f _build.ps1, pause on error (~20 lines) [NEW]
+├── _build.ps1                 # Pipeline: toolchain, sync, wheel, cargo, rename, sign, checksum (~240 lines) [NEW]
 ├── pyproject.toml            # Add [tool.setuptools.package-data] lana.bundled [MODIFY]
 ├── src/lana/
 │   ├── cli.py                # --version flag; agent scaffold -> copy bundled library [MODIFY]
@@ -128,22 +128,22 @@ parser.add_argument("--version", action="version", version=f"%(prog)s {importlib
 
 **Note**: Fixes latent bug LANADIST-PR-0008 - `read_json` raised on missing model JSONs which zero-setup never created; fresh-machine startup was impossible.
 
-### LANADIST-IP01-IS-04: Create _ship.bat launcher
+### LANADIST-IP01-IS-04: Create _build.bat launcher
 
-**Location**: `_ship.bat` (workspace root)
+**Location**: `_build.bat` (workspace root)
 
 **Action**: Create launcher following `_InstallAndCompileDependencies.bat` conventions
 
 **Code**:
 ```bat
-REM Check pwsh exists -> run _ship.ps1 -> pause + exit /b 1 on error, pause + exit /b 0 on success
+REM Check pwsh exists -> run _build.ps1 -> pause + exit /b 1 on error, pause + exit /b 0 on success
 ```
 
-**Note**: `pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0_ship.ps1"`. Pause in both paths so double-click users see the result.
+**Note**: `pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0_build.ps1"`. Pause in both paths so double-click users see the result.
 
-### LANADIST-IP01-IS-05: _ship.ps1 skeleton + step [ 1 / 7 ] toolchain verification
+### LANADIST-IP01-IS-05: _build.ps1 skeleton + step [ 1 / 7 ] toolchain verification
 
-**Location**: `_ship.ps1` (workspace root)
+**Location**: `_build.ps1` (workspace root)
 
 **Action**: Create pipeline skeleton with strict mode and step functions
 
@@ -159,7 +159,7 @@ REM Check pwsh exists -> run _ship.ps1 -> pause + exit /b 1 on error, pause + ex
 
 ### LANADIST-IP01-IS-06: Step [ 2 / 7 ] bundle sync + key-leak guard
 
-**Location**: `_ship.ps1`
+**Location**: `_build.ps1`
 
 **Action**: Mirror workspace sources into `src/lana/bundled/`, then scan
 
@@ -176,7 +176,7 @@ REM Check pwsh exists -> run _ship.ps1 -> pause + exit /b 1 on error, pause + ex
 
 ### LANADIST-IP01-IS-07: Step [ 3 / 7 ] wheel build
 
-**Location**: `_ship.ps1`
+**Location**: `_build.ps1`
 
 **Action**: Build wheel with venv python
 
@@ -190,7 +190,7 @@ REM Check pwsh exists -> run _ship.ps1 -> pause + exit /b 1 on error, pause + ex
 
 ### LANADIST-IP01-IS-08: Step [ 4 / 7 ] PyApp binary build
 
-**Location**: `_ship.ps1`
+**Location**: `_build.ps1`
 
 **Action**: Clear stale PYAPP_* vars, set config, cargo install pinned PyApp
 
@@ -208,7 +208,7 @@ REM Check pwsh exists -> run _ship.ps1 -> pause + exit /b 1 on error, pause + ex
 
 ### LANADIST-IP01-IS-09: Step [ 5 / 7 ] rename + smoke test
 
-**Location**: `_ship.ps1`
+**Location**: `_build.ps1`
 
 **Action**: Copy to versioned name, run --version smoke test
 
@@ -222,7 +222,7 @@ REM Check pwsh exists -> run _ship.ps1 -> pause + exit /b 1 on error, pause + ex
 
 ### LANADIST-IP01-IS-10: Step [ 6 / 7 ] signing + step [ 7 / 7 ] checksum
 
-**Location**: `_ship.ps1`
+**Location**: `_build.ps1`
 
 **Action**: Conditional Authenticode signing, SHA-256 checksum, final report
 
@@ -294,7 +294,7 @@ FAILED at step 1: Rust toolchain required. Install manually: https://rustup.rs
 
 ### Category 2: Ship pipeline (manual, on Windows x64 build machine)
 
-- **LANADIST-IP01-TC-03**: `_ship.bat` full run -> `dist\lana-0.1.0-win-x64.exe` + `SHA256SUMS.txt` exist, DONE line printed
+- **LANADIST-IP01-TC-03**: `_build.bat` full run -> `dist\lana-0.1.0-win-x64.exe` + `SHA256SUMS.txt` exist, DONE line printed
 - **LANADIST-IP01-TC-04**: second run same version -> old artifact reported before replacement (IG-01)
 - **LANADIST-IP01-TC-05**: no `LANA_SIGN_THUMBPRINT` -> NOTICE printed, exit 0, unsigned exe (FR-06)
 - **LANADIST-IP01-TC-06**: `Get-FileHash` of exe matches `SHA256SUMS.txt` entry (FR-07)
@@ -319,7 +319,7 @@ FAILED at step 1: Rust toolchain required. Install manually: https://rustup.rs
 - [x] **LANADIST-IP01-VC-03**: IS-01 `--version` flag added
 - [x] **LANADIST-IP01-VC-04**: IS-02 package data declared, bundled package created
 - [x] **LANADIST-IP01-VC-05**: IS-03 zero-setup materialization (config.py + cli.py)
-- [x] **LANADIST-IP01-VC-06**: IS-04 `_ship.bat` created
+- [x] **LANADIST-IP01-VC-06**: IS-04 `_build.bat` created
 - [x] **LANADIST-IP01-VC-07**: IS-05 toolchain verification step
 - [x] **LANADIST-IP01-VC-08**: IS-06 bundle sync + key-leak guard
 - [x] **LANADIST-IP01-VC-09**: IS-07 wheel build step
