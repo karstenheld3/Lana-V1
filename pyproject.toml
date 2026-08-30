@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lana"
-version = "1.0.0"
+version = "1.0.1"
 description = "Lana is an ACP-compatible AI agent that runs as a CLI and supports rules, workflows, and skills"
 readme = "README.md"
 authors = [{name = "Karsten Held"}]
