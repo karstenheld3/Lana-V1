@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 03:35]**
+- Added: `/improve` + `/go` runs 1-2 on the code: APPLIED rg/fd ignore-directory parity for grep_search/find_by_name (real issue - workspace contains node_modules + .git; commits 68da12c/6138f5e); violations fixed (enforce_read_gate rename per MC-PR-03, unused import); brittle DevSystemV4.2 count assertions de-hardcoded (external system evolved 21 -> 23 skills - discovered mid-run); DF01 dispositioned (D-01 MVP-3, D-03 obsolete); 5 code candidates deferred with per-question rationale in `__lana_DEFERRED_IMPROVEMENTS.md [LANAAGNT-DF02]` - no APPLY-able candidates remain; suite 166 offline green. Process note: one chained commit fired on red (fixed and re-verified immediately) - lesson: never chain `pytest; git commit`
+
 **[2026-08-30 02:55]**
 - Added: drift detection + correction complete (10 gaps closed, BG-0003 found and fixed, 8 MISSED recorded)
 

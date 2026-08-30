@@ -16,6 +16,7 @@
 - **Fix**: MVP-2+ candidate - implement `trajectory_search` over Lana's own session JSONL files (they ARE the trajectories; a local search over `.lana/sessions/` would satisfy the tool contract)
 - **Effort**: Medium
 - **Value**: LOW (1 workflow of 46; niche use)
+- **Status**: REMAINS DEFERRED (2026-08-30) - SPEC DD-18 scopes trajectory features to MVP-3; implementing now would violate the MVP-1 scope boundary; the capability notice covers the failure mode
 
 ### D-02: Fake-adapter scripting format unspecified (Walkthrough finding, LANAAGNT-IP01)
 - **Issue**: `tests/conftest.py` promises "fake adapters" but no format exists for scripting their turn sequences (which tool calls, which text, per test)
@@ -29,12 +30,14 @@
 - **Fix**: Add a one-paragraph "recommended execution order" note to TK01 making the fully key-free corridor explicit (A, B, C, TK-015, TK-018, E, F, G, then D live, H, scenarios)
 - **Effort**: Minimal
 - **Value**: LOW (Task 0 note + dependency graph already carry the information; pure convenience)
+- **Status**: OBSOLETE (2026-08-30) - implementation complete; the execution order guidance has no remaining consumer
 
 ## Log
 
 - **Run 1** (2026-08-29): Added web research tools (`search_web`, `read_url_content`, `view_content_chunk`) to LANAAGNT-SP01 based on DevSystemV4.2 full-text tool demand scan
 - **Run 2** (2026-08-29): Created `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (15 verbatim tool definitions from live session); repointed LANAAGNT-IP01 IS-06/VC-01/Depends-on and the LANAAGNT-SP01 authority constraint
 - **Run 3** (2026-08-29): Added Task Execution Protocol to LANAAGNT-TK01 (context-reset-safe execution rules)
+- **Disposition sweep** (2026-08-30): D-01 remains deferred (MVP-3 per DD-18), D-02 superseded, D-03 obsolete - no open SPEC-scoped candidates; code-scoped candidates continue in `__lana_DEFERRED_IMPROVEMENTS.md [LANAAGNT-DF02]`
 
 ## Document History
 
