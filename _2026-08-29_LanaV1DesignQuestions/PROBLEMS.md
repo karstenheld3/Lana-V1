@@ -6,9 +6,17 @@ Track problems using ID format: `LANAAGNT-PR-[NNNN]`
 
 ## Open
 
-- (none)
+**LANAAGNT-PR-0007: Registry prefix `claude-sonnet-4.5` (dot) never matches dash-form model ids**
+- **History**: Added 2026-08-30 05:45 (observation from /bugfix discovery sweep)
+- **Assessment**: `model-registry.json` `model_id_startswith` has `claude-sonnet-4.5` / `claude-opus-4.5` (dot notation) but all model ids use dashes (`claude-sonnet-4-5-20250929`) - first-match falls through to the `claude-sonnet-4` row, so the 4.5 generator gets max_output 8192 instead of the 16384 the 4.5 row intends. NOT a Lana code bug: the registry is a read-only input (DD-16) and SPEC section 13 forbids hardcoded per-model logic. Functional impact: lower max_tokens ceiling, otherwise correct behavior.
+- **Decision needed**: user owns the registry - either change the prefix rows to dash notation or accept the fallback row
 
 ## Resolved
+
+**LANAAGNT-PR-0006: --resume with missing file crashes with raw traceback**
+- **History**: Added 2026-08-30 05:40 | Resolved 2026-08-30 05:50 | → Now tracked as LANAAGNT-BG-0005
+- **Solution**: resume path validated at startup like all other startup inputs -> ConfigError with named file + fix, exit 2 (see `_BugFixes/LANAAGNT-BG-0005_ResumeMissingFileTraceback/`)
+- **Verification**: reproduce-before-fix (traceback, exit 1); regression test green (exit 2, no traceback); 171 offline tests green
 
 **LANAAGNT-PR-0005: Renderer parses untrusted text as rich markup**
 - **History**: Added 2026-08-30 03:50 | Resolved 2026-08-30 03:58 | → Now tracked as LANAAGNT-BG-0004

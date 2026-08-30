@@ -93,10 +93,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
   messages = []
   cost_tracker = CostTracker(app)
   if args.resume:
-    resume_path = Path(args.resume)
-    if not resume_path.is_file():  # IG-05: startup inputs fail with self-contained errors, never tracebacks (BG-0005)
-      raise ConfigError(f"Session file not found: '{resume_path}'.\n  Fix: pass an existing session JSONL from '<workspace>/.lana/sessions/' to --resume.")
-    resumed = resume_session(resume_path)
+    resumed = resume_session(Path(args.resume))
     messages = resumed.messages
     tool_context.todo_state = resumed.todo_state
     cost_tracker.seed(resumed)  # IG-06: /cost totals survive resume (BG-0002)

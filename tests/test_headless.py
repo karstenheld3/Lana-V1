@@ -114,6 +114,15 @@ def test_headless_builtins(cli_workspace):
   assert "Unknown workflow" not in help_result.stdout + cost_result.stdout
 
 
+# BG-0005 regression: --resume with a missing file -> self-contained error, exit 2, never a traceback (IG-05, FR-14)
+def test_bg0005_resume_missing_file_exit_2(cli_workspace):
+  proc = make_proc(cli_workspace, [{"text": "never reached"}])
+  result = proc.run_headless("hi", extra_args=["--resume", "no-such-session.jsonl"])
+  assert result.returncode == 2
+  assert "no-such-session.jsonl" in result.stderr and "Fix:" in result.stderr
+  assert "Traceback" not in result.stderr
+
+
 # TC-55: piped stdin session -> workflow list printed, clean exit (non-terminal fallback)
 def test_tc55_piped_stdin_help(cli_workspace):
   proc = make_proc(cli_workspace, [])
