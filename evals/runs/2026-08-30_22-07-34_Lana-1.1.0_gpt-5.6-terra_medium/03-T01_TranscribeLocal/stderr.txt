@@ -1,8 +1,0 @@
-Created 'E:\Dev\Lana-V1\evals\runs\2026-08-30_22-07-34_Lana-1.1.0_gpt-5.6-terra_medium\03-T01_TranscribeLocal\workspace\.lana-data\sessions' (zero-setup).
-Lana 1.1.0 | generator: gpt-5.6-terra (medium) | summarizer: gpt-4.1-mini (low) | websearch: gpt-4.1-mini (low)
-Loading prompt system 'E:\Dev\Lana-V1\evals\runs\2026-08-30_22-07-34_Lana-1.1.0_gpt-5.6-terra_medium\03-T01_TranscribeLocal\workspace\.lana'...
-  0 rules (0 injected), 1 workflows, 0 skills.
-  OK. Loaded in 0.0 secs.
-Policy: turbo
-  WARNING: policy 'turbo' auto-executes commands - prompt-injection risk.
-  HINT: use this policy only in trusted workspaces; switch back with --policy manual.

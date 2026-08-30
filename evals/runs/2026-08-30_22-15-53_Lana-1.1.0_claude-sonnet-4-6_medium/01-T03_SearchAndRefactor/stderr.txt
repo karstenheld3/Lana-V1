@@ -1,9 +1,0 @@
-Created 'E:\Dev\Lana-V1\evals\runs\2026-08-30_22-15-53_Lana-1.1.0_claude-sonnet-4-6_medium\01-T03_SearchAndRefactor\workspace\.lana-data\sessions' (zero-setup).
-Lana 1.1.0 | generator: claude-sonnet-4-6 (medium) | summarizer: gpt-4.1-mini (low) | websearch: gpt-4.1-mini (low)
-Loading prompt system 'E:\Dev\Lana-V1\evals\runs\2026-08-30_22-15-53_Lana-1.1.0_claude-sonnet-4-6_medium\01-T03_SearchAndRefactor\workspace\.lana'...
-  0 rules (0 injected), 0 workflows, 0 skills.
-  OK. Loaded in 0.0 secs.
-  NOTICE: prompt system is empty - Lana runs without rules, workflows, or skills. Add content to 'E:\Dev\Lana-V1\evals\runs\2026-08-30_22-15-53_Lana-1.1.0_claude-sonnet-4-6_medium\01-T03_SearchAndRefactor\workspace\.lana'.
-Policy: turbo
-  WARNING: policy 'turbo' auto-executes commands - prompt-injection risk.
-  HINT: use this policy only in trusted workspaces; switch back with --policy manual.
