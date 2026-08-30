@@ -1,21 +1,57 @@
 """Tier 3 QualityEvaluator: rubric-anchored judge via @skills:llm-evaluation call-llm.py (LANATEST-SP01 FR-08, IP01 P3)."""
-import json, subprocess
+import json, re, subprocess
 from pathlib import Path
 
 
-def build_judge_input(workspace: Path, manifest: dict, judge_dir: Path, golden_dir: Path | None) -> Path:
-  sections = ["# AGENT OUTPUT"]
-  for pattern in manifest.get("required_files", []):
-    for path in sorted(workspace.glob(pattern)):
-      if ".lana-data" in path.parts: continue
-      sections.append(f"## FILE: {path.relative_to(workspace)}\n\n{path.read_text(encoding='utf-8', errors='replace')}")
-  if len(sections) == 1: sections.append("(no output files found)")
-  if golden_dir and golden_dir.exists():  # reference-guided judging: golden calibrates, never dictates (see template Reference Handling)
-    golden_files = sorted(p for p in golden_dir.rglob("*") if p.is_file())
-    if golden_files:
-      sections.append("# GOLDEN REFERENCE")
-      for path in golden_files:
-        sections.append(f"## REFERENCE FILE: {path.relative_to(golden_dir)}\n\n{path.read_text(encoding='utf-8', errors='replace')}")
+# Fence with one backtick more than the longest backtick run inside (min 3) - content can safely contain fences
+def fenced(text: str) -> str:
+  longest = max((len(run) for run in re.findall("`+", text)), default=0)
+  ticks = "`" * max(3, longest + 1)
+  return f"{ticks}\n{text.rstrip()}\n{ticks}"
+
+
+def file_block(name: str, text: str) -> str:
+  return f"{name}\n{fenced(text)}"
+
+
+def render_tree(relative_paths: list[str]) -> str:
+  tree: dict = {}
+  for relative in sorted(relative_paths):
+    node = tree
+    for part in relative.split("/"): node = node.setdefault(part, {})
+  lines = []
+  def walk(node: dict, prefix: str) -> None:
+    entries = sorted(node)
+    for position, name in enumerate(entries):
+      last = position == len(entries) - 1
+      lines.append(f"{prefix}{'└─ ' if last else '├─ '}{name}")
+      walk(node[name], prefix + ("   " if last else "│  "))
+  walk(tree, "")
+  return "\n".join(lines)
+
+
+def collect_files(root: Path, patterns: list[str] | None = None) -> list[Path]:
+  paths = [p for pattern in patterns for p in root.glob(pattern)] if patterns is not None else list(root.rglob("*"))
+  return sorted(p for p in set(paths) if p.is_file() and ".lana-data" not in p.parts and ".lana" not in p.parts)
+
+
+def build_judge_input(workspace: Path, manifest: dict, judge_dir: Path, golden_dir: Path | None, prompts_path: Path | None) -> Path:
+  sections = []
+  if prompts_path and prompts_path.exists():
+    sections.append("# PROMPTS\n\nThe task the agent received (prompt-queue format: fenced prompts separated by ---).\n\n"
+                    + file_block("PROMPTS.md", prompts_path.read_text(encoding="utf-8", errors="replace")))
+  golden_files = collect_files(golden_dir) if golden_dir and golden_dir.exists() else []
+  if golden_files:  # reference-guided judging: golden calibrates, never dictates (see template Reference Handling)
+    blocks = [file_block(str(p.relative_to(golden_dir)).replace("\\", "/"), p.read_text(encoding="utf-8", errors="replace")) for p in golden_files]
+    tree = render_tree([str(p.relative_to(golden_dir)).replace("\\", "/") for p in golden_files])
+    sections.append("# REFERENCE OUTPUT\n\nOne known-good solution produced by a reference agent. Folder structure:\n\n"
+                    + fenced(tree) + "\n\n" + "\n\n---\n\n".join(blocks))
+  agent_files = collect_files(workspace, manifest.get("required_files", []))
+  all_workspace_files = collect_files(workspace)
+  tree = render_tree([str(p.relative_to(workspace)).replace("\\", "/") for p in all_workspace_files]) or "(empty workspace)"
+  blocks = [file_block(str(p.relative_to(workspace)).replace("\\", "/"), p.read_text(encoding="utf-8", errors="replace")) for p in agent_files]
+  sections.append("# AGENT OUTPUT\n\nThe output to judge. Full workspace folder structure:\n\n" + fenced(tree) + "\n\n"
+                  + ("\n\n---\n\n".join(blocks) or "(no output files found)"))
   input_path = judge_dir / "input.md"
   input_path.write_text("\n\n".join(sections), encoding="utf-8")
   return input_path
@@ -29,9 +65,9 @@ def build_judge_prompt(template_path: Path, rubric_path: Path, judge_dir: Path) 
 
 
 # Returns {"score": float|None, "dimensions": [...], "error": str|None}; transcripts land in judge_dir (FR-08 audit)
-def evaluate_quality(workspace: Path, manifest: dict, rubric_path: Path, judge_dir: Path, config: dict, golden_dir: Path | None = None) -> dict:
+def evaluate_quality(workspace: Path, manifest: dict, rubric_path: Path, judge_dir: Path, config: dict, golden_dir: Path | None = None, prompts_path: Path | None = None) -> dict:
   judge_dir.mkdir(parents=True, exist_ok=True)
-  input_path = build_judge_input(workspace, manifest, judge_dir, golden_dir)
+  input_path = build_judge_input(workspace, manifest, judge_dir, golden_dir, prompts_path)
   prompt_path = build_judge_prompt(Path(config["judge_prompt_template"]), rubric_path, judge_dir)
   response_path = judge_dir / "response.json"
   command = [config["judge_python"], config["call_llm_script"],

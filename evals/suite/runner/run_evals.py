@@ -166,7 +166,7 @@ def run_test(test_dir: Path, run_dir: Path, config: dict, args) -> dict:
   rubric_path = test_dir / "expected" / "rubric.md"
   if 3 in metadata["tiers"] and rubric_path.exists() and not args.skip_judge:
     print(f"    Judging (model {config['judge_model']})...")
-    quality = evaluate_quality(workdir, manifest, rubric_path, record_dir / "judge", config, golden_dir=test_dir / "golden")
+    quality = evaluate_quality(workdir, manifest, rubric_path, record_dir / "judge", config, golden_dir=test_dir / "golden", prompts_path=test_dir / "PROMPTS.md")
     result["tier3"] = quality["score"]
     result["judge_dimensions"] = quality["dimensions"]
     if quality["error"]: result["notes"].append(f"judge: {quality['error']} (EC-04)")
