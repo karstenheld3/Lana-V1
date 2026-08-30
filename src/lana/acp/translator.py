@@ -3,7 +3,8 @@
 Exhaustive over the 11 AgentEvent types (IG-03): every type yields its mapping or a documented
 no-op. Owns messageId rotation - one logical message per turn (DD-06, v2 forward compatibility).
 """
-import json, sys
+import json
+from lana.acp import log
 
 # FR-07: 16 tools -> ACP kinds (LANAACPB-IN01 / ACP-IN08 kind vocabulary)
 TOOL_KINDS = {
@@ -69,7 +70,8 @@ class EventTranslator:
     if kind == "error":  # v1 has no dedicated error update type - render inline (FR-06 [ASSUMED])
       return [{"sessionUpdate": "agent_message_chunk", "messageId": self.message_id, "content": {"type": "text", "text": event.message}}]
     if kind == "checkpoint_created":  # no ACP mapping in v1 (Session Compaction RFD is Draft) - documented omission
-      print(f"  checkpoint_created not forwarded - no v1 ACP mapping ({event.truncated_messages} messages compacted).", file=sys.stderr, flush=True)
+      message_label = "1 message" if event.truncated_messages == 1 else f"{event.truncated_messages} messages"
+      log(f"  checkpoint_created not forwarded - no v1 ACP mapping ({message_label} compacted).")
       return []
     return []  # session_started, approval_required: session-file-only / consumed by the PermissionBroker (FR-06)
 

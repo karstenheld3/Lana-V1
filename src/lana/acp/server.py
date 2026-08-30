@@ -5,21 +5,20 @@ One asyncio loop coordinates the stdin read loop, turn execution, and client-bou
 processable while a turn is active (FR-10, EC-08/EC-22). Nothing is sent before `initialize`
 arrives (FR-02); the Lana runtime is built per session at `session/new` (FR-03).
 """
-import asyncio, contextlib, datetime, sys
+import argparse, asyncio, contextlib, sys
 from importlib import metadata
 from pathlib import Path
+from lana.acp import log
 from lana.acp.jsonrpc import (
   INTERNAL_ERROR, INVALID_PARAMS, INVALID_REQUEST, METHOD_NOT_FOUND, REQUEST_CANCELLED, Connection, Notification, Request, error_body,
 )
 from lana.acp.bridge import ElicitationBroker, PermissionBroker
 from lana.acp.translator import EventTranslator, generator_context_window
+from lana.agent import UnknownWorkflowError
+from lana.config import ConfigError
+from lana.session import resume as resume_session
 
 PROTOCOL_VERSION = 1
-
-
-# App-Level logging: stderr only, one line per key operation (SP01 section 11, IG-01)
-def log(text: str) -> None:
-  print(f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S} {text}", file=sys.stderr, flush=True)
 
 
 def agent_version() -> str:
@@ -66,7 +65,7 @@ class AcpServer:
     for session in self.sessions.values():  # stdin EOF mid-turn: cancel cleanly, then exit 0 (FR-01, EC-11)
       if session.active_task and not session.active_task.done():
         session.active_task.cancel()
-        with contextlib.suppress(BaseException):
+        with contextlib.suppress(asyncio.CancelledError, Exception):
           await session.active_task
     log("stdin EOF - ACP server shut down.")
     return 0
@@ -129,13 +128,7 @@ class AcpServer:
     if not cwd: raise AcpError(INVALID_PARAMS, "session/new requires 'cwd' (absolute workspace path).")
     if request.params.get("mcpServers"): log("  WARNING: 'mcpServers' ignored - Lana has no MCP client.")  # EC-19
     if request.params.get("additionalDirectories"): log("  WARNING: 'additionalDirectories' ignored - Lana has a single-workspace model.")  # EC-19
-    from lana.cli import build_runtime  # lazy: cli imports acp.server lazily as well - no import cycle at module load
-    from lana.config import ConfigError
-    try:
-      with contextlib.redirect_stdout(sys.stderr):  # IG-01: loader banner and warnings go to stderr
-        app, agent, cost_tracker, prompt_system = build_runtime(self.args, Path(cwd), interactive=False)
-    except ConfigError as error:
-      raise AcpError(INVALID_PARAMS, f"session/new failed: {error}")
+    app, agent, cost_tracker, prompt_system = self.build_session_runtime("session/new", self.args, cwd)
     session_id = agent.session.path.stem
     self.sessions[session_id] = self.make_acp_session(session_id, agent, cost_tracker, prompt_system, app)
     self.connection.respond(request.id, result={"sessionId": session_id})
@@ -144,9 +137,6 @@ class AcpServer:
 
   # FR-04: resume under recorded-environment authority, replay history, then complete the load
   async def handle_session_load(self, request: Request) -> None:
-    import argparse
-    from lana.config import ConfigError
-    from lana.session import resume as resume_session
     params = request.params
     session_id, cwd = params.get("sessionId", ""), params.get("cwd")
     if not cwd: raise AcpError(INVALID_PARAMS, "session/load requires 'cwd' (absolute workspace path).")
@@ -155,12 +145,7 @@ class AcpServer:
     if not session_file.is_file():
       raise AcpError(INVALID_PARAMS, f"Unknown sessionId '{session_id}' - no session file in '{Path(cwd) / '.lana' / 'sessions'}'.")  # EC-17
     load_args = argparse.Namespace(**{**vars(self.args), "resume": str(session_file)})
-    from lana.cli import build_runtime
-    try:
-      with contextlib.redirect_stdout(sys.stderr):  # IG-01: resume warnings (fingerprint, model change) go to stderr
-        app, agent, cost_tracker, prompt_system = build_runtime(load_args, Path(cwd), interactive=False)
-    except ConfigError as error:
-      raise AcpError(INVALID_PARAMS, f"session/load failed: {error}")
+    app, agent, cost_tracker, prompt_system = self.build_session_runtime("session/load", load_args, cwd)
     session = self.make_acp_session(session_id, agent, cost_tracker, prompt_system, app)
     self.sessions[session_id] = session
     replayer = EventTranslator(cost_tracker, session.translator.context_window, replaying=True)
@@ -172,6 +157,15 @@ class AcpServer:
     self.connection.respond(request.id, result={})
     self.send_available_commands(session_id, prompt_system)
     log(f"session/load: '{session_id}' - {replayed} updates replayed.")
+
+  # Shared runtime construction for session/new and session/load; loader output diverted to stderr (IG-01)
+  def build_session_runtime(self, method: str, args, cwd: str):
+    from lana.cli import build_runtime  # lazy: lana.cli is the composition root - importing it at module load would couple the frontends
+    try:
+      with contextlib.redirect_stdout(sys.stderr):
+        return build_runtime(args, Path(cwd), interactive=False)
+    except ConfigError as error:
+      raise AcpError(INVALID_PARAMS, f"{method} failed: {error}")
 
   # Wire the ACP brokers into the Agent's callback seam (IS-06/07/08)
   def make_acp_session(self, session_id: str, agent, cost_tracker, prompt_system, app) -> AcpSession:
@@ -207,7 +201,6 @@ class AcpServer:
     return text
 
   async def run_prompt_turn(self, session: AcpSession, request_id, text: str) -> None:
-    from lana.agent import UnknownWorkflowError
     log("session/prompt: turn started.")
     last_error = ""
     try:

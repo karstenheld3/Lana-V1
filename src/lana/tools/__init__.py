@@ -71,7 +71,7 @@ class ToolRegistry:
     self.definitions = {item["name"]: item for item in render_definitions(self.os_name, self.shell, skills or [])}
 
   def register(self, name: str, executor: Callable[[dict, ToolContext], str]):
-    if name not in self.definitions: raise ValueError(f"Unknown tool name '{name}' - not in the 15 MVP-1 definitions")
+    if name not in self.definitions: raise ValueError(f"Unknown tool name '{name}' - not in the 16 registered definitions")
     self.tools[name] = RegisteredTool(name=name, definition=self.definitions[name], executor=executor)
 
   def definition_list(self) -> list[dict]:

@@ -1,6 +1,6 @@
 """Black-box ACP scenarios against the real executable (LANAACPB-TP01-TC-01/07/09/10).
 Remaining TP01 scenarios live in test_acp_turn.py / test_acp_load.py (mapping in each test's docstring there)."""
-import json, time
+import time
 import pytest
 from lana.events import from_jsonl
 from tests.acp_harness import AcpClient, assert_stdout_pure

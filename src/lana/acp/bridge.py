@@ -3,7 +3,7 @@
 Both brokers are async callbacks plugged into the Agent seam (IS-06). They block the tool dispatch
 while the stdin read loop keeps processing - cancellation resolves their pending futures (IG-05).
 """
-import sys
+from lana.acp import log
 from lana.acp.jsonrpc import ClientErrorResponse, RoundTripCancelled
 
 PERMISSION_OPTIONS = [
@@ -17,10 +17,6 @@ CONTINUE_OPTIONS = [
   {"optionId": "reject-once", "name": "Stop here", "kind": "reject_once"},
 ]
 NO_ELICITATION_FALLBACK = "Client does not support structured questions - ask in plain text"
-
-
-def log(text: str) -> None:
-  print(text, file=sys.stderr, flush=True)
 
 
 class PermissionBroker:
@@ -54,7 +50,8 @@ class PermissionBroker:
     self.continue_counter += 1
     outcome = await self.request_outcome(f"continue_{self.continue_counter}", CONTINUE_OPTIONS)
     approved = outcome.get("outcome") == "selected" and outcome.get("optionId") == "allow-once"
-    log(f"  continue prompt ({calls_done} calls) -> {'continue' if approved else 'stop'}.")
+    call_label = "1 call" if calls_done == 1 else f"{calls_done} calls"
+    log(f"  continue prompt ({call_label}) -> {'continue' if approved else 'stop'}.")
     return approved
 
   async def request_outcome(self, tool_call_id: str, options: list[dict]) -> dict:

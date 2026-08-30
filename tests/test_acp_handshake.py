@@ -1,5 +1,4 @@
 """ACP handshake, routing, and session creation tests (LANAACPB-IP01 Categories 2-3, TC-07..15)."""
-import json
 import pytest
 from lana.events import from_jsonl
 from tests.acp_harness import AcpClient, assert_stdout_pure

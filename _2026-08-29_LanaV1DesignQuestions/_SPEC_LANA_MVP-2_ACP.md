@@ -148,7 +148,7 @@ A **JsonRpcMessage** is one line on the wire: request (has `id` + `method`), not
 - `approval_required` → consumed by the PermissionBroker (LANAACPB-FR-08); never forwarded as a `session/update`
 - `tool_call_requested` → `tool_call` (status `pending`, `title` = tool name + primary argument, `kind` per LANAACPB-FR-07)
 - `tool_call_finished` → `tool_call_update` (status `completed`|`failed` from the event status, result text as content)
-- `turn_finished` → `usage_update` with `used` (the turn's input+output tokens = current context consumption), `size` (generator context window from the pricing entry, 0 when unpriced), `cost` (`{amount, currency: "USD"}` cumulative session total from CostTracker) - official v1 shape per LANAACPB-IN01; mapping synced from implementation 2026-08-30
+- `turn_finished` → `usage_update` with `used` (the turn's input+output tokens = current context consumption), `size` (generator context window from the pricing entry, 0 when unpriced), `cost` (`{amount, currency: "USD"}` cumulative session total from CostTracker) - official v1 shape per LANAACPB-IN01; mapping synced from implementation 2026-08-30 [TESTED: LANAACPB-IP01-TC-16]
 - `todo_list` tool results additionally → `plan` update (entries content/priority/status map 1:1 to Lana todo items)
 - `user_message` → not echoed (the client already owns the user's message) except during session/load replay
 - `checkpoint_created` → no ACP mapping in v1 (Session Compaction RFD is Draft); one stderr log line documents the omission

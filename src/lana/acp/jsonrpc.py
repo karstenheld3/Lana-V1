@@ -8,6 +8,7 @@ runs in the default executor (Windows has no async console stdin); coordination 
 import asyncio, json, sys
 from dataclasses import dataclass
 from typing import Any, Optional
+from lana.acp import log
 
 PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, REQUEST_CANCELLED = -32700, -32600, -32601, -32602, -32603, -32800
 
@@ -135,6 +136,6 @@ class Connection:
         self.respond(None, error=error_body(PARSE_ERROR, f"Parse error: {message.detail}"))  # EC-01: null id, continue
         continue
       if isinstance(message, Response):
-        if not self.resolve_response(message): print(f"  WARNING: response for unknown request id {message.id!r} ignored.", file=sys.stderr)
+        if not self.resolve_response(message): log(f"  WARNING: response for unknown request id {message.id!r} ignored.")  # EC-15
         continue
       await dispatch(message)

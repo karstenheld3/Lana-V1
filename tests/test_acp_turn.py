@@ -1,6 +1,6 @@
 """ACP prompt turn, translation, permission, elicitation, and cancellation tests
 (LANAACPB-IP01 Categories 4-6: TC-16..33, TC-41..44)."""
-import json, time
+import time
 import pytest
 from lana.events import (ApprovalRequired, CheckpointCreated, ErrorEvent, SessionStarted, TextDelta, ThinkingDelta,
                          ToolCallFinished, ToolCallRequested, TurnFinished, TurnStarted, UserMessage, from_jsonl)
