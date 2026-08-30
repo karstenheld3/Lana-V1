@@ -11,9 +11,9 @@
 ## Summary
 
 - The ebook chapters 8-9 contain full "Description (verbatim)" blocks for 12 of the 15 MVP-1 tools but NOT for `multi_edit` (schema + constraints only), `command_status` (schema only), and `skill` (explicitly "abbreviated") - transcription from the ebook alone would force paraphrasing, violating LANAAGNT-DD-11 [VERIFIED against ebook text]
-- This document captures all 15 descriptions verbatim from a live Cascade session (2026-08-29, same system family as the V2.3.15 ebook capture) while the source is available [VERIFIED]
-- Parameter contracts are transcribed as compact parameter lists (name, type, required, enum, default); all Cascade schemas share: JSON Schema Draft 2020-12, `additionalProperties: false` [VERIFIED]
-- Two definitions contain per-host dynamic content that Lana must substitute: `run_command` (OS + shell) and `skill` (available skill list) [VERIFIED]
+- This document captures all 15 descriptions verbatim from a live Cascade session (2026-08-29, same system family as the V2.3.15 ebook capture) while the source is available
+- Parameter contracts are transcribed as compact parameter lists (name, type, required, enum, default); all Cascade schemas share: JSON Schema Draft 2020-12, `additionalProperties: false`
+- Two definitions contain per-host dynamic content that Lana must substitute: `run_command` (OS + shell) and `skill` (available skill list)
 
 ## Table of Contents
 
@@ -296,13 +296,13 @@ View a specific chunk of a web or knowledge base document content using its Docu
 ## 7. Next Steps
 
 1. LANAAGNT-IP01-IS-06 transcribes from this document (primary) with the ebook chapters 8-9 as cross-check for the 12 tools both sources cover
-2. During IS-06: verify each `required` array against provider acceptance in the Phase D smoke tests (schemas are [VERIFIED] transcriptions; provider round trips upgrade them to [TESTED])
+2. During IS-06: verify each `required` array against provider acceptance in the Phase D smoke tests (schemas are transcriptions; provider round trips upgrade them to [TESTED])
 
 ## 8. Sources
 
 **Primary Sources:**
-- `LANAAGNT-IN02-SC-CSCD-LIVSSN`: Live Cascade session tool definitions (2026-08-29, same system family as the V2.3.15 wire capture) - all 15 descriptions and parameter contracts [VERIFIED]
-- `LANAAGNT-IN02-SC-CSMP-EBK`: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` chapters 8-9 - cross-check source; confirms 12 of 15 verbatim, documents the gap for `multi_edit`, `command_status`, `skill` [VERIFIED]
+- `LANAAGNT-IN02-SC-CSCD-LIVSSN`: Live Cascade session tool definitions (2026-08-29, same system family as the V2.3.15 wire capture) - all 15 descriptions and parameter contracts
+- `LANAAGNT-IN02-SC-CSMP-EBK`: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` chapters 8-9 - cross-check source; confirms 12 of 15 verbatim, documents the gap for `multi_edit`, `command_status`, `skill`
 
 ## 9. Document History
 

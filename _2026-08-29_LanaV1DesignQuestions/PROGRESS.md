@@ -5,7 +5,7 @@
 ## To Do
 
 - [ ] Manual acceptance residue (terminal-only by FR-14 design, needs a human at a real terminal): interactive approval y/n prompt and Ctrl+C mid-turn cancellation in a live `lana` session - everything else is covered by automated tests
-- [ ] `/cleanup` when the user is ready: `__STRUT_LANAAGNT_IMPL.md`, `.tmp_generate_definitions.py` (kept for definitions regeneration until then), `TASKS_LANA_MVP-1_v1.md` and other `_vN` backups (user-only deletion per `/go` safety protocol)
+- [x] `/cleanup` executed 2026-08-30 04:30 (user-invoked): deleted `.tmp_generate_definitions.py` (in git history), 5 cache dirs, `TASKS_LANA_MVP-1_v1.md`, both `__*_DEFERRED_IMPROVEMENTS.md`, `__DRIFT_LANAAGNT.md`, `__STRUT_LANAAGNT_IMPL.md`; stripped 18 [VERIFIED] markers from session INFO docs; `_BugFixes/*/backup/` protected and kept; suite 168 green after cleanup
 
 ## In Progress
 

@@ -11,14 +11,14 @@
 
 ## Summary
 
-- Cascade's Brain/Generator interplay is architecturally opaque - the source doc marks it [ASSUMED]; Lana-V1 cannot copy it 1:1 and must decide between a single-model loop and an explicit two-model plan/generate pipeline (OQ-01) [VERIFIED]
-- Cascade's Summarizer role uses Gemini 2.5 Flash, which violates the OpenAI/Anthropic-only constraint; a replacement model must be chosen from `config/model-registry.json` (OQ-02) [VERIFIED]
-- Cascade is a stateless full-context-resend system; with direct API access, prompt caching (Anthropic `cache_control`, OpenAI automatic) becomes the dominant cost lever - a design dimension absent from the Cascade doc (OQ-13) [VERIFIED]
-- ACP v2 draft removes the client fs/terminal surface and session modes; investing in v1-only surfaces is a known risk documented in ACP-IN04 (OQ-33, OQ-34) [VERIFIED]
-- Cascade's memory retrieval internals (timing, format, backend) are unknown even in the source doc (Appendix A, OQ#2 there); Lana-V1 must design its own retrieval, it cannot copy one (OQ-17) [VERIFIED]
-- Skills, workflows, and slash commands are entirely outside ACP scope - slash command text arrives as plain prompt text and must be expanded agent-side (OQ-22) [VERIFIED]
-- Existing `config/` files cover model properties, parameter mapping, and pricing, but contain NO role assignment (which model is Brain/Generator/Summarizer/Memory), NO thresholds, and NO safety lists - a new config surface is required (OQ-40) [VERIFIED]
-- 43 open questions total: 20 P1 (block the SPEC), 16 P2 (block implementation details), 7 P3 (deferrable to V1.x) [VERIFIED]
+- Cascade's Brain/Generator interplay is architecturally opaque - the source doc marks it [ASSUMED]; Lana-V1 cannot copy it 1:1 and must decide between a single-model loop and an explicit two-model plan/generate pipeline (OQ-01)
+- Cascade's Summarizer role uses Gemini 2.5 Flash, which violates the OpenAI/Anthropic-only constraint; a replacement model must be chosen from `config/model-registry.json` (OQ-02)
+- Cascade is a stateless full-context-resend system; with direct API access, prompt caching (Anthropic `cache_control`, OpenAI automatic) becomes the dominant cost lever - a design dimension absent from the Cascade doc (OQ-13)
+- ACP v2 draft removes the client fs/terminal surface and session modes; investing in v1-only surfaces is a known risk documented in ACP-IN04 (OQ-33, OQ-34)
+- Cascade's memory retrieval internals (timing, format, backend) are unknown even in the source doc (Appendix A, OQ#2 there); Lana-V1 must design its own retrieval, it cannot copy one (OQ-17)
+- Skills, workflows, and slash commands are entirely outside ACP scope - slash command text arrives as plain prompt text and must be expanded agent-side (OQ-22)
+- Existing `config/` files cover model properties, parameter mapping, and pricing, but contain NO role assignment (which model is Brain/Generator/Summarizer/Memory), NO thresholds, and NO safety lists - a new config surface is required (OQ-40)
+- 43 open questions total: 20 P1 (block the SPEC), 16 P2 (block implementation details), 7 P3 (deferrable to V1.x)
 
 ## Table of Contents
 
@@ -359,10 +359,10 @@ Additional P3 items not numbered separately: test strategy for LLM interactions 
 
 **Primary Sources:**
 - `LANAAGNT-IN01-SC-CSMP-EBK`: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` - Complete Cascade architecture (V2.3.15 wire capture): 4-model pipeline, 47 flags, 27+25 tools, checkpoint mechanism, system prompt, context budget [VERIFIED - read in full, 4810 lines]
-- `LANAAGNT-IN01-SC-ACP-SUMRY`: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-01_Summary.md` - ACP v1 scope, v2 draft changes, skills/slash-commands out of protocol scope [VERIFIED]
-- `LANAAGNT-IN01-SC-ACP-ARCH`: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-04_Architecture.md` - Three-actor model, baseline methods, client capabilities, v2 fs/terminal removal risk [VERIFIED]
-- `LANAAGNT-IN01-SC-CFG-MDLREG`: `config/model-registry.json` v1.7.0 - Enabled models, context windows, provider parameter methods [VERIFIED]
-- `LANAAGNT-IN01-SC-CFG-PARMAP`: `config/model-parameter-mapping.json` v2.3.0 - 7 effort levels, per-provider factor mapping [VERIFIED]
+- `LANAAGNT-IN01-SC-ACP-SUMRY`: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-01_Summary.md` - ACP v1 scope, v2 draft changes, skills/slash-commands out of protocol scope
+- `LANAAGNT-IN01-SC-ACP-ARCH`: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-04_Architecture.md` - Three-actor model, baseline methods, client capabilities, v2 fs/terminal removal risk
+- `LANAAGNT-IN01-SC-CFG-MDLREG`: `config/model-registry.json` v1.7.0 - Enabled models, context windows, provider parameter methods
+- `LANAAGNT-IN01-SC-CFG-PARMAP`: `config/model-parameter-mapping.json` v2.3.0 - 7 effort levels, per-provider factor mapping
 
 **Note on evidence labels inside questions:** [PROVEN in source] / [VERIFIED in source] / [ASSUMED in source] refer to the evidence labels of the Cascade ebook itself; bare [ASSUMED] on Leanings marks this document's own judgment.
 
