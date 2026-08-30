@@ -4,7 +4,7 @@ The loop is a pure async generator over AgentEvents - frontends only consume eve
 Every event is appended to the session JSONL at occurrence, user events before the turn starts (IG-02).
 Per-turn variability (date, cwd) lives in the user message metadata block, never in the system prompt (IG-01).
 """
-import datetime, difflib
+import asyncio, datetime, difflib, inspect
 from typing import AsyncIterator, Callable, Optional
 from lana.config import AppConfig
 from lana.events import ApprovalRequired, ErrorEvent, TextDelta, ThinkingDelta, ToolCallFinished, ToolCallRequested, TurnFinished, TurnStarted, UserMessage
@@ -19,6 +19,11 @@ APPROVAL_DENIED_NON_INTERACTIVE = "approval denied (non-interactive session)"
 APPROVAL_DENIED_BY_USER = "approval denied by user"
 WRITE_TOOLS = ("edit", "multi_edit", "write_to_file")
 CONTEXT_OVERFLOW_MARKERS = ("context_length_exceeded", "maximum context length", "prompt is too long", "too many tokens", "context window", "input length exceeds")
+
+
+# Awaitable seam (LANAACPB-IP01 IS-06): async frontend callbacks are awaited, sync values pass through untouched
+async def _maybe_await(value):
+  return await value if inspect.isawaitable(value) else value
 
 
 # Provider 400 "too long" detection (EC-20) - message-based, both providers covered
@@ -67,6 +72,7 @@ class Agent:
     self.cost_fn = cost_fn                      # (role_name, usage) -> float | None (FR-09; EC-24 -> None)
     self.compactor = compactor                  # post-turn compaction hook (FR-07, wired in Phase G)
     self.tool_definitions = tool_definitions    # recorded definitions override on resume (FR-08 full recall, IS-24)
+    self.executor_dispatch = False              # ACP mode: sync tool executors run off-loop (LANAACPB-IP01 EC-22)
     self.stop_reason: Optional[str] = None      # None | "limit" | "cancelled" | "provider_error"
     self.current_turn_completed_calls = 0
     self.final_text = ""
@@ -95,18 +101,22 @@ class Agent:
     return False, "", ""
 
   # Resolve the approval gate; returns the ApprovalRequired event to yield (or None) and applies denial to the call (BG-0001)
-  def resolve_approval(self, call: ToolCall, args: dict) -> Optional[ApprovalRequired]:
+  async def resolve_approval(self, call: ToolCall, args: dict) -> Optional[ApprovalRequired]:
     needs_approval, action, detail = self.approval_needed(call, args)
     if not needs_approval: return None
-    approved = self.approve_callback(action, detail) if self.approve_callback else False
+    approved = await _maybe_await(self.approve_callback(action, detail)) if self.approve_callback else False
     if not approved:
       call.status = "error"
       call.result = APPROVAL_DENIED_BY_USER if self.approve_callback else APPROVAL_DENIED_NON_INTERACTIVE
     return ApprovalRequired(action=action, detail=detail, approved=approved)
 
-  def dispatch_call(self, call: ToolCall, args: dict) -> ToolCall:
+  async def dispatch_call(self, call: ToolCall, args: dict) -> ToolCall:
     try:
-      call.result = self.registry.dispatch(call.name, args, self.tool_context)
+      if self.executor_dispatch:  # ACP: blocking executors run in the default executor so the read loop stays responsive (EC-22)
+        result = await asyncio.get_running_loop().run_in_executor(None, lambda: self.registry.dispatch(call.name, args, self.tool_context))
+      else:
+        result = self.registry.dispatch(call.name, args, self.tool_context)
+      call.result = await _maybe_await(result)  # ask_user callback may hand back a coroutine (elicitation round-trip)
       call.status = "ok"
     except ToolError as error:
       call.status, call.result = "error", str(error)
@@ -160,16 +170,16 @@ class Agent:
         except ValueError as error:
           args, call.status, call.result = None, "error", f"Invalid tool arguments: {error}"
         if args is not None:
-          approval_event = self.resolve_approval(call, args)
+          approval_event = await self.resolve_approval(call, args)
           if approval_event is not None: yield self.emit(approval_event)
-          if call.status != "error": self.dispatch_call(call, args)
+          if call.status != "error": await self.dispatch_call(call, args)
         self.messages.append(Message(role="tool", content=call.result or "", tool_call_id=call.id))
         self.current_turn_completed_calls += 1
         calls_this_prompt += 1
         yield self.emit(ToolCallFinished(id=call.id, status=call.status, result=call.result or "", result_chars=len(call.result or "")))
         if calls_this_prompt >= self.app.lana.max_tool_calls_per_prompt:
           if self.app.lana.auto_continue: calls_this_prompt = 0  # EC-11: auto_continue skips the pause
-          elif self.continue_callback and self.continue_callback(calls_this_prompt): calls_this_prompt = 0
+          elif self.continue_callback and await _maybe_await(self.continue_callback(calls_this_prompt)): calls_this_prompt = 0
           else:
             self.stop_reason = "limit"
             yield self.emit(finished)

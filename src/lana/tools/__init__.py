@@ -1,5 +1,5 @@
 """Tool registry: name -> (definition, executor, needs_approval); dispatch with schema validation (IS-06)."""
-import platform
+import inspect, platform
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -86,4 +86,8 @@ class ToolRegistry:
     except ToolError as error:
       raise ToolError(f"Invalid arguments for '{name}': {error}") from None
     result = tool.executor(args, context)
+    if inspect.isawaitable(result):  # async frontend callback (ACP elicitation, LANAACPB-IP01 IS-08) - cap after resolution
+      async def resolve():
+        return cap_result(await result, context.tool_result_max_chars)
+      return resolve()
     return cap_result(result, context.tool_result_max_chars)
