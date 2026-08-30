@@ -35,7 +35,7 @@ def test_read_file_refuses_images(tmp_path, context):
   image = tmp_path / "shot.png"
   image.write_bytes(b"\x89PNG fake")
   with pytest.raises(ToolError) as error: execute_read_file({"file_path": str(image)}, context)
-  assert "image" in str(error.value) and "MVP-1" in str(error.value)
+  assert "image" in str(error.value) and "CLI environment" in str(error.value)
   svg = tmp_path / "diagram.svg"
   svg.write_text("<svg><text>readable</text></svg>", encoding="utf-8")
   assert "readable" in execute_read_file({"file_path": str(svg)}, context)  # SVG stays readable as text

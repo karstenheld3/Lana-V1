@@ -5,7 +5,7 @@ Behavioral section texts adapted from the Cascade reference; every dropped-tool 
 """
 from lana.loader import PromptSystem
 
-# Tools referenced by prompt system content but unavailable in MVP-1, with fallback guidance (RV01 RF-04)
+# Tools referenced by prompt system content but not yet implemented, with fallback guidance (RV01 RF-04)
 UNAVAILABLE_TOOLS = [
   ("code_search", "use grep_search with targeted patterns instead"),
   ("create_memory", "state that memories are unavailable; important context belongs in workspace files"),

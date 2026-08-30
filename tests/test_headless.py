@@ -1,5 +1,6 @@
 """TK-024: headless mode, exit codes, non-terminal fallback (IP01 TC-50..52, TC-55; FR-14)."""
 import json
+import re
 import pytest
 from lana.events import from_jsonl
 from tests.conftest import write_config_dir, write_prompt_system
@@ -93,8 +94,8 @@ def test_jsonl_stdout_purity(cli_workspace):
   assert stdout_lines, "expected events on stdout"
   for line in stdout_lines:
     from_jsonl(line)  # every stdout line MUST parse as an AgentEvent - raises otherwise
-  assert "Lana MVP-1" in result.stderr and "SCRIPTED" in result.stderr  # banner rerouted to stderr
-  assert "Lana MVP-1" not in result.stdout
+  assert re.search(r"Lana \d+\.\d+\.\d+", result.stderr) and "SCRIPTED" in result.stderr  # banner rerouted to stderr
+  assert not re.search(r"Lana \d+\.\d+\.\d+", result.stdout)
 
 
 def test_jsonl_unknown_workflow_message_on_stderr(cli_workspace):

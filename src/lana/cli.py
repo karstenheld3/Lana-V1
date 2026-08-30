@@ -46,7 +46,7 @@ EXECUTORS = {
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-  parser = argparse.ArgumentParser(prog="lana", description="Lana MVP-1 - CLI agent running a prompt system (rules/workflows/skills) on OpenAI/Anthropic backends.")
+  parser = argparse.ArgumentParser(prog="lana", description="Lana - CLI agent running a prompt system (rules/workflows/skills) on OpenAI/Anthropic backends.")
   parser.add_argument("-p", "--prompt", help="headless mode: run this single prompt and exit (FR-14)")
   parser.add_argument("--prompt-file", metavar="PATH", help="headless prompt queue: fenced prompts executed sequentially in one session (LANAACPB-FR-12; format: docs/PROMPT_FILE_FORMAT.md)")
   parser.add_argument("--output-format", choices=["text", "jsonl"], default="text", help="headless output: final text (default) or AgentEvent JSON Lines")
@@ -97,7 +97,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
     app.debug_dir.mkdir(parents=True, exist_ok=True)
   roles_banner = " | ".join(f"{name}: {short_model_name(role.model_id)} ({role.effort})" for name, role in app.roles.items())
   scripted_marker = " | SCRIPTED" if scripted else ""
-  print(f"Lana MVP-1 | {roles_banner}{scripted_marker}")
+  print(f"Lana {package_version()} | {roles_banner}{scripted_marker}")
   started = time.perf_counter()
   print(f"Loading prompt system '{app.agent_folder}'...")
   prompt_system = load_prompt_systems([app.agent_folder], app.lana.rule_block_max_chars)

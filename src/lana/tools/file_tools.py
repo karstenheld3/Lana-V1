@@ -30,7 +30,7 @@ def execute_read_file(args: dict, context: ToolContext) -> str:
   path = Path(args["file_path"])
   if not path.exists(): raise ToolError(f"File not found: '{path}'")
   if path.is_dir(): raise ToolError(f"'{path}' is a directory - use list_dir")
-  if path.suffix.lower() in IMAGE_EXTENSIONS and path.suffix.lower() != ".svg": raise ToolError(f"'{path.name}' is an image - visual presentation is not available in this CLI environment (MVP-1 limitation)")
+  if path.suffix.lower() in IMAGE_EXTENSIONS and path.suffix.lower() != ".svg": raise ToolError(f"'{path.name}' is an image - visual presentation is not available in this CLI environment")
   try:
     text = path.read_text(encoding="utf-8", errors="replace")
   except OSError as error:

@@ -26,7 +26,7 @@ def test_tc46_offline_e2e_prime_like_flow(tmp_path):
   assert result.returncode == 0, result.stdout + result.stderr
   transcript = result.stdout
   # SPEC section 12 transcript essentials
-  assert re.search(r"Lana MVP-1 \| generator: claude-sonnet-4-5 \(medium\)", transcript)
+  assert re.search(r"Lana \d+\.\d+\.\d+ \| generator: claude-sonnet-4-5 \(medium\)", transcript)
   assert "3 rules" in transcript and "3 workflows" in transcript
   assert "[tool] read_file" in transcript and "[tool] edit" in transcript
   assert "[tool] run_command 'Write-Output primed-ok'... (policy: turbo)" in transcript

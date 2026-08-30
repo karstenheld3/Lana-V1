@@ -70,7 +70,7 @@ def load_chunks(context: ToolContext, document_id: str) -> list[str] | None:
 def execute_read_url_content(args: dict, context: ToolContext) -> str:
   url = args["Url"]
   if not url.lower().startswith(("http://", "https://")): raise ToolError(f"URL must be HTTP or HTTPS: '{url}'")
-  request = urllib.request.Request(url, headers={"User-Agent": "Lana-MVP-1"})
+  request = urllib.request.Request(url, headers={"User-Agent": "Lana"})
   try:
     with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
       content_type = response.headers.get("Content-Type", "")
