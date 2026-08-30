@@ -103,7 +103,8 @@ class OpenAIAdapter:
     for item in final.output:  # typed array parsing - message | reasoning | function_call (RF-01)
       item_type = getattr(item, "type", "")
       if item_type == "reasoning":
-        payload = item.model_dump() if hasattr(item, "model_dump") else dict(item)
+        full = item.model_dump() if hasattr(item, "model_dump") else dict(item)
+        payload = {key: full[key] for key in ("id", "type", "summary", "encrypted_content") if key in full}  # resendable fields only - extra fields (status, content) cause 400 on newer models
         yield AdapterDelta(kind="thinking", text="", thinking=ThinkingBlock(provider="openai", payload=payload))
       elif item_type == "function_call":
         call_id = getattr(item, "call_id", None) or getattr(item, "id", None) or f"call_{uuid.uuid4().hex[:8]}"
