@@ -35,7 +35,7 @@
 
 ## Versioning Strategy (from user, 2026-08-30)
 
-10. Lana-V1 starts at version **1.1.0**. Only minor and patch versions are bumped (1.1.x, 1.2.0, ...). No major version bump in this repo.
+10. Lana-V1 starts at version **1.0.0**. Only minor and patch versions are bumped (1.1.x, 1.2.0, ...). No major version bump in this repo.
 11. Lana 1.x supports ACP 1.x. Lana 2.x (separate repo) will support ACP 2.x.
 
 ## Build

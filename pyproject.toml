@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lana"
 version = "1.0.0"
-description = "Lana - CLI agent running the IPPS prompt system on OpenAI/Anthropic backends"
+description = "Lana is an ACP-compatible AI agent that runs as a CLI and supports rules, workflows, and skills"
 readme = "README.md"
 authors = [{name = "Karsten Held"}]
 requires-python = ">=3.12"

@@ -2,7 +2,7 @@
 
 ## Summary
 
-Initial release of Lana, a Python CLI agent that runs the IPPS prompt system (rules, workflows, skills) on OpenAI and Anthropic backends. Includes a full agentic tool loop with 16 tools, session persistence with full recall, checkpoint compaction, cost tracking, an evaluation suite, ACP integration for Devin Desktop, and a PyApp single-binary distribution pipeline.
+Initial release of Lana, an ACP-compatible AI agent that runs as a CLI and supports rules, workflows, and skills on OpenAI and Anthropic backends. Includes a full agentic tool loop with 16 tools, session persistence with full recall, checkpoint compaction, cost tracking, an evaluation suite, ACP integration for Devin Desktop, and a PyApp single-binary distribution pipeline.
 
 ## Changes
 
