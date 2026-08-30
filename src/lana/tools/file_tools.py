@@ -7,6 +7,17 @@ MAX_LINE_CHARS = 2000
 FIND_RESULT_CAP = 50
 GREP_LINE_CAP = 200
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".tiff", ".ico", ".heic", ".heif")
+# rg/fd parity: both tool descriptions promise gitignore-style skipping; this fixed set covers the dominant
+# noise directories without a gitignore parser dependency (DD-17 closed list) - documented approximation
+IGNORED_DIRECTORIES = {".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", ".pytest_cache", ".mypy_cache", ".lana", "dist", "build"}
+
+
+def is_inside_ignored_directory(path: Path, base: Path) -> bool:
+  try:
+    relative_parts = path.relative_to(base).parts
+  except ValueError:
+    relative_parts = path.parts
+  return any(part in IGNORED_DIRECTORIES or part.endswith(".egg-info") for part in relative_parts[:-1] if part)
 
 
 def normalize(path: str | Path) -> str:
@@ -63,6 +74,7 @@ def iter_search_files(base: Path, includes: list[str]):
   if base.is_file(): yield base; return
   for candidate in sorted(base.rglob("*")):
     if not candidate.is_file(): continue
+    if is_inside_ignored_directory(candidate, base): continue
     if includes:
       relative = str(candidate.relative_to(base)).replace("\\", "/")
       if not any(fnmatch.fnmatch(relative, pattern) or fnmatch.fnmatch(candidate.name, pattern) for pattern in includes): continue
@@ -116,6 +128,7 @@ def execute_find_by_name(args: dict, context: ToolContext) -> str:
   full_path = args.get("FullPath", False)
   results = []
   for candidate in sorted(base.rglob("*")):
+    if is_inside_ignored_directory(candidate, base) or candidate.name in IGNORED_DIRECTORIES: continue
     relative = str(candidate.relative_to(base)).replace("\\", "/")
     if max_depth is not None and relative.count("/") >= max_depth: continue
     if type_filter == "file" and not candidate.is_file(): continue

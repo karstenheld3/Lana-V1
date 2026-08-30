@@ -4,8 +4,8 @@ from lana.tools import ToolContext, ToolError
 from lana.tools.file_tools import normalize
 
 
-# Read gate (EC-07/08): file must have been read this session and be unmodified since (mtime check)
-def check_read_gate(path: Path, context: ToolContext) -> None:
+# Read gate (EC-07/08): file must have been read this session and be unmodified since (mtime check); raises on violation
+def enforce_read_gate(path: Path, context: ToolContext) -> None:
   key = normalize(path)
   if key not in context.read_ledger:
     raise ToolError(f"Cannot edit '{path}': the file was not read in this session. Read it with read_file first (edit gate, FR-11).")
@@ -31,7 +31,7 @@ def apply_replacement(text: str, old_string: str, new_string: str, replace_all: 
 def execute_edit(args: dict, context: ToolContext) -> str:
   path = Path(args["file_path"])
   if not path.exists(): raise ToolError(f"File not found: '{path}'")
-  check_read_gate(path, context)
+  enforce_read_gate(path, context)
   text = path.read_text(encoding="utf-8")
   updated = apply_replacement(text, args["old_string"], args["new_string"], args.get("replace_all", False), path)
   path.write_text(updated, encoding="utf-8", newline="")
@@ -42,7 +42,7 @@ def execute_edit(args: dict, context: ToolContext) -> str:
 def execute_multi_edit(args: dict, context: ToolContext) -> str:
   path = Path(args["file_path"])
   if not path.exists(): raise ToolError(f"File not found: '{path}'")
-  check_read_gate(path, context)
+  enforce_read_gate(path, context)
   text = path.read_text(encoding="utf-8")
   updated = text
   for index, edit_item in enumerate(args["edits"], start=1):  # atomic: all in memory, write once (TC-21)
