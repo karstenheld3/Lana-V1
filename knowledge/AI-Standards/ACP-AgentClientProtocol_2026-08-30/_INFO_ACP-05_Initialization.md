@@ -9,7 +9,7 @@
 
 ## Overview
 
-The initialization phase establishes the connection between client and agent by negotiating the protocol version and exchanging capabilities. The client sends `initialize` with its supported version and capabilities; the agent responds with its own. Once the client confirms with `initialized`, the handshake is complete and session operations can begin. [VERIFIED] (ACP-SC-ACPORG-INIT)
+The initialization phase establishes the connection between client and agent by negotiating the protocol version and exchanging capabilities. The client sends `initialize` with its supported version and capabilities; the agent responds with its own. The handshake is complete once the agent's `initialize` response arrives - session operations can begin immediately. There is NO `initialized` notification in ACP (that is MCP/LSP). [VERIFIED] (ACP-SC-ACPORG-INIT sequence diagram)
 
 ## Initialization Handshake
 
@@ -88,17 +88,7 @@ The initialization phase establishes the connection between client and agent by 
 }
 ```
 
-### Step 3: Client sends `initialized` notification
-
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "initialized",
-  "params": {}
-}
-```
-
-[VERIFIED] (ACP-SC-ACPORG-INIT)
+The handshake is a single request/response pair - there is no third step. The official sequence diagram ends with "Ready for session setup" directly after the `initialize` response. [VERIFIED] (ACP-SC-ACPORG-INIT)
 
 ## Client Capabilities
 
@@ -186,7 +176,7 @@ if __name__ == "__main__":
 
 ## Quick Reference
 
-- **Handshake**: `initialize` (request) -> response -> `initialized` (notification)
+- **Handshake**: `initialize` (request) -> response - complete (no notification step)
 - **Version**: `protocolVersion: 1` (v1 stable), `protocolVersion: 2` (v2 draft)
 - **Client capabilities**: fs, terminal, elicitation (all optional)
 - **Agent capabilities**: loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth
@@ -196,7 +186,8 @@ if __name__ == "__main__":
 ## Limitations and Gotchas
 
 - The agent MUST NOT send any messages before receiving `initialize`
-- The client MUST NOT send any session methods before `initialized` completes
+- The client MUST NOT send any session methods before the `initialize` response arrives
+- ACP has NO `initialized` notification - do not port the MCP/LSP handshake acknowledgment into ACP implementations; gating session methods on it rejects every compliant client
 - Capability negotiation is all-or-nothing per feature; there is no partial support negotiation
 - `promptCapabilities` gates only the OPTIONAL content types; `text` and `resource_link` are a mandatory baseline every agent must accept - rejecting a `resource_link` block breaks clients that send file mentions
 - The client decides what to send regardless of declared capabilities - agents should reject undeclared optional types defensively
@@ -252,6 +243,10 @@ import * as acp from "@agentclientprotocol/sdk/experimental/v2";
 - ACP-SC-TSSD-DOCS - TypeScript SDK API reference
 
 ## Document History
+
+**[2026-08-31 01:05]**
+- Removed: hallucinated `initialized` notification (Step 3, Overview, Quick Reference, Gotchas) - MCP/LSP contamination; ACP handshake completes with the `initialize` response. Verified against https://agentclientprotocol.com/protocol/v1/initialization sequence diagram and the official TypeScript SDK (only `initialize` exists)
+- Added: gotcha warning against porting the MCP handshake acknowledgment into ACP
 
 **[2026-08-30 14:20]**
 - Fixed: agent capability shape corrected against live official docs (https://agentclientprotocol.com/protocol/v1/initialization + /schema) - `promptContentTypes` array DOES NOT EXIST (real: `promptCapabilities` object), session markers are top-level `loadSession` + separate `sessionCapabilities` (not nested `session.*`), `mcp` is `mcpCapabilities` {http, sse} with stdio assumed

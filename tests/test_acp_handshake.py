@@ -37,7 +37,7 @@ def test_tc08_version_negotiation(client):
   assert result["protocolVersion"] == 1
 
 
-# TC-09: session method before initialized -> JSON-RPC error (EC-06)
+# TC-09: session method before initialize -> JSON-RPC error (EC-06)
 def test_tc09_session_before_handshake(client):
   response, _ = client.request("session/new", {"cwd": str(client.workspace)})
   assert "error" in response and "handshake incomplete" in response["error"]["message"]

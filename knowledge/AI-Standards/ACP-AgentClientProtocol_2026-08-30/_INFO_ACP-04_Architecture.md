@@ -43,17 +43,16 @@ ACP uses JSON-RPC 2.0 with three message types: [VERIFIED] (ACP-SC-ACPORG-ARCH)
 
 **Phase 1: Initialization**
 1. Client sends `initialize` with `protocolVersion` and `clientCapabilities`
-2. Agent responds with `protocolVersion` and `agentCapabilities`
-3. Client sends `initialized` notification (handshake complete)
+2. Agent responds with `protocolVersion` and `agentCapabilities` (handshake complete - there is NO `initialized` notification in ACP; that is MCP/LSP)
 
 **Phase 2: Session Setup**
-4. Client sends `session/new` or `session/resume` with working directory and MCP configs
-5. Agent responds with session ID and metadata
+3. Client sends `session/new` or `session/resume` with working directory and MCP configs
+4. Agent responds with session ID and metadata
 
 **Phase 3: Prompt Turn**
-6. Client sends `session/prompt` with user message
-7. Agent streams `session/update` notifications (text, tool calls, plans)
-8. Agent responds to `session/prompt` with the stop reason (usage flows separately via `usage_update` notifications)
+5. Client sends `session/prompt` with user message
+6. Agent streams `session/update` notifications (text, tool calls, plans)
+7. Agent responds to `session/prompt` with the stop reason (usage flows separately via `usage_update` notifications)
 
 ## v1 Method Inventory
 
@@ -95,7 +94,6 @@ ACP uses JSON-RPC 2.0 with three message types: [VERIFIED] (ACP-SC-ACPORG-ARCH)
 ### Notifications
 
 - `session/update` (agent to client) - Stream session state changes (text, tool calls, plans, etc.)
-- `initialized` (client to agent) - Handshake acknowledgment
 
 ## v2 Method Changes (Draft)
 
@@ -129,6 +127,9 @@ See `_INFO_ACP-16_V2MigrationOverview.md [ACP-IN16]` for complete migration deta
 - ACP-SC-ANN-ELCTN - Elicitation methods stabilization
 
 ## Document History
+
+**[2026-08-31 01:05]**
+- Removed: hallucinated `initialized` notification (Phase 1 step 3, Notifications section) - ACP has no such notification (MCP/LSP contamination); handshake completes with the `initialize` response. Verified against https://agentclientprotocol.com/protocol/v1/initialization sequence diagram and the official TypeScript SDK method inventory (only `initialize` exists)
 
 **[2026-08-30 14:20]**
 - Fixed: prompt response carries stop reason only (usage was hallucinated); `session/set_config_option` is capability-gated, not baseline; `elicitation/complete` is a client-implemented notification (was listed as agent method); notifications section directions

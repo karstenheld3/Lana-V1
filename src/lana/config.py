@@ -6,6 +6,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field, ValidationError
 
 ENV_KEY_NAMES = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+PROVIDER_DISPLAY = {"openai": "OpenAI", "anthropic": "Anthropic"}
 
 # Zero-setup default roles (FR-16, DD-02/DD-23): written to a missing DEFAULT config path at startup
 DEFAULT_ROLES = {
@@ -70,6 +71,7 @@ class AppConfig:
   keys: dict[str, str]    # provider -> api key (only for providers required at load)
   workspace: Path
   config_dir: Path
+  key_sources: dict[str, str] = field(default_factory=dict)  # provider -> source label ("env" or ".api-keys.txt")
   agent_folder: Path = Path(".lana")  # resolved absolute agent folder path (prompt system)
   data_dir: Path = Path(".lana-data")  # resolved absolute runtime data directory (sessions, logs, chunks)
   scripted: bool = False              # LANA_SCRIPTED_ADAPTER active (FR-14)
@@ -153,9 +155,13 @@ def parse_key_file(path: Path) -> dict[str, str]:
 
 
 # Resolve API key for a provider: environment variable first, then key file (FR-01)
-def resolve_key(provider: str, key_file_entries: dict[str, str]) -> Optional[str]:
+def resolve_key(provider: str, key_file_entries: dict[str, str], key_file_rel: str) -> tuple[Optional[str], str]:
   env_name = ENV_KEY_NAMES[provider]
-  return os.environ.get(env_name) or key_file_entries.get(env_name) or None
+  env_val = os.environ.get(env_name)
+  if env_val: return env_val, f"Environment variable: {env_name}"
+  file_val = key_file_entries.get(env_name)
+  if file_val: return file_val, f"{key_file_rel}: {env_name}"
+  return None, ""
 
 
 # Translate effort level to provider call params per registry method (FR-01, TC-04)
@@ -226,18 +232,21 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
   if "generator" not in roles:
     raise ConfigError(f"Missing role 'generator' in '{config_path}'.\n  HINT: add a \"generator\" entry under \"roles\".")
   keys: dict[str, str] = {}
+  key_sources: dict[str, str] = {}
   if require_keys:
     key_file = config_dir / ".api-keys.txt"
     key_file_entries = parse_key_file(key_file)
     for provider in sorted({role.provider for role in roles.values()}):
-      key = resolve_key(provider, key_file_entries)
+      key_file_rel = '.' + os.sep + str(key_file.relative_to(workspace))
+      key, source = resolve_key(provider, key_file_entries, key_file_rel)
       if key is None:
         raise ConfigError(f"No API key for provider '{provider}'.\n  HINT: set env var {ENV_KEY_NAMES[provider]} or add a line '{ENV_KEY_NAMES[provider]}=<key>' to '{key_file}'.")
       keys[provider] = key
+      key_sources[provider] = source
   resolved_data_dir = (Path(workspace) / lana.data_dir).resolve()
   agent_path = Path(lana.agent_folder)
   resolved_agent_folder = agent_path if agent_path.is_absolute() else (Path(workspace) / agent_path).resolve()
-  return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, workspace=Path(workspace), config_dir=config_dir, agent_folder=resolved_agent_folder, data_dir=resolved_data_dir,
+  return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, key_sources=key_sources, workspace=Path(workspace), config_dir=config_dir, agent_folder=resolved_agent_folder, data_dir=resolved_data_dir,
                    created_files=created_files)
 
 # ----------------------------------------- END: Loading ----------------------------------------------------------------------

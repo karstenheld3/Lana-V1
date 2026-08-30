@@ -134,7 +134,7 @@ A **PromptQueueFile** (`PROMPTS*.md`) is a markdown file carrying an ordered que
 - Respond to `initialize` with `protocolVersion: 1`, `agentInfo` (name `lana`, version from package metadata), and agent capabilities (LANAACPB-IN01, official v1 shape)
 - Declared capabilities: `loadSession: true`, `promptCapabilities: {image: false, audio: false, embeddedContext: false}`; nothing else (no `mcpCapabilities`, no `auth`, no `sessionCapabilities` markers in MVP-2)
 - If the client requests `protocolVersion: 2`, respond with `1` (client decides to continue or disconnect, ACP-IN05 version negotiation)
-- Before `initialize`: send nothing. Before the `initialized` notification: reject session methods with a JSON-RPC error (ACP-IN05 gotchas)
+- Before `initialize`: send nothing; reject session methods with a JSON-RPC error. The handshake completes with the `initialize` response - ACP has no `initialized` notification (ACP-IN05 gotchas)
 
 **LANAACPB-FR-03: Session Creation**
 - `session/new` creates a Lana session: workspace = `cwd` param; prompt system, config, and system prompt assembled per LANAAGNT-FR-01..03; `session_started` environment record written as first JSONL line (LANAAGNT-FR-08)
@@ -204,7 +204,7 @@ A **PromptQueueFile** (`PROMPTS*.md`) is a markdown file carrying an ordered que
 **LANAACPB-FR-11: Wire Error Handling**
 - Unparseable stdin line → error response `-32700` (Parse error) with null id, processing continues
 - Unknown method → `-32601` (Method not found); requests carrying invalid params → `-32602`
-- Session methods before `initialized`, unknown `sessionId`, second concurrent prompt → structured JSON-RPC errors with self-contained messages (LANAAGNT-IG-05 discipline)
+- Session methods before `initialize`, unknown `sessionId`, second concurrent prompt → structured JSON-RPC errors with self-contained messages (LANAAGNT-IG-05 discipline)
 - Errors never crash the connection; only stdin EOF or a fatal startup failure ends the process
 
 **LANAACPB-FR-12: Prompt Queue Headless Execution**

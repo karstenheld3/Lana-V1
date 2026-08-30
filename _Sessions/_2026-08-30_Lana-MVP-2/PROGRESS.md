@@ -12,6 +12,8 @@
 
 ## Done
 
+- [x] FR-12 `[y/n/a]` approve-all: SPEC/IMPL/TEST updated, code implemented (`render.py`, `agent.py`), 3 new tests (TP01-TC-12), 285 passed
+
 - [x] Hardening IMPLEMENTED and green (Tier 1 + Tier 2 + zero-setup): `_IMPL_LANA_HARDENING.md [LANAAGNT-IP02]` - 14 ISs, 240 tests passed (17 new)
 - [x] SPEC updates: LANAAGNT-SP01 FR-16 + DD-23/DD-24 (zero-setup, severity notices); LANAACPB-SP01 FR-01/03/10 hardening bullets (BL-01/02/04/06)
 - [x] Created `_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]`: Option A (native in-process), 11 FRs, 4 NFRs, 9 DDs, 5 IGs; topic LANAACPB registered
@@ -30,6 +32,10 @@
 - (none)
 
 ## Progress Changes
+
+**[2026-08-30 23:15]**
+- Added: FR-12 `[y/n/a]` approve-all feature - SPEC (FR-12, section 11, section 12), IMPL (IS-15, logging preview), TEST (TP01-TC-12) updated; `render.py` returns tri-state, `agent.py` per-turn `_approve_all` flag with reset; 3 integration tests; 285 tests green (282 existing + 3 new)
+- [DECISION] TC-12 implemented as in-process integration test (not black-box) - approval prompts are terminal-only per FR-14 design; piped stdin auto-denies, pseudo-terminal emulation is explicitly out of scope (TP01 section 2)
 
 **[2026-08-30 17:45]**
 - Added: hardening complete via `/go` - SPECs updated (FR-16, DD-23/24, LANAACPB FR-01/03/10), LANAAGNT-IP02 created + implemented, 240 tests green

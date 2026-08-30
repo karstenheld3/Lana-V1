@@ -125,6 +125,95 @@ def test_denylisted_command_denied_without_callback(agent_factory, tmp_path):
   assert agent.final_text == "done anyway"  # loop continues after denial (TC-52 semantics)
 
 
+# TP01-TC-12: approve-all ('a') skips subsequent approval prompts within the same turn, resets on next prompt (FR-12)
+def test_tp01_tc12_approve_all_skips_subsequent_prompts(agent_factory, tmp_path):
+  workspace = tmp_path / "ws"
+  workspace.mkdir(exist_ok=True)
+  turns = [
+    {"text": "running three commands", "tool_calls": [
+      {"name": "run_command", "args": {"CommandLine": "echo one", "SafeToAutoRun": False}},
+      {"name": "run_command", "args": {"CommandLine": "echo two", "SafeToAutoRun": False}},
+      {"name": "run_command", "args": {"CommandLine": "echo three", "SafeToAutoRun": False}},
+    ], "usage": {"input": 500, "output": 20}},
+    {"text": "all done", "usage": {"input": 600, "output": 10}},
+  ]
+  callback_calls = []
+
+  def fake_approval(action, detail):
+    callback_calls.append((action, detail))
+    return "all"  # first (and only) call returns approve-all
+
+  agent = agent_factory(turns, approve_callback=fake_approval)
+  events = collect_events(agent, "run commands")
+  approvals = [event for event in events if event.type == "approval_required"]
+  assert len(approvals) == 3, f"expected 3 approval events, got {len(approvals)}"
+  assert all(event.approved is True for event in approvals), "all 3 approvals should be granted"
+  assert len(callback_calls) == 1, f"callback should be called only once (first approval), got {len(callback_calls)}"
+  finished = [event for event in events if event.type == "tool_call_finished"]
+  assert all(event.status == "ok" for event in finished), "all 3 commands should have executed"
+  assert agent.final_text == "all done"
+
+
+# TP01-TC-12 part 2: approve-all resets on next user prompt
+def test_tp01_tc12_approve_all_resets_on_next_prompt(agent_factory, tmp_path):
+  workspace = tmp_path / "ws"
+  workspace.mkdir(exist_ok=True)
+  turns = [
+    # Turn 1: 2 commands, user answers 'all' -> both approved, callback called once
+    {"text": "turn one", "tool_calls": [
+      {"name": "run_command", "args": {"CommandLine": "echo first", "SafeToAutoRun": False}},
+      {"name": "run_command", "args": {"CommandLine": "echo second", "SafeToAutoRun": False}},
+    ], "usage": {"input": 500, "output": 20}},
+    {"text": "done one", "usage": {"input": 600, "output": 10}},
+    # Turn 2: 1 command, flag should be reset -> callback called again
+    {"text": "turn two", "tool_calls": [
+      {"name": "run_command", "args": {"CommandLine": "echo third", "SafeToAutoRun": False}},
+    ], "usage": {"input": 500, "output": 20}},
+    {"text": "done two", "usage": {"input": 600, "output": 10}},
+  ]
+  call_count = {"n": 0}
+
+  def fake_approval(action, detail):
+    call_count["n"] += 1
+    return "all" if call_count["n"] == 1 else "yes"  # first prompt: all; second prompt: yes
+
+  agent = agent_factory(turns, approve_callback=fake_approval)
+  # First prompt
+  events1 = collect_events(agent, "turn one")
+  approvals1 = [event for event in events1 if event.type == "approval_required"]
+  assert len(approvals1) == 2 and all(event.approved for event in approvals1)
+  assert call_count["n"] == 1  # only called once in first prompt (approve-all)
+  # Second prompt: flag must have reset
+  events2 = collect_events(agent, "turn two")
+  approvals2 = [event for event in events2 if event.type == "approval_required"]
+  assert len(approvals2) == 1 and approvals2[0].approved is True
+  assert call_count["n"] == 2  # callback called again in second prompt (flag reset)
+
+
+# TP01-TC-12 part 3: 'yes' answer does NOT set approve-all (backward compat)
+def test_tp01_tc12_yes_does_not_set_approve_all(agent_factory, tmp_path):
+  workspace = tmp_path / "ws"
+  workspace.mkdir(exist_ok=True)
+  turns = [
+    {"text": "two commands", "tool_calls": [
+      {"name": "run_command", "args": {"CommandLine": "echo one", "SafeToAutoRun": False}},
+      {"name": "run_command", "args": {"CommandLine": "echo two", "SafeToAutoRun": False}},
+    ], "usage": {"input": 500, "output": 20}},
+    {"text": "done", "usage": {"input": 600, "output": 10}},
+  ]
+  callback_calls = []
+
+  def fake_approval(action, detail):
+    callback_calls.append(1)
+    return True  # bool True = approved but NOT approve-all
+
+  agent = agent_factory(turns, approve_callback=fake_approval)
+  events = collect_events(agent, "go")
+  assert len(callback_calls) == 2, "callback should be called for EACH approval when answer is True (not 'all')"
+  approvals = [event for event in events if event.type == "approval_required"]
+  assert len(approvals) == 2 and all(event.approved for event in approvals)
+
+
 def test_user_metadata_in_user_message_not_system_prompt(agent_factory):
   agent = agent_factory([{"text": "ok"}])
   collect_events(agent, "hello")

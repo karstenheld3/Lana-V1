@@ -101,8 +101,7 @@ class AcpClient:
     response, _ = self.request("initialize", {"protocolVersion": protocol_version,
                                               "clientInfo": {"name": "acp-harness", "version": "1.0"},
                                               "clientCapabilities": client_capabilities})
-    self.notify("initialized")
-    return response["result"]
+    return response["result"]  # handshake complete - ACP has no 'initialized' notification
 
   def session_new(self, extra_params: dict | None = None) -> tuple[str, list[dict]]:
     response, collected = self.request("session/new", {"cwd": str(self.workspace), **(extra_params or {})})

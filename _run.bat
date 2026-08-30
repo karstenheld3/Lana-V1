@@ -1,4 +1,4 @@
 @echo off
 pushd "%~dp0"
-lana %*
+.venv\Scripts\python.exe -m lana %*
 popd

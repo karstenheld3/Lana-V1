@@ -97,14 +97,16 @@ class Renderer:
 
 # ----------------------------------------- START: Interactive Prompts --------------------------------------------------------
 
-# y/n approval showing exact command line + working directory (FR-12); reads from stdin
-def prompt_approval(action: str, detail: str) -> bool:
+# y/n/a approval showing exact command line + working directory (FR-12); reads from stdin
+# Returns "yes", "no", or "all" (approve remaining approval-gated calls in this turn)
+def prompt_approval(action: str, detail: str) -> str:
   print(f"  [{action}] {detail}")
   try:
-    answer = input("    Approve? [y/n] ").strip().lower()
+    answer = input("    Approve? [y/n/a] ").strip().lower()
   except (EOFError, KeyboardInterrupt):
-    return False
-  return answer in ("y", "yes")
+    return "no"
+  if answer in ("a", "all"): return "all"
+  return "yes" if answer in ("y", "yes") else "no"
 
 
 # Numbered choice prompt for ask_user_question (SPEC section 11)

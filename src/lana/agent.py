@@ -57,7 +57,7 @@ def expand_slash_command(user_input: str, prompt_system: PromptSystem) -> tuple[
 
 class Agent:
   def __init__(self, app: AppConfig, prompt_system: PromptSystem, system_prompt: str, registry: ToolRegistry, tool_context: ToolContext, session: SessionStore,
-               messages: Optional[list[Message]] = None, approve_callback: Optional[Callable[[str, str], bool]] = None,
+               messages: Optional[list[Message]] = None, approve_callback: Optional[Callable] = None,
                continue_callback: Optional[Callable[[int], bool]] = None, cost_fn: Optional[Callable] = None, compactor: Optional[Callable] = None,
                tool_definitions: Optional[list[dict]] = None):
     self.app = app
@@ -67,7 +67,8 @@ class Agent:
     self.tool_context = tool_context
     self.session = session
     self.messages: list[Message] = messages or []
-    self.approve_callback = approve_callback    # (action, detail) -> bool; None = non-interactive auto-deny (FR-14)
+    self.approve_callback = approve_callback    # (action, detail) -> bool | str; None = non-interactive auto-deny (FR-14); str "all" = approve-all
+    self._approve_all = False                    # FR-12: set by "a" answer, resets per user prompt
     self.continue_callback = continue_callback  # (calls_done) -> bool; None = stop at limit (EC-11)
     self.cost_fn = cost_fn                      # (role_name, usage) -> float | None (FR-09; EC-24 -> None)
     self.compactor = compactor                  # post-turn compaction hook (FR-07, wired in Phase G)
@@ -104,7 +105,17 @@ class Agent:
   async def resolve_approval(self, call: ToolCall, args: dict) -> Optional[ApprovalRequired]:
     needs_approval, action, detail = self.approval_needed(call, args)
     if not needs_approval: return None
-    approved = await _maybe_await(self.approve_callback(action, detail)) if self.approve_callback else False
+    if self._approve_all:  # FR-12: approve-all active for this turn - skip the interactive prompt
+      return ApprovalRequired(action=action, detail=detail, approved=True)
+    if self.approve_callback:
+      result = await _maybe_await(self.approve_callback(action, detail))
+      if result == "all":  # FR-12 [y/n/a]: "a" approves current + all remaining in this turn
+        self._approve_all = True
+        approved = True
+      else:
+        approved = bool(result)  # backward compat: ACP PermissionBroker returns bool
+    else:
+      approved = False
     if not approved:
       call.status = "error"
       call.result = APPROVAL_DENIED_BY_USER if self.approve_callback else APPROVAL_DENIED_NON_INTERACTIVE
@@ -129,6 +140,7 @@ class Agent:
     self.stop_reason = None
     self.current_turn_completed_calls = 0
     self.final_text = ""
+    self._approve_all = False  # FR-12: reset approve-all at the start of each user prompt
     content, workflow_name = expand_slash_command(user_input, self.prompt_system)  # UnknownWorkflowError propagates (EC-05)
     yield self.emit(UserMessage(content=user_input, expanded_workflow=workflow_name))
     self.messages.append(self.build_user_message(content))

@@ -98,6 +98,10 @@ def build_runtime(args, workspace: Path, interactive: bool):
   roles_banner = " | ".join(f"{name}: {short_model_name(role.model_id)} ({role.effort})" for name, role in app.roles.items())
   scripted_marker = " | SCRIPTED" if scripted else ""
   print(f"Lana {package_version()} | {roles_banner}{scripted_marker}")
+  if app.key_sources:
+    from lana.config import PROVIDER_DISPLAY
+    keys_banner = ", ".join(f"{PROVIDER_DISPLAY.get(provider, provider)} ({source})" for provider, source in sorted(app.key_sources.items()))
+    print(f"Keys: {keys_banner}")
   started = time.perf_counter()
   print(f"Loading prompt system '{app.agent_folder}'...")
   prompt_system = load_prompt_systems([app.agent_folder], app.lana.rule_block_max_chars)

@@ -83,7 +83,7 @@ Input boundaries:
 - **LANAACPB-IP01-EC-05**: JSON content containing newlines/CRLF -> `json.dumps` escapes them; wire line stays single-line (FR-01)
 
 State transitions:
-- **LANAACPB-IP01-EC-06**: Session method before `initialized` notification -> JSON-RPC error (FR-02)
+- **LANAACPB-IP01-EC-06**: Session method before the `initialize` response -> JSON-RPC error (FR-02; ACP has no `initialized` notification - handshake completes with the response)
 - **LANAACPB-IP01-EC-07**: Second `initialize` after handshake -> JSON-RPC error, state unchanged
 - **LANAACPB-IP01-EC-08**: Second `session/prompt` while a turn is active -> JSON-RPC error, active turn unaffected (FR-05)
 - **LANAACPB-IP01-EC-09**: `session/cancel` with no active turn -> ignored with one stderr log line (FR-10)
@@ -165,7 +165,7 @@ class Connection:
 ```python
 class AcpServer:
   METHODS = {"initialize": ..., "session/new": ..., "session/load": ..., "session/prompt": ...}
-  NOTIFICATIONS = {"initialized": ..., "session/cancel": ..., "$/cancel_request": ...}
+  NOTIFICATIONS = {"session/cancel": ..., "$/cancel_request": ...}  # no 'initialized' - not part of ACP
   async def handle(self, message): ...   # state gate (EC-06/07) -> method handler -> respond; unknown -> -32601
   def handle_initialize(self, params): ...  # protocolVersion 1, agentInfo, capabilities per FR-02
 ```
@@ -417,7 +417,7 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 
 - **LANAACPB-IP01-TC-07**: `initialize` -> exact capability response per SPEC Data Structures (byte-structural compare)
 - **LANAACPB-IP01-TC-08**: `protocolVersion: 2` request -> response carries `1` (EC-04)
-- **LANAACPB-IP01-TC-09**: `session/new` before `initialized` -> JSON-RPC error (EC-06)
+- **LANAACPB-IP01-TC-09**: `session/new` before `initialize` -> JSON-RPC error (EC-06)
 - **LANAACPB-IP01-TC-10**: Unknown method -> `-32601`; unparseable line -> `-32700` with null id, connection alive after both (EC-01, EC-02)
 - **LANAACPB-IP01-TC-11**: Second `initialize` -> error, previous handshake state kept (EC-07)
 

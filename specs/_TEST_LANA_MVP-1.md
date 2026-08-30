@@ -111,10 +111,11 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 - **LANAAGNT-TP01-TC-02**: Multi-turn piped session - 3 prompts via stdin pipe -> 3 `turn_finished` events, session file replays to identical state via `--resume` + `/cost` (FR-08, IG-06)
 - **LANAAGNT-TP01-TC-03**: Todo lifecycle - script calls `todo_list` twice then compaction fires (tiny threshold config) -> checkpoint event carries second todo state byte-identical (FR-07, IG-04)
 
-### Category 2: Safety Scenarios (2 tests)
+### Category 2: Safety Scenarios (3 tests)
 
 - **LANAAGNT-TP01-TC-04**: Destructive command blocked end-to-end - script requests `Remove-Item x` under `--policy auto` headless -> denied result event, no file deleted, agent continues, exit 0 (FR-12, FR-14, IG-03)
 - **LANAAGNT-TP01-TC-05**: Out-of-workspace write blocked - script requests `write_to_file` outside temp workspace headless -> denied, target absent (FR-12)
+- **LANAAGNT-TP01-TC-12**: Approve-all (`a`) skips subsequent prompts - in-process integration (approval prompts are terminal-only per FR-14; no piped-stdin path) with scripted 3 consecutive `run_command` calls under `--policy manual`; callback returns `"all"` on first call -> first `approval_required` event shows `approved: true`, remaining 2 `approval_required` events also show `approved: true` with callback not called again; next `run_prompt` call resets the flag (callback called again) (FR-12)
 
 ### Category 3: Robustness Scenarios (2 tests)
 
@@ -123,7 +124,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 
 ### Category 4: Real Prompt System Scenario (1 test)
 
-- **LANAAGNT-TP01-TC-08**: IPPS startup + `/help` via pipe (skip if folder absent) -> banner reports filesystem-derived counts (8/46/21 at analysis; the folder evolves - counts computed at test time), workflow list contains `prime` and `verify`, startup under 2 s (FR-02, NFR-03)
+- **LANAAGNT-TP01-TC-08**: IPPS startup + `/help` via pipe (skip if folder absent) -> banner reports filesystem-derived counts (8/46/21 at analysis; the folder evolves - counts computed at test time), `Keys:` line shows source per provider (`Environment variable:` or key file path with var name, FR-01), workflow list contains `prime` and `verify`, startup under 2 s (FR-02, NFR-03)
 
 ### Category 5: Diagnostics and Exit Codes (2 tests)
 
@@ -137,7 +138,7 @@ Black-box scenarios (Layer 3). Each drives the real CLI and cites the requiremen
 ## 7. Test Phases
 
 1. **Phase T1: Offline foundation** - IP01 TC-01..39, TC-48..49, TC-56..57, TC-59..64, TC-66..67 (Layers 1-2), run on every change, no keys, no network
-2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58, TC-65 + TP01-TC-01..11 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
+2. **Phase T2: Black-box CLI** - IP01 TC-50..55, TC-58, TC-65 + TP01-TC-01..12 (Layer 3), scripted adapter, no keys; requires `pip install -e .`
 3. **Phase T3: Live smoke** - IP01 TC-40..45 (Layer 4), keys present, marker `live`, budget-capped
 4. **Phase T4: Acceptance** - IP01 TC-46 offline end-to-end + TC-47 manual live run against IPPS; results recorded in PROGRESS.md
 
@@ -168,13 +169,19 @@ def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key 
 ## 10. Verification Checklist
 
 - [x] **LANAAGNT-TP01-VC-01**: Phases T1+T2 green locally with zero keys configured (proves offline completeness)
-- [x] **LANAAGNT-TP01-VC-02**: All 11 TP01 scenarios pass against the installed executable (not in-process imports; TC-11 green 2026-08-30 in tests/test_full_recall.py)
+- [x] **LANAAGNT-TP01-VC-02**: All 12 TP01 scenarios pass (TC-11 green 2026-08-30 in tests/test_full_recall.py; TC-12 green 2026-08-30 in tests/test_agent.py as in-process integration - approval prompts are terminal-only per FR-14)
 - [x] **LANAAGNT-TP01-VC-03**: Coverage contract - every SPEC FR-01..15 and IG-01..07 is cited by at least one passing IP01 TC or TP01 TC (FR-08/IG-06/IG-07/DD-22 covered by TC-64..67 + TP01-TC-11)
 - [x] **LANAAGNT-TP01-VC-04**: `assert_no_secret_leak` wired into every black-box scenario (NFR-01)
 - [x] **LANAAGNT-TP01-VC-05**: T3 live smoke green with keys; spend under budget cap
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 11. Document History
+
+**[2026-08-30 23:30]**
+- Changed: TP01-TC-08 now asserts `Keys:` line with per-provider source (`Environment variable:` or key file path, FR-01)
+
+**[2026-08-30 23:15]**
+- Added: TP01-TC-12 approve-all (`a`) test in Category 2 Safety Scenarios (FR-12 `[y/n/a]` change); scenario count 11 -> 12, T2 range updated, VC-02 unchecked pending implementation
 
 **[2026-08-30 03:50]**
 - Changed: VC-02/VC-03 checked - TP01-TC-11 green (combined with IP01 TC-65 in tests/test_full_recall.py), full offline suite 179 passed

@@ -109,7 +109,7 @@ Black-box scenarios (Layer 3). Each drives the real executable end-to-end and ci
 
 ### Category 1: Protocol Conformance (2 tests)
 
-- **LANAACPB-TP01-TC-01**: Full happy path - initialize → initialized → session/new → prompt (scripted: text + read_file call + todo_list) → wire transcript contains handshake response, available_commands_update, agent_message_chunk stream (stable messageId), tool_call/tool_call_update pairs, plan update, usage_update, `{stopReason: "end_turn"}`; EVERY stdout line parses as JSON-RPC; EOF → exit 0 (FR-01..03, FR-05..07, IG-01, DD-08)
+- **LANAACPB-TP01-TC-01**: Full happy path - initialize → session/new → prompt (scripted: text + read_file call + todo_list) → wire transcript contains handshake response, available_commands_update, agent_message_chunk stream (stable messageId), tool_call/tool_call_update pairs, plan update, usage_update, `{stopReason: "end_turn"}`; EVERY stdout line parses as JSON-RPC; EOF → exit 0 (FR-01..03, FR-05..07, IG-01, DD-08)
 - **LANAACPB-TP01-TC-02**: Fixture conformance - each recorded wire message byte-structurally matches its `fixtures/acp_wire/` counterpart (ids/timestamps/dynamic text masked) (NFR-01)
 
 ### Category 2: Cross-Frontend Equivalence (2 tests)
@@ -153,7 +153,7 @@ Dependency: T2 requires T1 green; T3 requires T2 green; T4 requires T3 green. T1
 # tests/acp_harness.py - the fake ACP client (IP01 File Structure)
 class AcpClient:
     def start(workspace, config, script, capabilities="full") -> AcpClient: ...  # spawn `lana --acp`, wire env
-    def handshake() -> dict: ...                      # initialize -> initialized; returns agent capabilities
+    def handshake() -> dict: ...                      # initialize request/response; returns agent capabilities
     def request(method, params, timeout_s=10) -> dict: ...   # send request, read until response (collecting notifications)
     def notify(method, params) -> None: ...
     def send_raw(line) -> None: ...                   # hostile-client injection
