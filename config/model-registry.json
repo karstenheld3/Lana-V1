@@ -1,5 +1,5 @@
 {
-  "_version": "1.7.1",
+  "_version": "1.7.2",
   "_updated": "2026-08-30",
   "_comment": "Model properties and boundaries. context_window = max input tokens, max_output in tokens, temp_max for temperature models, thinking_max for extended thinking models.",
   
@@ -77,7 +77,7 @@
     { "prefix": "claude-opus-4-6",   "provider": "anthropic", "method": "adaptive_thinking", "max_input": 200000, "max_output": 128000, "effort": ["low", "medium", "high", "max"] },
     { "prefix": "claude-opus-4-5",   "provider": "anthropic", "method": "effort", "max_input": 200000, "max_output": 8192, "effort": ["low", "medium", "high"], "default": "high", "beta": "effort-2025-11-24" },
     { "prefix": "claude-opus-4",     "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
-    { "prefix": "claude-sonnet-4-6", "provider": "anthropic", "method": "adaptive_thinking", "max_input": 1000000, "max_output": 128000, "effort": ["low", "medium", "high", "xhigh", "max"] },
+    { "prefix": "claude-sonnet-4-6", "provider": "anthropic", "method": "adaptive_thinking", "max_input": 1000000, "max_output": 128000, "effort": ["low", "medium", "high", "max"] },
     { "prefix": "claude-sonnet-4-5", "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 16384, "thinking_max": 100000 },
     { "prefix": "claude-haiku-4-5",  "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
     { "prefix": "claude-sonnet-4",   "provider": "anthropic", "method": "thinking", "max_input": 200000, "max_output": 8192, "thinking_max": 100000 },
