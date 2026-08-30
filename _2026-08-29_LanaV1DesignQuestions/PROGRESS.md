@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 13:30]**
+- Added: `_IMPL_LANA_MVP-2_ACP.md [LANAACPB-IP01]` created via `/write-impl-plan` - 6 phases (jsonrpc core → method router → event translator → permission bridge → session/load → CLI flag), 21 ECs, 13 ISs, 41 TCs, 12 VCs; codebase analysis surfaced two design refinements synced into SP01 Technical Constraints: awaitable callback seam in agent.py (CLI sync callbacks unchanged, TC-40 regression gate) and stdin readline via default executor; verify pass added TC-41 (FR-08 continue prompt); next: `/write-test-plan`
+
 **[2026-08-30 04:20]**
 - Added: `_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]` created via `/write-spec` - Option A (native in-process ACP module, hand-rolled JSON-RPC over stdio), protocol v1 only, 11 FRs / 4 NFRs / 9 DDs / 5 IGs; topic `LANAACPB` registered in ID-REGISTRY.md; authoritative ACP docs = `ACP-AgentClientProtocol_2026-08-30/` (recorded in NOTES.md); verify pass fixed FR-06 exhaustiveness (11 event types) and Action Flow nesting; 3 [ASSUMED] items await user validation (provider-error channel, error-event mapping, continue-prompt mechanism); next: `/write-impl-plan`, `/write-test-plan`
 

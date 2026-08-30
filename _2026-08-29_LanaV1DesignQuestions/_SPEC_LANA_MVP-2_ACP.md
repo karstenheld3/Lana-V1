@@ -307,14 +307,17 @@ Client sends session/cancel (notification, any time during the turn)
 
 ## 12. Technical Constraints
 
-- The Agent core is reused unchanged: the ACP layer consumes `run_prompt()` events and provides the approval/question callbacks - no Agent modification beyond what callbacks already permit
-- Single asyncio event loop: stdin reading, turn execution, and client-bound requests interleave without threads
+- The Agent core is reused with one seam: frontend callbacks (approve/continue/ask_user) may return awaitables, which the Agent awaits inside its async loop - CLI sync callbacks pass through unchanged (LANAACPB-IP01-IS-06)
+- Single asyncio event loop coordinates stdin dispatch, turn execution, and client-bound requests; the blocking stdin readline itself runs in the default executor (Windows has no async console stdin)
 - Windows stdio: UTF-8 encoding enforced on both pipes; line flushing per message (CRLF must not appear inside the JSON payload)
 - The scripted replay adapter (LANAAGNT-FR-14) works unchanged under ACP mode - deterministic offline testing of full ACP exchanges
 - Session files remain in `<workspace>/.lana/sessions/`; the `cwd` from `session/new` is the workspace for tool context and git-root detection
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-30 13:25]**
+- Changed: Technical Constraints synced with LANAACPB-IP01 codebase analysis - awaitable callback seam in the Agent (sync CLI callbacks unaffected), stdin readline via default executor
 
 **[2026-08-30 04:15]**
 - Initial specification created: Option A (native module) per 2026-08-30 design discussion; wire shapes from ACP-AgentClientProtocol_2026-08-30 [ACP-IN04..08, IN10, IN15]; 11 FRs, 4 NFRs, 9 DDs, 5 IGs
