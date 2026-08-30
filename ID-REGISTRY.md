@@ -7,6 +7,7 @@ Topics MUST be 7-14 uppercase chars and unique.
 
 - `LANAAGNT` - Lana-V1 Agent (Python CLI agent adapting Cascade architecture)
 - `LANAACPB` - Lana ACP Bridge (MVP-2 Agent Client Protocol frontend)
+- `LANADIST` - Lana Distribution and Shipping (binary packaging, signing, release pipeline)
 
 ## External Topic References
 

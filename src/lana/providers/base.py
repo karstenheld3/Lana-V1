@@ -5,7 +5,10 @@ up to RETRY_MAX visible retries on retryable failures occurring before the first
 """
 from dataclasses import dataclass
 from typing import AsyncIterator, Optional, Protocol
-import httpx
+try:
+  import httpx2 as httpx  # openai>=3 / anthropic>=1 migrated to httpx2 - Timeout must be THEIR variant (intentionally undeclared: always arrives with the SDKs)
+except ModuleNotFoundError:
+  import httpx
 from lana.config import ResolvedRole
 from lana.models import Message, ThinkingBlock, ToolCall, Usage
 

@@ -1,5 +1,5 @@
 """Configuration loading and validation (LANAAGNT-FR-01, IS-03). All validation at startup (IG-05)."""
-import json, os
+import importlib.resources, json, os, shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Optional
@@ -13,6 +13,15 @@ DEFAULT_ROLES = {
   "summarizer": {"model_id": "gpt-4.1-mini", "effort": "low"},
   "websearch": {"model_id": "gpt-4.1-mini", "effort": "low"},
 }
+
+# Key file template is code-generated, never copied from any workspace (LANADIST-DD-09)
+KEY_FILE_TEMPLATE = """# Lana API keys - one KEY=value line per provider. Lines starting with # are ignored.
+# Alternative: set the same names as environment variables.
+# OPENAI_API_KEY=
+# ANTHROPIC_API_KEY=
+"""
+
+BUNDLED_CONFIG_FILES = ("model-registry.json", "model-parameter-mapping.json", "model-pricing.json")
 
 
 class ConfigError(Exception):
@@ -92,6 +101,46 @@ def create_default_config(config_path: Path) -> None:
     raise ConfigError(f"Cannot create default config '{config_path}': {error}.\n  HINT: check folder permissions or pass --config <path> to a writable location.") from None
 
 
+def bundled_root():  # Traversable for lana.bundled package data, None when bundle absent (source checkout without sync)
+  try:
+    root = importlib.resources.files("lana.bundled")
+  except ModuleNotFoundError:
+    return None
+  return root
+
+
+# LANADIST-FR-08: write bundled model JSONs and the key template for every MISSING file; existing files stay untouched (EC-15)
+def materialize_bundled_config(config_dir: Path, created: list) -> None:
+  root = bundled_root()
+  try:
+    for name in BUNDLED_CONFIG_FILES:
+      target = config_dir / name
+      if target.exists(): continue
+      source = (root / "config" / name) if root is not None else None
+      if source is None or not source.is_file(): continue  # bundle not synced - startup fails later with the existing read_json hint
+      config_dir.mkdir(parents=True, exist_ok=True)
+      target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+      created.append(str(target))
+    key_file = config_dir / ".api-keys.txt"
+    if not key_file.exists():
+      config_dir.mkdir(parents=True, exist_ok=True)
+      key_file.write_text(KEY_FILE_TEMPLATE, encoding="utf-8")
+      created.append(str(key_file))
+  except OSError as error:
+    raise ConfigError(f"Cannot materialize default config files in '{config_dir}': {error}.\n  HINT: check folder permissions.") from None
+
+
+# LANADIST-FR-08: copy the bundled prompt library to a MISSING agent folder; returns False when no bundle is available
+def materialize_bundled_agent(target: Path) -> bool:
+  root = bundled_root()
+  if root is None: return False
+  agent = root / "agent"
+  if not agent.is_dir(): return False
+  with importlib.resources.as_file(agent) as source:
+    shutil.copytree(source, target)
+  return True
+
+
 def parse_key_file(path: Path) -> dict[str, str]:
   entries: dict[str, str] = {}
   if not path.exists(): return entries
@@ -159,6 +208,7 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
     if not Path(config_path).exists():  # FR-16 zero-setup: only the DEFAULT path auto-creates
       create_default_config(Path(config_path))
       created_files.append(str(config_path))
+    materialize_bundled_config(Path(config_path).parent, created_files)  # LANADIST-FR-08: fill missing model JSONs + key template
   config_path = Path(config_path)
   config_dir = config_path.parent
   raw = read_json(config_path)

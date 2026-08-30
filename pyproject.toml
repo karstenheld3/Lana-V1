@@ -25,6 +25,9 @@ lana = "lana.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"lana.bundled" = ["config/*.json", "agent/**/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["live: tests requiring real API keys (deselect with '-m \"not live\"')"]

@@ -29,7 +29,7 @@ def make_args(*argv):
 
 # ----------------------------------------- START: Phase 1 - zero-setup + resilience ------------------------------------------
 
-# TC-01: empty workspace (model data present) -> default config + data dirs + agent folder created and reported
+# TC-01: empty workspace (model data present) -> default config + key template + data dirs + BUNDLED agent library created and reported (LANADIST-FR-08)
 def test_tc01_zero_setup_creates_and_reports(tmp_path, monkeypatch, capsys):
   from lana.cli import build_runtime
   from lana.providers import reset_adapter_cache
@@ -40,10 +40,11 @@ def test_tc01_zero_setup_creates_and_reports(tmp_path, monkeypatch, capsys):
   app, agent, cost_tracker, prompt_system = build_runtime(make_args(), tmp_path, interactive=False)
   out = capsys.readouterr().out
   assert (tmp_path / "config" / "lana-config.json").is_file()
+  assert (tmp_path / "config" / ".api-keys.txt").is_file()  # keyless template (LANADIST-DD-09)
   assert (tmp_path / ".lana-data" / "sessions").is_dir()
   assert (tmp_path / ".lana" / "rules").is_dir() and (tmp_path / ".lana" / "workflows").is_dir() and (tmp_path / ".lana" / "skills").is_dir()
-  assert out.count("Created '") == 3 and "(zero-setup)" in out
-  assert "NOTICE: prompt system is empty" in out  # FR-16: naked run is announced
+  assert out.count("Created '") == 4 and "(zero-setup)" in out  # config + key template + sessions + agent library
+  assert "NOTICE: prompt system is empty" not in out  # bundled library loads with content (LANADIST-FR-08)
   created_config = json.loads((tmp_path / "config" / "lana-config.json").read_text(encoding="utf-8"))
   assert "generator" in created_config["roles"]
   reset_adapter_cache()

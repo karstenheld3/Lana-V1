@@ -2,12 +2,12 @@
 
 Exit codes: 0 = turn completed | 2 = configuration error | 3 = provider/API failure | 4 = stopped without completion.
 """
-import argparse, asyncio, contextlib, os, platform, sys, time
+import argparse, asyncio, contextlib, importlib.metadata, os, platform, sys, time
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from lana.agent import Agent, UnknownWorkflowError
 from lana.compaction import make_compactor
-from lana.config import ConfigError, load_lana_config
+from lana.config import ConfigError, load_lana_config, materialize_bundled_agent
 from lana.cost import CostTracker
 from lana.events import SessionStarted
 from lana.loader import BUILTIN_COMMANDS, compute_fingerprint, load_prompt_systems
@@ -26,6 +26,13 @@ from lana.tools.trajectory_tools import execute_trajectory_search
 from lana.tools.web_tools import execute_read_url_content, execute_search_web, execute_view_content_chunk
 
 EXIT_OK, EXIT_CONFIG, EXIT_PROVIDER, EXIT_STOPPED = 0, 2, 3, 4
+
+
+def package_version() -> str:
+  try:
+    return importlib.metadata.version("lana")
+  except importlib.metadata.PackageNotFoundError:  # running from source without install
+    return "0.0.0-dev"
 
 EXECUTORS = {
   "read_file": execute_read_file, "list_dir": execute_list_dir, "grep_search": execute_grep_search, "find_by_name": execute_find_by_name,
@@ -47,6 +54,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--debug", action="store_true", help="write redacted request/response JSON to .lana-data/logs/")
   parser.add_argument("--show-thinking", action="store_true", help="stream model thinking dim-styled (FR-16)")
   parser.add_argument("--acp", action="store_true", help="ACP agent mode: JSON-RPC 2.0 over stdio (MVP-2, LANAACPB-SP01)")
+  parser.add_argument("--version", action="version", version=f"%(prog)s {package_version()}")  # exits before config load - no zero-setup side effects (LANADIST-IP01-IS-01)
   return parser
 
 
@@ -76,8 +84,10 @@ def build_runtime(args, workspace: Path, interactive: bool):
   if not sessions_dir.is_dir():
     sessions_dir.mkdir(parents=True, exist_ok=True)
     created.append(str(sessions_dir))
-  if not app.agent_folder.is_dir():
-    for sub in ("rules", "workflows", "skills"): (app.agent_folder / sub).mkdir(parents=True, exist_ok=True)
+  if not app.agent_folder.is_dir():  # LANADIST-FR-08: materialize bundled default prompt library; existing folder (even empty) stays untouched
+    copied = materialize_bundled_agent(app.agent_folder)
+    if not copied:  # bundle unavailable (source checkout without sync) - keep the empty scaffold behavior
+      for sub in ("rules", "workflows", "skills"): (app.agent_folder / sub).mkdir(parents=True, exist_ok=True)
     created.append(str(app.agent_folder))
   for path in created: print(f"Created '{path}' (zero-setup).")
   if args.debug:

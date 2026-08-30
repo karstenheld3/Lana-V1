@@ -1,0 +1,65 @@
+{
+  "source": "https://platform.claude.com/docs/en/about-claude/models/overview",
+  "date": "2026-07-09",
+  "models": [
+    {
+      "name": "Claude Fable 5",
+      "api_id": "claude-fable-5",
+      "api_alias": "claude-fable-5",
+      "context_window": "1M tokens",
+      "max_output": "128k tokens",
+      "extended_thinking": false,
+      "adaptive_thinking": true,
+      "note": "always on"
+    },
+    {
+      "name": "Claude Mythos 5",
+      "api_id": "claude-mythos-5",
+      "api_alias": "claude-mythos-5",
+      "context_window": "1M tokens",
+      "max_output": "128k tokens",
+      "extended_thinking": false,
+      "adaptive_thinking": true,
+      "note": "limited availability, Project Glasswing invitation-only"
+    },
+    {
+      "name": "Claude Opus 4.8",
+      "api_id": "claude-opus-4-8",
+      "api_alias": "claude-opus-4-8",
+      "context_window": "1M tokens",
+      "max_output": "128k tokens",
+      "extended_thinking": false,
+      "adaptive_thinking": true
+    },
+    {
+      "name": "Claude Sonnet 5",
+      "api_id": "claude-sonnet-5",
+      "api_alias": "claude-sonnet-5",
+      "context_window": "1M tokens",
+      "max_output": "128k tokens",
+      "extended_thinking": false,
+      "adaptive_thinking": true,
+      "pricing_note": "through Aug 31 2026: $2/$10; from Sep 1 2026: $3/$15"
+    },
+    {
+      "name": "Claude Haiku 4.5",
+      "api_id": "claude-haiku-4-5-20251001",
+      "api_alias": "claude-haiku-4-5",
+      "context_window": "200k tokens",
+      "max_output": "64k tokens",
+      "extended_thinking": true,
+      "adaptive_thinking": false
+    }
+  ],
+  "other_known_ids": [
+    "claude-mythos-preview",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-sonnet-4-6",
+    "claude-opus-4-5-20251101",
+    "claude-sonnet-4-5-20250929",
+    "claude-opus-4-1-20250805",
+    "claude-opus-4-20250514",
+    "claude-sonnet-4-20250514"
+  ]
+}
