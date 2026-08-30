@@ -90,9 +90,8 @@ Initial release of Lana, an ACP-compatible AI agent that runs as a CLI and suppo
 
 ## Binary
 
-- `dist/lana-1.1.0-win-x64.exe` (23 MB, unsigned)
-- SHA256: `de303e4d31f9a97596f5c3132053862e50a1fd61cde19eaacbca56f4a7ae4fd6`
-- Note: binary was built from version 1.1.0 before the version was set to 1.0.0; functionally identical
+- `dist/lana-1.0.0-win-x64.exe` (23 MB, unsigned)
+- SHA256: `28fe9b43255be4efdea9dacef0efe28645740157b0e9e841b9a1f7eac3fa203b`
 
 ## Document History
 

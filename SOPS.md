@@ -20,6 +20,7 @@
 - `.tools/` (836 MB, AGPL) NEVER part of the distribution (FR-09)
 - Existing user agent folder is never overwritten by materialization (FR-08)
 - Every SOP ends with a verification step before you can consider the change complete
+- Release MUST include a build from the release version (binary filename must match pyproject.toml version)
 
 ## Table of Contents
 
@@ -28,7 +29,7 @@
 - [SOP 3: Prompt Library Changed](#sop-3-prompt-library-changed)
 - [SOP 4: Model Config Files Updated](#sop-4-model-config-files-updated)
 - [SOP 5: Dependencies Changed](#sop-5-dependencies-changed)
-- [SOP 6: Post-Release Tag](#sop-6-post-release-tag)
+- [SOP 6: Full Release](#sop-6-full-release)
 - [Common Verification Commands](#common-verification-commands)
 
 ## SOP 1: Version Bump
@@ -37,7 +38,7 @@
 
 ### Rules
 
-- **Starting version**: 1.1.0
+- **Starting version**: 1.0.0
 - **Allowed bumps**: minor and patch only (1.1.x, 1.2.0, ...). No major version bump in this repo.
 - **Rationale**: Lana 1.x supports ACP 1.x. Lana 2.x will live in a separate repo and support ACP 2.x.
 
@@ -147,26 +148,41 @@ foreach ($f in 'model-registry.json','model-pricing.json','model-parameter-mappi
 & "[WORKSPACE]\.venv\Scripts\python.exe" -m pip check
 ```
 
-## SOP 6: Post-Release Tag
+## SOP 6: Full Release
 
-**Scenario**: A release was tagged. Working version must be incremented so ongoing development is distinguishable.
+**Scenario**: Creating a tagged release with GitHub release and binary asset.
 
-### When to apply
+### Prerequisites
 
-Immediately after `git tag` and `git push --tags`. Last step of the release process.
+- All work committed and pushed
+- GitHub CLI (`gh`) installed and authenticated
 
 ### Steps
 
-1. **Determine next version**: increment patch (e.g., `1.1.0` -> `1.1.1`) or minor (e.g., `1.1.x` -> `1.2.0`)
-2. **Edit** `pyproject.toml` version
-3. **Commit**: `git commit -am "chore: bump working version to X.Y.Z"`
+1. **Version bump** (SOP 1): run `_ship.bat` or manually edit `pyproject.toml`, commit
+2. **Build** (SOP 2): run `_build.bat` -- binary filename MUST match `pyproject.toml` version
+3. **Verify binary version**: `dist/lana-{version}-win-x64.exe` exists and `lana --version` output matches
+4. **Run `/project-release`** workflow: generates release notes, tags, creates GitHub release with binary
+5. **Post-release bump**: increment patch version in `pyproject.toml`, commit (`chore: bump working version to X.Y.Z`)
+
+### Gate: Version Consistency Check
+
+Before creating the GitHub release, ALL of these must match:
+- `pyproject.toml` version
+- Binary filename version (`dist/lana-X.Y.Z-win-x64.exe`)
+- `lana --version` output from the binary
+- Git tag (`vX.Y.Z`)
+
+If any mismatch: STOP and rebuild. Never release a binary built from a different version.
 
 ### Verification
 
 ```powershell
-# pyproject.toml version is higher than the just-released tag
-Select-String -Path "[WORKSPACE]\pyproject.toml" -Pattern '^version\s*='
-git tag --sort=-v:refname | Select-Object -First 1
+$v = (Select-String -Path pyproject.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+Test-Path "dist\lana-$v-win-x64.exe"  # must be True
+git tag --sort=-v:refname | Select-Object -First 1  # must be v$v
+gh release view "v$v" --json tagName,assets  # must show binary asset
+# pyproject.toml version is higher than the just-released tag (post-release bump done)
 ```
 
 ## Common Verification Commands
