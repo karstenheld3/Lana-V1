@@ -380,7 +380,7 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - **LANAACPB-IP01-TC-14**: `available_commands_update` after `session/new` lists workflows, excludes `/help` `/cost` `/exit`
 - **LANAACPB-IP01-TC-15**: Full stdout capture during `session/new` -> every line parses as JSON-RPC (IG-01)
 
-### Category 4: Prompt Turn and Translation (9 tests)
+### Category 4: Prompt Turn and Translation (10 tests)
 
 - **LANAACPB-IP01-TC-16**: Scripted text turn -> `agent_message_chunk` stream with stable `messageId`, `usage_update` (used/size/cost) before the response, response `{stopReason: "end_turn"}` with no usage field
 - **LANAACPB-IP01-TC-17**: Scripted tool turn -> `tool_call` (pending, correct kind per FR-07) then `tool_call_update` (completed), wire order preserved
@@ -391,6 +391,7 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - **LANAACPB-IP01-TC-22**: Scripted provider error -> JSON-RPC error response on the prompt id; prior notifications intact (EC-13)
 - **LANAACPB-IP01-TC-23**: Session JSONL after ACP turn == event types of identical CLI-driven turn (IG-02 differential)
 - **LANAACPB-IP01-TC-43**: Prompt with `text` + `resource_link` blocks -> accepted; user message carries the text plus `[resource: name](uri)` line (LANA_SCRIPTED_CAPTURE oracle, FR-05 baseline)
+- **LANAACPB-IP01-TC-44**: Translator exhaustiveness (unit) - one instance of each of the 11 AgentEvent types fed through `EventTranslator.translate` -> every type yields its FR-06 mapping or documented no-op, none raises (IG-03)
 
 ### Category 5: Permission and Elicitation (7 tests)
 
@@ -438,12 +439,15 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - [ ] **LANAACPB-IP01-VC-08**: Phase 6 (IS-12, IS-13) complete, Category 8 green
 
 ### Validation
-- [ ] **LANAACPB-IP01-VC-09**: All 43 test cases pass offline (scripted adapter, no provider calls)
+- [ ] **LANAACPB-IP01-VC-09**: All 44 test cases pass offline (scripted adapter, no provider calls)
 - [ ] **LANAACPB-IP01-VC-10**: Wire fixtures byte-structurally match the official v1 shapes per LANAACPB-IN01 (NFR-01; the 2026-08-30 snapshot is NOT the wire authority - 4 shapes hallucinated)
 - [ ] **LANAACPB-IP01-VC-11**: Manual smoke against a real ACP client (Zed or `npx @zed-industries/acp` inspector if available; else scripted harness replay documented)
 - [ ] **LANAACPB-IP01-VC-12**: SPEC sync: Technical Constraints refined (executor readline, callback seam) reverse-updated into LANAACPB-SP01
 
 ## 7. Document History
+
+**[2026-08-30 14:35]**
+- Added: TC-44 translator exhaustiveness unit test - IG-03 had no direct test case (coverage gap found by the LANAACPB-TP01-VC-03 contract during `/write-test-plan`)
 
 **[2026-08-30 14:05]**
 - Fixed: wire shapes per `/research` verification (LANAACPB-IN01) - IS-03 capabilities (`promptCapabilities`, top-level `loadSession`), IS-05 usage_update (used/size/cost), IS-09 baseline resource_link acceptance + stopReason-only response, EC-03/TC-16/TC-20 adjusted, TC-43 added (resource_link acceptance), VC-10 re-anchored to LANAACPB-IN01

@@ -57,6 +57,9 @@
 
 ## Progress Changes
 
+**[2026-08-30 14:40]**
+- Added: `_TEST_LANA_MVP-2_ACP.md [LANAACPB-TP01]` created via `/write-test-plan` - 4 layers (unit / integration / black-box fake-ACP-client / manual Zed acceptance), 10 automated TP01 scenarios + 1 manual, AcpClient harness contract, wire fixtures anchored to LANAACPB-IN01 (PR-0001 lesson), coverage contract FR-01..11 + IG-01..05 + NFR-01..03 (NFR-04 dropped with reason); verify pass found IG-03 uncovered → IP01 TC-44 added (translator exhaustiveness, 44 TCs now); ACP planning chain COMPLETE (SPEC + IMPL + TEST per original constraint) - implementation awaits confirmation
+
 **[2026-08-30 14:25]**
 - Fixed: `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` corrected in-place (user directive: 100% exhaustive AND correct) - all 16 INFO files audited by direct read (grep untrustworthy there, PR-0002), 8 files corrected against live official docs, 2 additional hallucinations found beyond the original 4 (StopReason `auth_required`/`paused` fabricated in ACP-07 + ACP-09; verified enum: end_turn/max_tokens/max_turn_requests/refusal/cancelled), plus wrong capability gates in ACP-04/06 and mcpServers map-vs-array in ACP-06; every fix carries a per-file Document History entry; LANAACPB-PR-0001 resolved
 
