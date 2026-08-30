@@ -73,6 +73,31 @@ def write_config_dir(base_path, lana_overrides=None, key_lines=("OPENAI_API_KEY=
   return config_dir
 
 
+# Create a temporary bundled root with test config files and a minimal agent library (rules/workflows/skills).
+# Used by tests that exercise materialization from `bundled_root()` (LANADIST-FR-08).
+def make_fake_bundle(base_path):
+  bundle = base_path / "_test_bundle"
+  config = bundle / "config"
+  config.mkdir(parents=True)
+  (config / "model-registry.json").write_text(json.dumps(TEST_REGISTRY), encoding="utf-8")
+  (config / "model-parameter-mapping.json").write_text(json.dumps(TEST_MAPPING), encoding="utf-8")
+  (config / "model-pricing.json").write_text(json.dumps(TEST_PRICING), encoding="utf-8")
+  write_prompt_system(bundle / "agent",
+    rules={"default.md": "---\ntrigger: always_on\n---\nDefault rule"},
+    workflows={"default": "---\ndescription: Default workflow\n---\n# Default"},
+    skills={"default-skill": ("---\nname: default\ndescription: Default\n---\n# Default", {})})
+  return bundle
+
+
+@pytest.fixture
+def populated_bundle(tmp_path, monkeypatch):
+  """Monkeypatch bundled_root() to return a temp directory with test content so materialization tests pass even when src/lana/bundled/ is empty."""
+  bundle = make_fake_bundle(tmp_path)
+  import lana.config as config_module
+  monkeypatch.setattr(config_module, "bundled_root", lambda: bundle)
+  return bundle
+
+
 @pytest.fixture
 def workspace(tmp_path):
   write_config_dir(tmp_path)

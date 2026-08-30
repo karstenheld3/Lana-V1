@@ -30,7 +30,7 @@ def make_args(*argv):
 # ----------------------------------------- START: Phase 1 - zero-setup + resilience ------------------------------------------
 
 # TC-01: empty workspace (model data present) -> default config + key template + data dirs + BUNDLED agent library created and reported (LANADIST-FR-08)
-def test_tc01_zero_setup_creates_and_reports(tmp_path, monkeypatch, capsys):
+def test_tc01_zero_setup_creates_and_reports(tmp_path, monkeypatch, capsys, populated_bundle):
   from lana.cli import build_runtime
   from lana.providers import reset_adapter_cache
   write_model_data_only(tmp_path)

@@ -45,7 +45,7 @@ def test_tc02_version_flag_no_side_effects(tmp_path):
 # ----------------------------------------- START: bundled materialization (TC-12..15) ----------------------------------------
 
 # TC-12: empty workspace -> full payload materialized (config trio + key template + agent library), each reported
-def test_tc12_empty_workspace_full_materialization(tmp_path, monkeypatch, capsys):
+def test_tc12_empty_workspace_full_materialization(tmp_path, monkeypatch, capsys, populated_bundle):
   app, agent, cost_tracker, prompt_system = run_scripted_runtime(tmp_path, monkeypatch)
   out = capsys.readouterr().out
   config_dir = tmp_path / "config"
@@ -58,7 +58,7 @@ def test_tc12_empty_workspace_full_materialization(tmp_path, monkeypatch, capsys
 
 
 # TC-13: partial config (only pricing missing) -> only pricing recreated, existing files untouched (EC-15)
-def test_tc13_partial_config_only_missing_recreated(tmp_path, monkeypatch):
+def test_tc13_partial_config_only_missing_recreated(tmp_path, monkeypatch, populated_bundle):
   config_dir = tmp_path / "config"
   config_dir.mkdir(parents=True)
   registry_content = json.dumps(TEST_REGISTRY)
@@ -73,7 +73,7 @@ def test_tc13_partial_config_only_missing_recreated(tmp_path, monkeypatch):
 
 
 # TC-14: existing agent folder (even empty) -> never repopulated (EC-14)
-def test_tc14_existing_agent_folder_untouched(tmp_path, monkeypatch, capsys):
+def test_tc14_existing_agent_folder_untouched(tmp_path, monkeypatch, capsys, populated_bundle):
   (tmp_path / ".lana").mkdir()
   app, agent, cost_tracker, prompt_system = run_scripted_runtime(tmp_path, monkeypatch)
   out = capsys.readouterr().out
@@ -82,7 +82,7 @@ def test_tc14_existing_agent_folder_untouched(tmp_path, monkeypatch, capsys):
 
 
 # TC-15: materialized key template is keyless - commented provider lines, parse yields no entries (DD-09)
-def test_tc15_key_template_is_keyless(tmp_path, monkeypatch):
+def test_tc15_key_template_is_keyless(tmp_path, monkeypatch, populated_bundle):
   run_scripted_runtime(tmp_path, monkeypatch)
   key_file = tmp_path / "config" / ".api-keys.txt"
   content = key_file.read_text(encoding="utf-8")
