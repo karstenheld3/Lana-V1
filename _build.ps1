@@ -21,6 +21,11 @@ function Fail([string]$Message) {
     Remove-Item $Script:Artifact -Force
     Write-Host "  Removed partial artifact $Script:Artifact."
   }
+  # Restore _old.exe if pre-flight renamed it and the new build never completed
+  if ($Script:Artifact -and $oldExe -and (Test-Path $oldExe) -and -not (Test-Path $Script:Artifact)) {
+    Rename-Item $oldExe $Script:Artifact -Force
+    Write-Host "  Restored previous binary from _old.exe."
+  }
   Write-Host "FAILED at step $($Script:CurrentStep): $Message"
   exit 1
 }
@@ -39,7 +44,32 @@ $ExeName = "lana-$Version-win-x64.exe"
 
 Write-Host "Building Lana $Version (win-x64)..."
 
-# ---------------------------------------------------------------------------- [ 1 / 7 ] toolchain
+# ---------------------------------------------------------------------------- pre-flight: ensure target is not locked
+$Script:Artifact = Join-Path $DistDir $ExeName
+$oldExe = Join-Path $DistDir ($ExeName -replace '\.exe$', '_old.exe')
+if (Test-Path $Script:Artifact) {
+  try {
+    Rename-Item $Script:Artifact $oldExe -Force -ErrorAction Stop
+    Write-Host "  Pre-flight: renamed existing $ExeName to _old.exe (file was unlocked)."
+  } catch {
+    Write-Host "  Pre-flight: $ExeName is locked (in use by another process)." -ForegroundColor Yellow
+    while ($true) {
+      Write-Host '  Close all Lana instances (Devin Desktop, terminals, etc.) then press SPACE to retry...' -ForegroundColor Yellow
+      $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+      if ($key.VirtualKeyCode -eq 32) {
+        try {
+          Rename-Item $Script:Artifact $oldExe -Force -ErrorAction Stop
+          Write-Host '  Pre-flight: renamed to _old.exe. Continuing.'
+          break
+        } catch {
+          Write-Host "  Still locked: $($_.Exception.Message)" -ForegroundColor Red
+        }
+      }
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------- [ 1 / 8 ] toolchain
 Step 'Verifying toolchain...'
 if (-not (Test-Path $VenvPy)) { Fail ".venv missing - run _InstallAndCompileDependencies.bat first (EC-02)." }
 $pythonVersion = (& $VenvPy --version) -replace 'Python ', ''
@@ -67,7 +97,7 @@ if ($signThumbprint) {
   Write-Host '  NOTICE: LANA_SIGN_THUMBPRINT not set - binary will be UNSIGNED.'
 }
 
-# ---------------------------------------------------------------------------- [ 2 / 7 ] bundle sync + key-leak guard
+# ---------------------------------------------------------------------------- [ 2 / 8 ] bundle sync + key-leak guard
 Step 'Syncing bundle...'
 $lanaLibrary = Join-Path $RootDir '.lana'
 if (-not (Test-Path $lanaLibrary -PathType Container)) { Fail ".lana prompt library missing - bundle would lose the agent library (EC-13)." }
@@ -96,7 +126,7 @@ $agentFiles = Get-ChildItem $bundleAgent -Recurse -File
 $agentSizeMb = [Math]::Round(($agentFiles | Measure-Object -Property Length -Sum).Sum / 1MB, 1)
 Write-Host "  $configCount config files, $($agentFiles.Count) agent files ($agentSizeMb MB). Key-leak scan OK."
 
-# ---------------------------------------------------------------------------- [ 3 / 7 ] wheel
+# ---------------------------------------------------------------------------- [ 3 / 8 ] wheel
 Step 'Building wheel...'
 New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
 & $VenvPy -m pip show build *> $null
@@ -113,7 +143,7 @@ if ($wheelList | Select-String 'api-keys') { Fail 'wheel contains a key file - D
 $wheelSizeMb = [Math]::Round($wheel.Length / 1MB, 1)
 Write-Host "  $($wheel.FullName) ($wheelSizeMb MB). OK."
 
-# ---------------------------------------------------------------------------- [ 4 / 7 ] PyApp binary
+# ---------------------------------------------------------------------------- [ 4 / 8 ] PyApp binary
 Step "Building PyApp binary (pyapp $PYAPP_VERSION, this takes 1-3 minutes)..."
 Get-ChildItem env: | Where-Object Name -like 'PYAPP_*' | ForEach-Object { Remove-Item "env:$($_.Name)" }  # EC-10 stale vars
 $env:PYAPP_PROJECT_NAME       = 'lana'
@@ -129,15 +159,21 @@ $pyappExe = Join-Path $pyappRoot 'bin\pyapp.exe'
 if (-not (Test-Path $pyappExe)) { Fail "cargo reported success but $pyappExe is missing." }
 Write-Host '  OK.'
 
-# ---------------------------------------------------------------------------- [ 5 / 7 ] rename + smoke test
+# ---------------------------------------------------------------------------- [ 5 / 8 ] copy + smoke test
 Step 'Smoke test (first run extracts Python + installs dependencies, up to 5 min)...'
 New-Item -ItemType Directory -Path $DistDir -Force | Out-Null
-$Script:Artifact = Join-Path $DistDir $ExeName
-if (Test-Path $Script:Artifact) {  # IG-01: report before replacement (EC-07)
-  $old = Get-Item $Script:Artifact
-  Write-Host "  Replacing existing $ExeName ($([Math]::Round($old.Length / 1MB, 1)) MB, $($old.LastWriteTime.ToString('yyyy-MM-dd HH:mm')))."
+if (Test-Path $oldExe) {  # IG-01: report before replacement (EC-07)
+  Write-Host "  Replacing existing $ExeName (pre-flight renamed to _old.exe)."
 }
 Copy-Item $pyappExe $Script:Artifact -Force
+# Refresh lana package in PyApp cache so same-version rebuilds pick up new bundled content (LANADIST-FL-0001)
+$pyappCache = Join-Path $env:LOCALAPPDATA 'pyapp\data\lana'
+$cachedPip = Get-ChildItem $pyappCache -Recurse -Filter 'pip.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'Scripts' } | Select-Object -First 1
+if ($cachedPip) {
+  & $cachedPip.FullName install --force-reinstall --no-deps $wheel.FullName *> (Join-Path $BuildDir 'pip-refresh.log')
+  if ($LASTEXITCODE -ne 0) { Get-Content (Join-Path $BuildDir 'pip-refresh.log') | Select-Object -Last 10 | Write-Host; Fail 'pip refresh of lana in PyApp cache failed.' }
+  Write-Host '  Refreshed lana package in PyApp cache.'
+}
 $smokeJob = Start-Job -ScriptBlock { param($exe) & $exe --version 2>&1 } -ArgumentList $Script:Artifact
 if (-not (Wait-Job $smokeJob -Timeout $SMOKE_TIMEOUT_SECONDS)) { Stop-Job $smokeJob; Remove-Job $smokeJob -Force; Fail "smoke test timed out after $SMOKE_TIMEOUT_SECONDS s (EC-11)." }
 $smokeOutput = (Receive-Job $smokeJob) -join "`n"
@@ -171,6 +207,8 @@ if (Test-Path $bundleConfig) { Remove-Item $bundleConfig -Recurse -Force }
 New-Item -ItemType Directory -Path $bundleAgent -Force | Out-Null
 New-Item -ItemType Directory -Path $bundleConfig -Force | Out-Null
 Write-Host '  src/lana/bundled/agent/ and config/ cleaned (build-time only, not tracked in git).'
+
+if (Test-Path $oldExe) { Remove-Item $oldExe -Force -ErrorAction SilentlyContinue; Write-Host '  Deleted _old.exe.' }
 
 $sizeMb = [Math]::Round((Get-Item $Script:Artifact).Length / 1MB, 0)
 $signedLabel = if ($signThumbprint) { 'signed' } else { 'unsigned' }
