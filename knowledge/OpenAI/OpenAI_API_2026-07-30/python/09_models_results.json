@@ -1,0 +1,35 @@
+{
+  "topic_id": "IN03-IN27",
+  "description": "Models API",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN03-IN27",
+    "description": "Models API",
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "total_duration_ms": 2948
+  },
+  "tests": [
+    {
+      "name": "models_list",
+      "topic": "IN03-IN27",
+      "status": "passed",
+      "duration_ms": 2465,
+      "details": {
+        "model_count": 133
+      }
+    },
+    {
+      "name": "model_retrieve",
+      "topic": "IN03-IN27",
+      "status": "passed",
+      "duration_ms": 483,
+      "details": {
+        "owned_by": "system"
+      }
+    }
+  ]
+}

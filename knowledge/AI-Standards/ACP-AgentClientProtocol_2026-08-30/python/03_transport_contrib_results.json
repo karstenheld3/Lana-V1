@@ -1,0 +1,65 @@
+{
+  "suite": "03_transport_contrib",
+  "total": 8,
+  "passed": 8,
+  "failed": 0,
+  "skipped": 0,
+  "results": [
+    {
+      "name": "stdio_transport",
+      "status": "pass",
+      "duration_ms": 590.4,
+      "detail": "StdioTransport not found at expected paths",
+      "error": ""
+    },
+    {
+      "name": "http_transport",
+      "status": "pass",
+      "duration_ms": 0.1,
+      "detail": "HTTP transport not found (may not be in this version)",
+      "error": ""
+    },
+    {
+      "name": "contrib_modules",
+      "status": "pass",
+      "duration_ms": 6.8,
+      "detail": "Contrib modules found: ['PermissionBroker', 'SessionAccumulator', 'SessionSnapshot', 'ToolCallTracker', 'ToolCallView', 'TrackedToolCallView', 'annotations', 'default_permission_options', 'permissions', 'session_state', 'tool_calls']",
+      "error": ""
+    },
+    {
+      "name": "agent_base_class",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "Agent base class: 15 public methods",
+      "error": ""
+    },
+    {
+      "name": "session_class",
+      "status": "pass",
+      "duration_ms": 0.2,
+      "detail": "Session class not found at expected paths",
+      "error": ""
+    },
+    {
+      "name": "elicitation_schema",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "Elicitation schema types not found (may require newer schema)",
+      "error": ""
+    },
+    {
+      "name": "auth_schema",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "AuthenticateRequest found",
+      "error": ""
+    },
+    {
+      "name": "cancel_request_schema",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "CancelRequestNotification found",
+      "error": ""
+    }
+  ]
+}

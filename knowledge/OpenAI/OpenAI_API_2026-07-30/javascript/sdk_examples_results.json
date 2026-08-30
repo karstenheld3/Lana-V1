@@ -1,0 +1,85 @@
+{
+  "sdk_version": "openai 7.2.0",
+  "run_date": "2026-07-30T23:20:29.182Z",
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "total_duration_ms": 9908
+  },
+  "tests": [
+    {
+      "name": "responses_create",
+      "topic": "IN06",
+      "status": "passed",
+      "duration_ms": 1773
+    },
+    {
+      "name": "responses_streaming",
+      "topic": "IN06",
+      "status": "passed",
+      "duration_ms": 851
+    },
+    {
+      "name": "responses_with_instructions",
+      "topic": "IN06",
+      "status": "passed",
+      "duration_ms": 770
+    },
+    {
+      "name": "function_calling",
+      "topic": "IN13",
+      "status": "passed",
+      "duration_ms": 993
+    },
+    {
+      "name": "structured_json_schema",
+      "topic": "IN15",
+      "status": "passed",
+      "duration_ms": 821
+    },
+    {
+      "name": "structured_json_object",
+      "topic": "IN15",
+      "status": "passed",
+      "duration_ms": 705
+    },
+    {
+      "name": "reasoning_basic",
+      "topic": "IN16",
+      "status": "passed",
+      "duration_ms": 1821
+    },
+    {
+      "name": "embeddings_create",
+      "topic": "IN25",
+      "status": "passed",
+      "duration_ms": 257
+    },
+    {
+      "name": "embeddings_dimensions",
+      "topic": "IN25",
+      "status": "passed",
+      "duration_ms": 174
+    },
+    {
+      "name": "moderations_safe",
+      "topic": "IN26",
+      "status": "passed",
+      "duration_ms": 458
+    },
+    {
+      "name": "chat_completions_basic",
+      "topic": "IN55",
+      "status": "passed",
+      "duration_ms": 493
+    },
+    {
+      "name": "chat_completions_streaming",
+      "topic": "IN55",
+      "status": "passed",
+      "duration_ms": 792
+    }
+  ]
+}

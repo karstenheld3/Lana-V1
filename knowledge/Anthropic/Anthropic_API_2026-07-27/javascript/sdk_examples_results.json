@@ -1,0 +1,154 @@
+[
+  {
+    "n": 1,
+    "label": "IN06: Basic message (non-streaming)",
+    "status": "PASS",
+    "ms": 2083,
+    "text": "OK",
+    "stop_reason": "end_turn",
+    "content_types": [
+      "text"
+    ]
+  },
+  {
+    "n": 2,
+    "label": "IN06: With system prompt",
+    "status": "PASS",
+    "ms": 1150,
+    "text": "OK",
+    "stop_reason": "end_turn"
+  },
+  {
+    "n": 3,
+    "label": "IN07: Basic streaming (text_delta)",
+    "status": "PASS",
+    "ms": 3057,
+    "text": "OK",
+    "event_types": [
+      "message_start",
+      "content_block_start",
+      "content_block_delta",
+      "content_block_stop",
+      "message_delta",
+      "message_stop"
+    ]
+  },
+  {
+    "n": 4,
+    "label": "IN07: Full event handling (switch)",
+    "status": "PASS",
+    "ms": 1507,
+    "model": "claude-sonnet-4-5-20250929",
+    "text": "OK",
+    "stop_reason": "end_turn",
+    "output_tokens": 4
+  },
+  {
+    "n": 5,
+    "label": "IN07/IN13: Streaming with thinking_delta",
+    "status": "PASS",
+    "ms": 2489,
+    "block_types": [
+      "thinking",
+      "text"
+    ],
+    "has_thinking": true,
+    "answer": "OK"
+  },
+  {
+    "n": 6,
+    "label": "IN13: Manual thinking enabled (Sonnet 4.5)",
+    "status": "PASS",
+    "ms": 2689,
+    "content_types": [
+      "thinking",
+      "text"
+    ],
+    "has_thinking": true,
+    "thinking_preview": "The user is asking me to reply with exactly \"OK\". This is a simple, straightforw",
+    "text": "OK",
+    "thinking_tokens": 46
+  },
+  {
+    "n": 7,
+    "label": "IN13: Adaptive + effort=low (Opus 4.8)",
+    "status": "PASS",
+    "ms": 1805,
+    "content_types": [
+      "text"
+    ],
+    "text": "OK",
+    "thinking_tokens": 0
+  },
+  {
+    "n": 8,
+    "label": "IN13: Effort-only output_config (Opus 4.5)",
+    "status": "PASS",
+    "ms": 2206,
+    "content_types": [
+      "text"
+    ],
+    "text": "OK",
+    "has_thinking_block": false
+  },
+  {
+    "n": 9,
+    "label": "IN05: RequestOptions with signal + headers",
+    "status": "PASS",
+    "ms": 1343,
+    "text": "OK",
+    "stop_reason": "end_turn"
+  },
+  {
+    "n": 10,
+    "label": "IN05: Error handling (bad model -> error class)",
+    "status": 404,
+    "ms": 331,
+    "caught": true,
+    "is_api_error": true,
+    "class": "NotFoundError"
+  },
+  {
+    "n": 11,
+    "label": "IN06: Prompt caching (cache_control on system)",
+    "status": "PASS",
+    "ms": 1386,
+    "text": "OK",
+    "cache_creation": 0,
+    "cache_read": 0
+  },
+  {
+    "n": 12,
+    "label": "IN21: Tool use agentic loop",
+    "status": "PASS",
+    "ms": 4580,
+    "loops": 2,
+    "has_final_text": true,
+    "text_preview": "The current weather in New York City, NY is sunny with a temperature of 72°F."
+  },
+  {
+    "n": 13,
+    "label": "IN21: Streaming tool use (input_json_delta)",
+    "status": "PASS",
+    "ms": 1304,
+    "tool_name": "get_weather",
+    "input_json": {
+      "location": "Tokyo"
+    },
+    "delta_types": [
+      "input_json_delta"
+    ]
+  },
+  {
+    "n": 14,
+    "label": "IN13: Multi-turn (pass thinking blocks back)",
+    "status": "PASS",
+    "ms": 4285,
+    "turn1_has_thinking": true,
+    "turn2_text": "SECOND",
+    "turn2_types": [
+      "thinking",
+      "text"
+    ]
+  }
+]

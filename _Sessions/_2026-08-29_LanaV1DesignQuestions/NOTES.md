@@ -8,7 +8,7 @@
 In this project I want to implement an agent called "Lana-V1".
 
 I want to adapt the architecture of the Cascade agent documented here:
-docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md
+knowledge/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md
 
 What we copy:
 1. Multi-LLM design (Brain, memory, generation, compacting, etc.)

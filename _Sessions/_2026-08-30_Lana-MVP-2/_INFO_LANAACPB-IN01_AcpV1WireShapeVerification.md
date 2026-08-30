@@ -109,8 +109,8 @@ Corrections applied to the SPEC (see SP01 Document History 2026-08-30):
 - **LANAACPB-IN01-SC-ACPORG-SESSU** - https://agentclientprotocol.com/protocol/v1/session-setup - loadSession gating, session/load replay contract, sessionCapabilities.resume
 - **LANAACPB-IN01-SC-ACPORG-ELIC** - https://agentclientprotocol.com/rfds/elicitation - elicitation/create data model, form/url modes, accept/decline/cancel actions
 - **LANAACPB-IN01-SC-ACPORG-V2MIG** - https://agentclientprotocol.com/protocol/v2/migration - v1 capability example (promptCapabilities confirmed), v1→v2 method table
-- **LANAACPB-IN01-SC-LOCAL-D0612** - `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-05_Initialization.md` - correct promptCapabilities + baseline documentation
-- **LANAACPB-IN01-SC-LOCAL-D0830** - `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/_INFO_ACP-05_Initialization.md` - hallucinated promptContentTypes/session nesting (SOCAS: examples carry [VERIFIED] tags citing sources that contradict them - verification labels in that doc set are unreliable)
+- **LANAACPB-IN01-SC-LOCAL-D0612** - `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-05_Initialization.md` - correct promptCapabilities + baseline documentation
+- **LANAACPB-IN01-SC-LOCAL-D0830** - `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-08-30/_INFO_ACP-05_Initialization.md` - hallucinated promptContentTypes/session nesting (SOCAS: examples carry [VERIFIED] tags citing sources that contradict them - verification labels in that doc set are unreliable)
 
 ## 7. Document History
 

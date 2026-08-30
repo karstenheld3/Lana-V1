@@ -1,0 +1,65 @@
+{
+  "topic_id": "IN06-IN10",
+  "description": "Responses API",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN06-IN10",
+    "description": "Responses API",
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "total_duration_ms": 8032
+  },
+  "tests": [
+    {
+      "name": "basic_response_create",
+      "topic": "IN06-IN10",
+      "status": "passed",
+      "duration_ms": 3013,
+      "details": {
+        "response_id": "resp_017fe7e5b1a7750c006a6bdb3a9f5881a1b49e641760e57f30"
+      }
+    },
+    {
+      "name": "response_with_system_message",
+      "topic": "IN06-IN10",
+      "status": "passed",
+      "duration_ms": 1283
+    },
+    {
+      "name": "response_streaming",
+      "topic": "IN06-IN10",
+      "status": "passed",
+      "duration_ms": 1007,
+      "details": {
+        "event_count": 16
+      }
+    },
+    {
+      "name": "conversation_create",
+      "topic": "IN06-IN10",
+      "status": "passed",
+      "duration_ms": 1144,
+      "details": {
+        "response_id": "resp_0cd4fe767f867503006a6bdb3df7c4819ca1385d18068ee2e9"
+      }
+    },
+    {
+      "name": "token_counting",
+      "topic": "IN06-IN10",
+      "status": "passed",
+      "duration_ms": 527,
+      "details": {
+        "input_tokens": 13
+      }
+    },
+    {
+      "name": "response_retrieve",
+      "topic": "IN06-IN10",
+      "status": "passed",
+      "duration_ms": 1058
+    }
+  ]
+}

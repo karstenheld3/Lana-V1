@@ -1,0 +1,37 @@
+{
+  "topic_id": "IN28-IN31",
+  "description": "Fine-tuning and Evals",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN28-IN31",
+    "description": "Fine-tuning and Evals",
+    "total": 3,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 2,
+    "errors": 0,
+    "total_duration_ms": 2198
+  },
+  "tests": [
+    {
+      "name": "fine_tuning_jobs_list",
+      "topic": "IN28-IN31",
+      "status": "passed",
+      "duration_ms": 2198
+    },
+    {
+      "name": "evals_api_deprecated",
+      "topic": "IN28-IN31",
+      "status": "skipped",
+      "duration_ms": 0,
+      "error": "Evals platform deprecated June 2026, migrate to Promptfoo"
+    },
+    {
+      "name": "graders_api_alpha",
+      "topic": "IN28-IN31",
+      "status": "skipped",
+      "duration_ms": 0,
+      "error": "Graders API is alpha - requires special access"
+    }
+  ]
+}

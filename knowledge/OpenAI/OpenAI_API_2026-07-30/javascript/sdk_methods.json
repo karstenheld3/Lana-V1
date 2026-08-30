@@ -1,0 +1,842 @@
+{
+  "sdk_version": "7.2.0",
+  "total_resources": 77,
+  "total_methods": 175,
+  "resources": {
+    "client.completions": {
+      "type": "resource",
+      "class": "Completions"
+    },
+    "client.chat": {
+      "type": "resource",
+      "class": "Chat"
+    },
+    "client.chat.completions": {
+      "type": "resource",
+      "class": "Completions"
+    },
+    "client.chat.completions.messages": {
+      "type": "resource",
+      "class": "Messages"
+    },
+    "client.embeddings": {
+      "type": "resource",
+      "class": "Embeddings"
+    },
+    "client.files": {
+      "type": "resource",
+      "class": "Files"
+    },
+    "client.images": {
+      "type": "resource",
+      "class": "Images"
+    },
+    "client.audio": {
+      "type": "resource",
+      "class": "Audio"
+    },
+    "client.audio.transcriptions": {
+      "type": "resource",
+      "class": "Transcriptions"
+    },
+    "client.audio.translations": {
+      "type": "resource",
+      "class": "Translations"
+    },
+    "client.audio.speech": {
+      "type": "resource",
+      "class": "Speech"
+    },
+    "client.moderations": {
+      "type": "resource",
+      "class": "Moderations"
+    },
+    "client.models": {
+      "type": "resource",
+      "class": "Models"
+    },
+    "client.fineTuning": {
+      "type": "resource",
+      "class": "FineTuning"
+    },
+    "client.fineTuning.methods": {
+      "type": "resource",
+      "class": "Methods"
+    },
+    "client.fineTuning.jobs": {
+      "type": "resource",
+      "class": "Jobs"
+    },
+    "client.fineTuning.jobs.checkpoints": {
+      "type": "resource",
+      "class": "Checkpoints"
+    },
+    "client.fineTuning.checkpoints": {
+      "type": "resource",
+      "class": "Checkpoints"
+    },
+    "client.fineTuning.checkpoints.permissions": {
+      "type": "resource",
+      "class": "Permissions"
+    },
+    "client.fineTuning.alpha": {
+      "type": "resource",
+      "class": "Alpha"
+    },
+    "client.fineTuning.alpha.graders": {
+      "type": "resource",
+      "class": "Graders"
+    },
+    "client.graders": {
+      "type": "resource",
+      "class": "Graders"
+    },
+    "client.graders.graderModels": {
+      "type": "resource",
+      "class": "GraderModels"
+    },
+    "client.vectorStores": {
+      "type": "resource",
+      "class": "VectorStores"
+    },
+    "client.vectorStores.files": {
+      "type": "resource",
+      "class": "Files"
+    },
+    "client.vectorStores.fileBatches": {
+      "type": "resource",
+      "class": "FileBatches"
+    },
+    "client.webhooks": {
+      "type": "resource",
+      "class": "Webhooks"
+    },
+    "client.beta": {
+      "type": "resource",
+      "class": "Beta"
+    },
+    "client.beta.realtime": {
+      "type": "resource",
+      "class": "Realtime"
+    },
+    "client.beta.realtime.sessions": {
+      "type": "resource",
+      "class": "Sessions"
+    },
+    "client.beta.realtime.transcriptionSessions": {
+      "type": "resource",
+      "class": "TranscriptionSessions"
+    },
+    "client.beta.responses": {
+      "type": "resource",
+      "class": "Responses"
+    },
+    "client.beta.responses.inputItems": {
+      "type": "resource",
+      "class": "InputItems"
+    },
+    "client.beta.responses.inputTokens": {
+      "type": "resource",
+      "class": "InputTokens"
+    },
+    "client.beta.chatkit": {
+      "type": "resource",
+      "class": "ChatKit"
+    },
+    "client.beta.chatkit.sessions": {
+      "type": "resource",
+      "class": "Sessions"
+    },
+    "client.beta.chatkit.threads": {
+      "type": "resource",
+      "class": "Threads"
+    },
+    "client.beta.assistants": {
+      "type": "resource",
+      "class": "Assistants"
+    },
+    "client.beta.threads": {
+      "type": "resource",
+      "class": "Threads"
+    },
+    "client.beta.threads.runs": {
+      "type": "resource",
+      "class": "Runs"
+    },
+    "client.beta.threads.messages": {
+      "type": "resource",
+      "class": "Messages"
+    },
+    "client.batches": {
+      "type": "resource",
+      "class": "Batches"
+    },
+    "client.uploads": {
+      "type": "resource",
+      "class": "Uploads"
+    },
+    "client.uploads.parts": {
+      "type": "resource",
+      "class": "Parts"
+    },
+    "client.admin": {
+      "type": "resource",
+      "class": "Admin"
+    },
+    "client.admin.organization": {
+      "type": "resource",
+      "class": "Organization"
+    },
+    "client.admin.organization.auditLogs": {
+      "type": "resource",
+      "class": "AuditLogs"
+    },
+    "client.admin.organization.adminAPIKeys": {
+      "type": "resource",
+      "class": "AdminAPIKeys"
+    },
+    "client.admin.organization.usage": {
+      "type": "resource",
+      "class": "Usage"
+    },
+    "client.admin.organization.invites": {
+      "type": "resource",
+      "class": "Invites"
+    },
+    "client.admin.organization.users": {
+      "type": "resource",
+      "class": "Users"
+    },
+    "client.admin.organization.groups": {
+      "type": "resource",
+      "class": "Groups"
+    },
+    "client.admin.organization.roles": {
+      "type": "resource",
+      "class": "Roles"
+    },
+    "client.admin.organization.dataRetention": {
+      "type": "resource",
+      "class": "DataRetention"
+    },
+    "client.admin.organization.spendLimit": {
+      "type": "resource",
+      "class": "SpendLimit"
+    },
+    "client.admin.organization.spendAlerts": {
+      "type": "resource",
+      "class": "SpendAlerts"
+    },
+    "client.admin.organization.certificates": {
+      "type": "resource",
+      "class": "Certificates"
+    },
+    "client.admin.organization.projects": {
+      "type": "resource",
+      "class": "Projects"
+    },
+    "client.responses": {
+      "type": "resource",
+      "class": "Responses"
+    },
+    "client.responses.inputItems": {
+      "type": "resource",
+      "class": "InputItems"
+    },
+    "client.responses.inputTokens": {
+      "type": "resource",
+      "class": "InputTokens"
+    },
+    "client.realtime": {
+      "type": "resource",
+      "class": "Realtime"
+    },
+    "client.realtime.clientSecrets": {
+      "type": "resource",
+      "class": "ClientSecrets"
+    },
+    "client.realtime.calls": {
+      "type": "resource",
+      "class": "Calls"
+    },
+    "client.conversations": {
+      "type": "resource",
+      "class": "Conversations"
+    },
+    "client.conversations.items": {
+      "type": "resource",
+      "class": "Items"
+    },
+    "client.evals": {
+      "type": "resource",
+      "class": "Evals"
+    },
+    "client.evals.runs": {
+      "type": "resource",
+      "class": "Runs"
+    },
+    "client.evals.runs.outputItems": {
+      "type": "resource",
+      "class": "OutputItems"
+    },
+    "client.containers": {
+      "type": "resource",
+      "class": "Containers"
+    },
+    "client.containers.files": {
+      "type": "resource",
+      "class": "Files"
+    },
+    "client.containers.files.content": {
+      "type": "resource",
+      "class": "Content"
+    },
+    "client.skills": {
+      "type": "resource",
+      "class": "Skills"
+    },
+    "client.skills.content": {
+      "type": "resource",
+      "class": "Content"
+    },
+    "client.skills.versions": {
+      "type": "resource",
+      "class": "Versions"
+    },
+    "client.skills.versions.content": {
+      "type": "resource",
+      "class": "Content"
+    },
+    "client.videos": {
+      "type": "resource",
+      "class": "Videos"
+    }
+  },
+  "methods": {
+    "client.withOptions": {
+      "type": "method"
+    },
+    "client.defaultQuery": {
+      "type": "method"
+    },
+    "client.validateHeaders": {
+      "type": "method"
+    },
+    "client.authHeaders": {
+      "type": "method"
+    },
+    "client.bearerAuth": {
+      "type": "method"
+    },
+    "client.adminAPIKeyAuth": {
+      "type": "method"
+    },
+    "client.stringifyQuery": {
+      "type": "method"
+    },
+    "client.getUserAgent": {
+      "type": "method"
+    },
+    "client.defaultIdempotencyKey": {
+      "type": "method"
+    },
+    "client.makeStatusError": {
+      "type": "method"
+    },
+    "client.buildURL": {
+      "type": "method"
+    },
+    "client.prepareOptions": {
+      "type": "method"
+    },
+    "client.prepareRequest": {
+      "type": "method"
+    },
+    "client.get": {
+      "type": "method"
+    },
+    "client.post": {
+      "type": "method"
+    },
+    "client.patch": {
+      "type": "method"
+    },
+    "client.put": {
+      "type": "method"
+    },
+    "client.delete": {
+      "type": "method"
+    },
+    "client.methodRequest": {
+      "type": "method"
+    },
+    "client.request": {
+      "type": "method"
+    },
+    "client.makeRequest": {
+      "type": "method"
+    },
+    "client.getAPIList": {
+      "type": "method"
+    },
+    "client.requestAPIList": {
+      "type": "method"
+    },
+    "client.fetchWithAuth": {
+      "type": "method"
+    },
+    "client.fetchWithTimeout": {
+      "type": "method"
+    },
+    "client.shouldRetry": {
+      "type": "method"
+    },
+    "client.retryRequest": {
+      "type": "method"
+    },
+    "client.calculateDefaultRetryTimeoutMillis": {
+      "type": "method"
+    },
+    "client.buildRequest": {
+      "type": "method"
+    },
+    "client.buildHeaders": {
+      "type": "method"
+    },
+    "client.buildBody": {
+      "type": "method"
+    },
+    "client.completions.create": {
+      "type": "method"
+    },
+    "client.chat.completions.create": {
+      "type": "method"
+    },
+    "client.chat.completions.retrieve": {
+      "type": "method"
+    },
+    "client.chat.completions.update": {
+      "type": "method"
+    },
+    "client.chat.completions.list": {
+      "type": "method"
+    },
+    "client.chat.completions.delete": {
+      "type": "method"
+    },
+    "client.chat.completions.parse": {
+      "type": "method"
+    },
+    "client.chat.completions.runTools": {
+      "type": "method"
+    },
+    "client.chat.completions.stream": {
+      "type": "method"
+    },
+    "client.embeddings.create": {
+      "type": "method"
+    },
+    "client.files.create": {
+      "type": "method"
+    },
+    "client.files.retrieve": {
+      "type": "method"
+    },
+    "client.files.list": {
+      "type": "method"
+    },
+    "client.files.delete": {
+      "type": "method"
+    },
+    "client.files.content": {
+      "type": "method"
+    },
+    "client.files.waitForProcessing": {
+      "type": "method"
+    },
+    "client.images.createVariation": {
+      "type": "method"
+    },
+    "client.images.edit": {
+      "type": "method"
+    },
+    "client.images.generate": {
+      "type": "method"
+    },
+    "client.audio.transcriptions.create": {
+      "type": "method"
+    },
+    "client.audio.translations.create": {
+      "type": "method"
+    },
+    "client.audio.speech.create": {
+      "type": "method"
+    },
+    "client.moderations.create": {
+      "type": "method"
+    },
+    "client.models.retrieve": {
+      "type": "method"
+    },
+    "client.models.list": {
+      "type": "method"
+    },
+    "client.models.delete": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.create": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.retrieve": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.list": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.cancel": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.listEvents": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.pause": {
+      "type": "method"
+    },
+    "client.fineTuning.jobs.resume": {
+      "type": "method"
+    },
+    "client.vectorStores.create": {
+      "type": "method"
+    },
+    "client.vectorStores.retrieve": {
+      "type": "method"
+    },
+    "client.vectorStores.update": {
+      "type": "method"
+    },
+    "client.vectorStores.list": {
+      "type": "method"
+    },
+    "client.vectorStores.delete": {
+      "type": "method"
+    },
+    "client.vectorStores.search": {
+      "type": "method"
+    },
+    "client.vectorStores.files.create": {
+      "type": "method"
+    },
+    "client.vectorStores.files.retrieve": {
+      "type": "method"
+    },
+    "client.vectorStores.files.update": {
+      "type": "method"
+    },
+    "client.vectorStores.files.list": {
+      "type": "method"
+    },
+    "client.vectorStores.files.delete": {
+      "type": "method"
+    },
+    "client.vectorStores.files.createAndPoll": {
+      "type": "method"
+    },
+    "client.vectorStores.files.poll": {
+      "type": "method"
+    },
+    "client.vectorStores.files.upload": {
+      "type": "method"
+    },
+    "client.vectorStores.files.uploadAndPoll": {
+      "type": "method"
+    },
+    "client.vectorStores.files.content": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.create": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.retrieve": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.cancel": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.createAndPoll": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.listFiles": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.poll": {
+      "type": "method"
+    },
+    "client.vectorStores.fileBatches.uploadAndPoll": {
+      "type": "method"
+    },
+    "client.webhooks.unwrap": {
+      "type": "method"
+    },
+    "client.webhooks.verifySignature": {
+      "type": "method"
+    },
+    "client.beta.responses.create": {
+      "type": "method"
+    },
+    "client.beta.responses.retrieve": {
+      "type": "method"
+    },
+    "client.beta.responses.delete": {
+      "type": "method"
+    },
+    "client.beta.responses.cancel": {
+      "type": "method"
+    },
+    "client.beta.responses.compact": {
+      "type": "method"
+    },
+    "client.beta.assistants.create": {
+      "type": "method"
+    },
+    "client.beta.assistants.retrieve": {
+      "type": "method"
+    },
+    "client.beta.assistants.update": {
+      "type": "method"
+    },
+    "client.beta.assistants.list": {
+      "type": "method"
+    },
+    "client.beta.assistants.delete": {
+      "type": "method"
+    },
+    "client.beta.threads.create": {
+      "type": "method"
+    },
+    "client.beta.threads.retrieve": {
+      "type": "method"
+    },
+    "client.beta.threads.update": {
+      "type": "method"
+    },
+    "client.beta.threads.delete": {
+      "type": "method"
+    },
+    "client.beta.threads.createAndRun": {
+      "type": "method"
+    },
+    "client.beta.threads.createAndRunPoll": {
+      "type": "method"
+    },
+    "client.beta.threads.createAndRunStream": {
+      "type": "method"
+    },
+    "client.batches.create": {
+      "type": "method"
+    },
+    "client.batches.retrieve": {
+      "type": "method"
+    },
+    "client.batches.list": {
+      "type": "method"
+    },
+    "client.batches.cancel": {
+      "type": "method"
+    },
+    "client.uploads.create": {
+      "type": "method"
+    },
+    "client.uploads.cancel": {
+      "type": "method"
+    },
+    "client.uploads.complete": {
+      "type": "method"
+    },
+    "client.uploads.parts.create": {
+      "type": "method"
+    },
+    "client.responses.create": {
+      "type": "method"
+    },
+    "client.responses.retrieve": {
+      "type": "method"
+    },
+    "client.responses.delete": {
+      "type": "method"
+    },
+    "client.responses.parse": {
+      "type": "method"
+    },
+    "client.responses.stream": {
+      "type": "method"
+    },
+    "client.responses.cancel": {
+      "type": "method"
+    },
+    "client.responses.compact": {
+      "type": "method"
+    },
+    "client.responses.inputItems.list": {
+      "type": "method"
+    },
+    "client.responses.inputTokens.count": {
+      "type": "method"
+    },
+    "client.realtime.clientSecrets.create": {
+      "type": "method"
+    },
+    "client.realtime.calls.accept": {
+      "type": "method"
+    },
+    "client.realtime.calls.hangup": {
+      "type": "method"
+    },
+    "client.realtime.calls.refer": {
+      "type": "method"
+    },
+    "client.realtime.calls.reject": {
+      "type": "method"
+    },
+    "client.conversations.create": {
+      "type": "method"
+    },
+    "client.conversations.retrieve": {
+      "type": "method"
+    },
+    "client.conversations.update": {
+      "type": "method"
+    },
+    "client.conversations.delete": {
+      "type": "method"
+    },
+    "client.conversations.items.create": {
+      "type": "method"
+    },
+    "client.conversations.items.retrieve": {
+      "type": "method"
+    },
+    "client.conversations.items.list": {
+      "type": "method"
+    },
+    "client.conversations.items.delete": {
+      "type": "method"
+    },
+    "client.evals.create": {
+      "type": "method"
+    },
+    "client.evals.retrieve": {
+      "type": "method"
+    },
+    "client.evals.update": {
+      "type": "method"
+    },
+    "client.evals.list": {
+      "type": "method"
+    },
+    "client.evals.delete": {
+      "type": "method"
+    },
+    "client.evals.runs.create": {
+      "type": "method"
+    },
+    "client.evals.runs.retrieve": {
+      "type": "method"
+    },
+    "client.evals.runs.list": {
+      "type": "method"
+    },
+    "client.evals.runs.delete": {
+      "type": "method"
+    },
+    "client.evals.runs.cancel": {
+      "type": "method"
+    },
+    "client.containers.create": {
+      "type": "method"
+    },
+    "client.containers.retrieve": {
+      "type": "method"
+    },
+    "client.containers.list": {
+      "type": "method"
+    },
+    "client.containers.delete": {
+      "type": "method"
+    },
+    "client.containers.files.create": {
+      "type": "method"
+    },
+    "client.containers.files.retrieve": {
+      "type": "method"
+    },
+    "client.containers.files.list": {
+      "type": "method"
+    },
+    "client.containers.files.delete": {
+      "type": "method"
+    },
+    "client.skills.create": {
+      "type": "method"
+    },
+    "client.skills.retrieve": {
+      "type": "method"
+    },
+    "client.skills.update": {
+      "type": "method"
+    },
+    "client.skills.list": {
+      "type": "method"
+    },
+    "client.skills.delete": {
+      "type": "method"
+    },
+    "client.skills.content.retrieve": {
+      "type": "method"
+    },
+    "client.skills.versions.create": {
+      "type": "method"
+    },
+    "client.skills.versions.retrieve": {
+      "type": "method"
+    },
+    "client.skills.versions.list": {
+      "type": "method"
+    },
+    "client.skills.versions.delete": {
+      "type": "method"
+    },
+    "client.videos.create": {
+      "type": "method"
+    },
+    "client.videos.retrieve": {
+      "type": "method"
+    },
+    "client.videos.list": {
+      "type": "method"
+    },
+    "client.videos.delete": {
+      "type": "method"
+    },
+    "client.videos.createCharacter": {
+      "type": "method"
+    },
+    "client.videos.downloadContent": {
+      "type": "method"
+    },
+    "client.videos.edit": {
+      "type": "method"
+    },
+    "client.videos.extend": {
+      "type": "method"
+    },
+    "client.videos.getCharacter": {
+      "type": "method"
+    },
+    "client.videos.remix": {
+      "type": "method"
+    },
+    "client.fetch": {
+      "type": "method"
+    }
+  }
+}

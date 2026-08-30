@@ -1,0 +1,65 @@
+[
+  {
+    "n": 1,
+    "label": "Batches API (IN12)",
+    "status": "SKIP",
+    "reason": "Creates billable batch job; test manually with: client.batches.create()",
+    "ms": 0
+  },
+  {
+    "n": 2,
+    "label": "Code execution tool (IN25)",
+    "status": "SKIP",
+    "reason": "Requires code_execution_20250522 beta and sandbox container",
+    "ms": 0
+  },
+  {
+    "n": 3,
+    "label": "Computer use tool (IN26)",
+    "status": "SKIP",
+    "reason": "Requires computer_use_20250124 beta and desktop environment",
+    "ms": 0
+  },
+  {
+    "n": 4,
+    "label": "Files API upload (IN30)",
+    "status": "SKIP",
+    "reason": "Requires files beta; endpoint: POST /v1/files",
+    "ms": 0
+  },
+  {
+    "n": 5,
+    "label": "Files API list (IN30)",
+    "status": "SKIP",
+    "reason": "Requires files beta; endpoint: GET /v1/files",
+    "ms": 0
+  },
+  {
+    "n": 6,
+    "label": "Skills API (IN31)",
+    "status": "SKIP",
+    "reason": "Requires skills beta; endpoint: POST /v1/skills",
+    "ms": 0
+  },
+  {
+    "n": 7,
+    "label": "Managed Agents (IN40)",
+    "status": "SKIP",
+    "reason": "Requires agents beta; endpoint: POST /v1/agents",
+    "ms": 0
+  },
+  {
+    "n": 8,
+    "label": "Refusals/fallbacks (IN47)",
+    "status": "SKIP",
+    "reason": "Cannot reliably trigger refusal; server-side-fallback-2026-07-01 beta",
+    "ms": 0
+  },
+  {
+    "n": 9,
+    "label": "Agent Memory Stores (IN49)",
+    "status": "SKIP",
+    "reason": "Requires memory stores beta; endpoint: POST /v1/memory_stores",
+    "ms": 0
+  }
+]

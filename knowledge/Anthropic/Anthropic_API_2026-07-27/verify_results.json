@@ -1,0 +1,379 @@
+{
+  "stats": {
+    "files_checked": 45,
+    "blocks_checked": 189,
+    "calls_checked": 189,
+    "issues": 31
+  },
+  "issues": [
+    {
+      "file": "_INFO_ANTAPI-IN23_CODE_EXECUTION.md",
+      "issues": [
+        {
+          "type": "WRONG_PARAM",
+          "method": "client.messages.create",
+          "param": "container_id",
+          "sdk_params": [
+            "max_tokens",
+            "messages",
+            "model",
+            "cache_control",
+            "container",
+            "inference_geo",
+            "metadata",
+            "output_config",
+            "service_tier",
+            "stop_sequences"
+          ],
+          "line": 51
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN28_FILES_API.md",
+      "issues": [
+        {
+          "type": "WRONG_PARAM",
+          "method": "client.beta.files.upload",
+          "param": "purpose",
+          "sdk_params": [
+            "file",
+            "betas",
+            "extra_headers",
+            "extra_query",
+            "extra_body",
+            "timeout"
+          ],
+          "line": 33
+        },
+        {
+          "type": "WRONG_PARAM",
+          "method": "client.beta.files.upload",
+          "param": "purpose",
+          "sdk_params": [
+            "file",
+            "betas",
+            "extra_headers",
+            "extra_query",
+            "extra_body",
+            "timeout"
+          ],
+          "line": 101
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN29_SKILLS_API.md",
+      "issues": [
+        {
+          "type": "WRONG_PARAM",
+          "method": "client.beta.skills.create",
+          "param": "name",
+          "sdk_params": [
+            "files",
+            "display_title",
+            "betas",
+            "extra_headers",
+            "extra_query",
+            "extra_body",
+            "timeout"
+          ],
+          "line": 29
+        },
+        {
+          "type": "WRONG_PARAM",
+          "method": "client.beta.skills.create",
+          "param": "description",
+          "sdk_params": [
+            "files",
+            "display_title",
+            "betas",
+            "extra_headers",
+            "extra_query",
+            "extra_body",
+            "timeout"
+          ],
+          "line": 29
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN30_ADMIN_ORGS.md",
+      "issues": [
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.organizations.get",
+          "line": 33,
+          "similar": []
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.invites.create",
+          "line": 73,
+          "similar": [
+            "client.completions.create",
+            "client.messages.batches.create",
+            "client.messages.create"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.invites.retrieve",
+          "line": 97,
+          "similar": [
+            "client.models.retrieve",
+            "client.messages.batches.retrieve",
+            "client.beta.deployments.retrieve"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.invites.list",
+          "line": 117,
+          "similar": [
+            "client.models.list",
+            "client.messages.batches.list",
+            "client.beta.deployments.list"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.invites.delete",
+          "line": 138,
+          "similar": [
+            "client.messages.batches.delete",
+            "client.beta.files.delete",
+            "client.beta.environments.delete"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN31_ADMIN_USERS.md",
+      "issues": [
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.users.retrieve",
+          "line": 33,
+          "similar": [
+            "client.models.retrieve",
+            "client.messages.batches.retrieve",
+            "client.beta.deployments.retrieve"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.users.list",
+          "line": 58,
+          "similar": [
+            "client.models.list",
+            "client.messages.batches.list",
+            "client.beta.deployments.list"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.users.update",
+          "line": 79,
+          "similar": [
+            "client.beta.deployments.update",
+            "client.beta.user_profiles.update",
+            "client.beta.agents.update"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.users.delete",
+          "line": 97,
+          "similar": [
+            "client.messages.batches.delete",
+            "client.beta.files.delete",
+            "client.beta.environments.delete"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.api_keys.retrieve",
+          "line": 125,
+          "similar": [
+            "client.models.retrieve",
+            "client.messages.batches.retrieve",
+            "client.beta.deployments.retrieve"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.api_keys.list",
+          "line": 145,
+          "similar": [
+            "client.models.list",
+            "client.messages.batches.list",
+            "client.beta.deployments.list"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.api_keys.update",
+          "line": 166,
+          "similar": [
+            "client.beta.deployments.update",
+            "client.beta.user_profiles.update",
+            "client.beta.agents.update"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN32_ADMIN_WORKSPACES.md",
+      "issues": [
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.create",
+          "line": 33,
+          "similar": [
+            "client.completions.create",
+            "client.messages.batches.create",
+            "client.messages.create"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.retrieve",
+          "line": 58,
+          "similar": [
+            "client.models.retrieve",
+            "client.messages.batches.retrieve",
+            "client.beta.deployments.retrieve"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.list",
+          "line": 76,
+          "similar": [
+            "client.models.list",
+            "client.messages.batches.list",
+            "client.beta.deployments.list"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.update",
+          "line": 95,
+          "similar": [
+            "client.beta.deployments.update",
+            "client.beta.user_profiles.update",
+            "client.beta.agents.update"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.archive",
+          "line": 113,
+          "similar": [
+            "client.beta.deployments.archive",
+            "client.beta.dreams.archive",
+            "client.beta.agents.archive"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.members.create",
+          "line": 132,
+          "similar": [
+            "client.completions.create",
+            "client.messages.batches.create",
+            "client.messages.create"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.members.retrieve",
+          "line": 152,
+          "similar": [
+            "client.models.retrieve",
+            "client.messages.batches.retrieve",
+            "client.beta.deployments.retrieve"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.members.list",
+          "line": 172,
+          "similar": [
+            "client.models.list",
+            "client.messages.batches.list",
+            "client.beta.deployments.list"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.members.update",
+          "line": 191,
+          "similar": [
+            "client.beta.deployments.update",
+            "client.beta.user_profiles.update",
+            "client.beta.agents.update"
+          ]
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.workspaces.members.delete",
+          "line": 211,
+          "similar": [
+            "client.messages.batches.delete",
+            "client.beta.files.delete",
+            "client.beta.environments.delete"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN33_USAGE_API.md",
+      "issues": [
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.usage_report.retrieve_messages",
+          "line": 33,
+          "similar": []
+        },
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.admin.usage_report.retrieve_claude_code",
+          "line": 91,
+          "similar": []
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN34_RATE_LIMITS.md",
+      "issues": [
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.messages.with_raw_response.create",
+          "line": 85,
+          "similar": [
+            "client.completions.create",
+            "client.messages.batches.create",
+            "client.messages.create"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "_INFO_ANTAPI-IN41_RATE_LIMITS_API.md",
+      "issues": [
+        {
+          "type": "METHOD_NOT_FOUND",
+          "method": "client.organizations.rate_limits.list",
+          "line": 25,
+          "similar": [
+            "client.models.list",
+            "client.messages.batches.list",
+            "client.beta.deployments.list"
+          ]
+        }
+      ]
+    }
+  ]
+}

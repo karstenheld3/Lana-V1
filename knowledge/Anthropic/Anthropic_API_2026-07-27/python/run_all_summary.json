@@ -1,0 +1,138 @@
+{
+  "timestamp": "2026-07-27T20:48:24",
+  "python": "E:\\Dev\\.tools\\llm-venv\\Scripts\\python.exe",
+  "elapsed_s": 163.8,
+  "totals": {
+    "passed": 63,
+    "failed": 0,
+    "skipped": 9
+  },
+  "files": [
+    {
+      "file": "01_client_errors_test.py",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5,
+      "elapsed_s": 6.7,
+      "exit_code": 0
+    },
+    {
+      "file": "02_messages_test.py",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8,
+      "elapsed_s": 17.1,
+      "exit_code": 0
+    },
+    {
+      "file": "03_streaming_test.py",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5,
+      "elapsed_s": 10.8,
+      "exit_code": 0
+    },
+    {
+      "file": "04_token_counting_test.py",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5,
+      "elapsed_s": 3.1,
+      "exit_code": 0
+    },
+    {
+      "file": "05_stop_reasons_test.py",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6,
+      "elapsed_s": 29.9,
+      "exit_code": 0
+    },
+    {
+      "file": "06_thinking_test.py",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6,
+      "elapsed_s": 14.8,
+      "exit_code": 0
+    },
+    {
+      "file": "07_structured_outputs_test.py",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3,
+      "elapsed_s": 8.6,
+      "exit_code": 0
+    },
+    {
+      "file": "08_prompt_caching_test.py",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5,
+      "elapsed_s": 15.0,
+      "exit_code": 0
+    },
+    {
+      "file": "09_tool_use_test.py",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6,
+      "elapsed_s": 15.1,
+      "exit_code": 0
+    },
+    {
+      "file": "10_web_tools_test.py",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3,
+      "elapsed_s": 26.1,
+      "exit_code": 0
+    },
+    {
+      "file": "11_context_features_test.py",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "total": 4,
+      "elapsed_s": 8.3,
+      "exit_code": 0
+    },
+    {
+      "file": "12_platform_compat_test.py",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "total": 4,
+      "elapsed_s": 1.5,
+      "exit_code": 0
+    },
+    {
+      "file": "13_admin_apis_test.py",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "total": 5,
+      "elapsed_s": 5.0,
+      "exit_code": 0
+    },
+    {
+      "file": "14_beta_features_test.py",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 9,
+      "total": 9,
+      "elapsed_s": 1.5,
+      "exit_code": 0
+    }
+  ]
+}

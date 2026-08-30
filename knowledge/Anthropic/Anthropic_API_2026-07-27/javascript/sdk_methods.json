@@ -1,0 +1,2539 @@
+{
+  "client.completions.with_raw_response": {
+    "params": [],
+    "source": "resources\\completions.py",
+    "class": "AsyncCompletions"
+  },
+  "client.completions.with_streaming_response": {
+    "params": [],
+    "source": "resources\\completions.py",
+    "class": "AsyncCompletions"
+  },
+  "client.completions.create": {
+    "params": [
+      "max_tokens_to_sample",
+      "model",
+      "prompt",
+      "metadata",
+      "stop_sequences",
+      "stream",
+      "temperature",
+      "top_k",
+      "top_p",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\completions.py",
+    "class": "AsyncCompletions"
+  },
+  "client.models.with_raw_response": {
+    "params": [],
+    "source": "resources\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.models.with_streaming_response": {
+    "params": [],
+    "source": "resources\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.models.retrieve": {
+    "params": [
+      "model_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.models.list": {
+    "params": [
+      "after_id",
+      "before_id",
+      "limit",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.messages.batches.with_raw_response": {
+    "params": [],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.with_streaming_response": {
+    "params": [],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.create": {
+    "params": [
+      "requests",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.retrieve": {
+    "params": [
+      "message_batch_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.list": {
+    "params": [
+      "after_id",
+      "before_id",
+      "limit",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.delete": {
+    "params": [
+      "message_batch_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.cancel": {
+    "params": [
+      "message_batch_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches.results": {
+    "params": [
+      "message_batch_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.messages.batches": {
+    "params": [],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessagesWithStreamingResponse"
+  },
+  "client.messages.with_raw_response": {
+    "params": [],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.messages.with_streaming_response": {
+    "params": [],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.messages.create": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "cache_control",
+      "container",
+      "inference_geo",
+      "metadata",
+      "output_config",
+      "service_tier",
+      "stop_sequences",
+      "stream",
+      "system",
+      "temperature",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "top_k",
+      "top_p",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.messages.stream": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "cache_control",
+      "inference_geo",
+      "metadata",
+      "output_config",
+      "output_format",
+      "container",
+      "service_tier",
+      "stop_sequences",
+      "system",
+      "temperature",
+      "top_k",
+      "top_p",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.messages.parse": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "metadata",
+      "output_config",
+      "output_format",
+      "service_tier",
+      "stop_sequences",
+      "stream",
+      "system",
+      "temperature",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "top_k",
+      "top_p",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.messages.count_tokens": {
+    "params": [
+      "messages",
+      "model",
+      "cache_control",
+      "output_config",
+      "output_format",
+      "system",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.beta.models": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.messages": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.agents": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.environments": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.sessions": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.deployments": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.deployment_runs": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.vaults": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.memory_stores": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.files": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.skills": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.webhooks": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBeta"
+  },
+  "client.beta.beta.user_profiles": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.dreams": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.tunnels": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBetaWithStreamingResponse"
+  },
+  "client.beta.beta.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBeta"
+  },
+  "client.beta.beta.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\beta.py",
+    "class": "AsyncBeta"
+  },
+  "client.beta.deployments.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.create": {
+    "params": [
+      "agent",
+      "environment_id",
+      "initial_events",
+      "name",
+      "description",
+      "metadata",
+      "resources",
+      "schedule",
+      "vault_ids",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.retrieve": {
+    "params": [
+      "deployment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.update": {
+    "params": [
+      "deployment_id",
+      "agent",
+      "description",
+      "environment_id",
+      "initial_events",
+      "metadata",
+      "name",
+      "resources",
+      "schedule",
+      "vault_ids",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.list": {
+    "params": [
+      "agent_id",
+      "created_at_gte",
+      "created_at_lte",
+      "include_archived",
+      "limit",
+      "page",
+      "status",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.archive": {
+    "params": [
+      "deployment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.pause": {
+    "params": [
+      "deployment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.run": {
+    "params": [
+      "deployment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployments.unpause": {
+    "params": [
+      "deployment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployments.py",
+    "class": "AsyncDeployments"
+  },
+  "client.beta.deployment_runs.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\deployment_runs.py",
+    "class": "AsyncDeploymentRuns"
+  },
+  "client.beta.deployment_runs.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\deployment_runs.py",
+    "class": "AsyncDeploymentRuns"
+  },
+  "client.beta.deployment_runs.retrieve": {
+    "params": [
+      "deployment_run_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployment_runs.py",
+    "class": "AsyncDeploymentRuns"
+  },
+  "client.beta.deployment_runs.list": {
+    "params": [
+      "created_at_gt",
+      "created_at_gte",
+      "created_at_lt",
+      "created_at_lte",
+      "deployment_id",
+      "has_error",
+      "limit",
+      "page",
+      "trigger_type",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\deployment_runs.py",
+    "class": "AsyncDeploymentRuns"
+  },
+  "client.beta.dreams.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.dreams.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.dreams.create": {
+    "params": [
+      "inputs",
+      "model",
+      "instructions",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.dreams.retrieve": {
+    "params": [
+      "dream_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.dreams.list": {
+    "params": [
+      "created_at_gt",
+      "created_at_lt",
+      "include_archived",
+      "limit",
+      "page",
+      "statuses",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.dreams.archive": {
+    "params": [
+      "dream_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.dreams.cancel": {
+    "params": [
+      "dream_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\dreams.py",
+    "class": "AsyncDreams"
+  },
+  "client.beta.files.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.files.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.files.list": {
+    "params": [
+      "after_id",
+      "before_id",
+      "limit",
+      "scope_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.files.delete": {
+    "params": [
+      "file_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.files.download": {
+    "params": [
+      "file_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.files.retrieve_metadata": {
+    "params": [
+      "file_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.files.upload": {
+    "params": [
+      "file",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\files.py",
+    "class": "AsyncFiles"
+  },
+  "client.beta.models.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.beta.models.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.beta.models.retrieve": {
+    "params": [
+      "model_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.beta.models.list": {
+    "params": [
+      "after_id",
+      "before_id",
+      "limit",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\models.py",
+    "class": "AsyncModels"
+  },
+  "client.beta.user_profiles.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.user_profiles.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.user_profiles.create": {
+    "params": [
+      "external_id",
+      "metadata",
+      "name",
+      "relationship",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.user_profiles.retrieve": {
+    "params": [
+      "user_profile_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.user_profiles.update": {
+    "params": [
+      "user_profile_id",
+      "external_id",
+      "metadata",
+      "name",
+      "relationship",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.user_profiles.list": {
+    "params": [
+      "limit",
+      "order",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.user_profiles.create_enrollment_url": {
+    "params": [
+      "user_profile_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\user_profiles.py",
+    "class": "AsyncUserProfiles"
+  },
+  "client.beta.webhooks.unwrap": {
+    "params": [
+      "payload",
+      "headers",
+      "key"
+    ],
+    "source": "resources\\beta\\webhooks.py",
+    "class": "AsyncWebhooks"
+  },
+  "client.beta.agents.versions": {
+    "params": [],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgentsWithStreamingResponse"
+  },
+  "client.beta.agents.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.create": {
+    "params": [
+      "model",
+      "name",
+      "description",
+      "mcp_servers",
+      "metadata",
+      "multiagent",
+      "skills",
+      "system",
+      "tools",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.retrieve": {
+    "params": [
+      "agent_id",
+      "version",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.update": {
+    "params": [
+      "agent_id",
+      "description",
+      "mcp_servers",
+      "metadata",
+      "model",
+      "multiagent",
+      "name",
+      "skills",
+      "system",
+      "tools",
+      "version",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.list": {
+    "params": [
+      "created_at_gte",
+      "created_at_lte",
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.archive": {
+    "params": [
+      "agent_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\agents\\agents.py",
+    "class": "AsyncAgents"
+  },
+  "client.beta.agents.versions.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\agents\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.agents.versions.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\agents\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.agents.versions.list": {
+    "params": [
+      "agent_id",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\agents\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.environments.work": {
+    "params": [],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironmentsWithStreamingResponse"
+  },
+  "client.beta.environments.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.create": {
+    "params": [
+      "name",
+      "config",
+      "description",
+      "metadata",
+      "scope",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.retrieve": {
+    "params": [
+      "environment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.update": {
+    "params": [
+      "environment_id",
+      "config",
+      "description",
+      "metadata",
+      "name",
+      "scope",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.list": {
+    "params": [
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.delete": {
+    "params": [
+      "environment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.archive": {
+    "params": [
+      "environment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\environments.py",
+    "class": "AsyncEnvironments"
+  },
+  "client.beta.environments.work.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.retrieve": {
+    "params": [
+      "work_id",
+      "environment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.update": {
+    "params": [
+      "work_id",
+      "environment_id",
+      "metadata",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.list": {
+    "params": [
+      "environment_id",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.ack": {
+    "params": [
+      "work_id",
+      "environment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.heartbeat": {
+    "params": [
+      "work_id",
+      "environment_id",
+      "desired_ttl_seconds",
+      "expected_last_heartbeat",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.poll": {
+    "params": [
+      "environment_id",
+      "block_ms",
+      "reclaim_older_than_ms",
+      "betas",
+      "anthropic_worker_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.stats": {
+    "params": [
+      "environment_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.stop": {
+    "params": [
+      "work_id",
+      "environment_id",
+      "force",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.poller": {
+    "params": [
+      "environment_id",
+      "environment_key",
+      "worker_id",
+      "block_ms",
+      "reclaim_older_than_ms",
+      "drain",
+      "auto_stop",
+      "extra_headers"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.environments.work.worker": {
+    "params": [
+      "environment_id",
+      "environment_key",
+      "tools",
+      "workdir",
+      "unrestricted_paths",
+      "max_file_bytes",
+      "max_idle",
+      "worker_id",
+      "extra_headers"
+    ],
+    "source": "resources\\beta\\environments\\work.py",
+    "class": "AsyncWork"
+  },
+  "client.beta.memory_stores.memories.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories.create": {
+    "params": [
+      "memory_store_id",
+      "content",
+      "path",
+      "view",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories.retrieve": {
+    "params": [
+      "memory_id",
+      "memory_store_id",
+      "view",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories.update": {
+    "params": [
+      "memory_id",
+      "memory_store_id",
+      "view",
+      "content",
+      "path",
+      "precondition",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories.list": {
+    "params": [
+      "memory_store_id",
+      "depth",
+      "limit",
+      "page",
+      "path_prefix",
+      "view",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories.delete": {
+    "params": [
+      "memory_id",
+      "memory_store_id",
+      "expected_content_sha256",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memories.py",
+    "class": "AsyncMemories"
+  },
+  "client.beta.memory_stores.memories": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStoresWithStreamingResponse"
+  },
+  "client.beta.memory_stores.memory_versions": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStoresWithStreamingResponse"
+  },
+  "client.beta.memory_stores.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.create": {
+    "params": [
+      "name",
+      "description",
+      "metadata",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.retrieve": {
+    "params": [
+      "memory_store_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.update": {
+    "params": [
+      "memory_store_id",
+      "description",
+      "metadata",
+      "name",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.list": {
+    "params": [
+      "created_at_gte",
+      "created_at_lte",
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.delete": {
+    "params": [
+      "memory_store_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.archive": {
+    "params": [
+      "memory_store_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_stores.py",
+    "class": "AsyncMemoryStores"
+  },
+  "client.beta.memory_stores.memory_versions.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memory_versions.py",
+    "class": "AsyncMemoryVersions"
+  },
+  "client.beta.memory_stores.memory_versions.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\memory_stores\\memory_versions.py",
+    "class": "AsyncMemoryVersions"
+  },
+  "client.beta.memory_stores.memory_versions.retrieve": {
+    "params": [
+      "memory_version_id",
+      "memory_store_id",
+      "view",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_versions.py",
+    "class": "AsyncMemoryVersions"
+  },
+  "client.beta.memory_stores.memory_versions.list": {
+    "params": [
+      "memory_store_id",
+      "api_key_id",
+      "created_at_gte",
+      "created_at_lte",
+      "limit",
+      "memory_id",
+      "operation",
+      "page",
+      "session_id",
+      "view",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_versions.py",
+    "class": "AsyncMemoryVersions"
+  },
+  "client.beta.memory_stores.memory_versions.redact": {
+    "params": [
+      "memory_version_id",
+      "memory_store_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\memory_stores\\memory_versions.py",
+    "class": "AsyncMemoryVersions"
+  },
+  "client.beta.messages.batches.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.create": {
+    "params": [
+      "requests",
+      "betas",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.retrieve": {
+    "params": [
+      "message_batch_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.list": {
+    "params": [
+      "after_id",
+      "before_id",
+      "limit",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.delete": {
+    "params": [
+      "message_batch_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.cancel": {
+    "params": [
+      "message_batch_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches.results": {
+    "params": [
+      "message_batch_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\batches.py",
+    "class": "AsyncBatches"
+  },
+  "client.beta.messages.batches": {
+    "params": [],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessagesWithStreamingResponse"
+  },
+  "client.beta.messages.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.messages.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.messages.create": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "cache_control",
+      "container",
+      "context_management",
+      "diagnostics",
+      "fallback_credit_token",
+      "fallbacks",
+      "inference_geo",
+      "mcp_servers",
+      "metadata",
+      "output_config",
+      "output_format",
+      "service_tier",
+      "speed",
+      "stop_sequences",
+      "stream",
+      "system",
+      "temperature",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "top_k",
+      "top_p",
+      "betas",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.messages.parse": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "cache_control",
+      "container",
+      "context_management",
+      "diagnostics",
+      "fallback_credit_token",
+      "fallbacks",
+      "inference_geo",
+      "mcp_servers",
+      "metadata",
+      "output_config",
+      "output_format",
+      "service_tier",
+      "speed",
+      "stop_sequences",
+      "stream",
+      "system",
+      "temperature",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "top_k",
+      "top_p",
+      "betas",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.messages.tool_runner": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "tools",
+      "compaction_control",
+      "max_iterations",
+      "cache_control",
+      "container",
+      "context_management",
+      "diagnostics",
+      "fallback_credit_token",
+      "fallbacks",
+      "inference_geo",
+      "mcp_servers",
+      "metadata",
+      "output_config",
+      "output_format",
+      "service_tier",
+      "speed",
+      "stop_sequences",
+      "stream",
+      "system",
+      "temperature",
+      "top_k",
+      "top_p",
+      "thinking",
+      "tool_choice",
+      "betas",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.messages.stream": {
+    "params": [
+      "max_tokens",
+      "messages",
+      "model",
+      "cache_control",
+      "metadata",
+      "output_config",
+      "output_format",
+      "container",
+      "context_management",
+      "diagnostics",
+      "fallback_credit_token",
+      "fallbacks",
+      "inference_geo",
+      "mcp_servers",
+      "service_tier",
+      "speed",
+      "stop_sequences",
+      "system",
+      "temperature",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "top_k",
+      "top_p",
+      "betas",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.messages.count_tokens": {
+    "params": [
+      "messages",
+      "model",
+      "cache_control",
+      "context_management",
+      "mcp_servers",
+      "output_config",
+      "output_format",
+      "speed",
+      "system",
+      "thinking",
+      "tool_choice",
+      "tools",
+      "betas",
+      "user_profile_id",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\messages\\messages.py",
+    "class": "AsyncMessages"
+  },
+  "client.beta.sessions.events.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.events.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.events.list": {
+    "params": [
+      "session_id",
+      "created_at_gt",
+      "created_at_gte",
+      "created_at_lt",
+      "created_at_lte",
+      "limit",
+      "order",
+      "page",
+      "types",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.events.send": {
+    "params": [
+      "session_id",
+      "events",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.events.stream": {
+    "params": [
+      "session_id",
+      "event_deltas",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.events.tool_runner": {
+    "params": [
+      "session_id",
+      "tools",
+      "max_idle",
+      "environment_key",
+      "extra_headers"
+    ],
+    "source": "resources\\beta\\sessions\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.resources.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.resources.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.resources.retrieve": {
+    "params": [
+      "resource_id",
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.resources.update": {
+    "params": [
+      "resource_id",
+      "session_id",
+      "authorization_token",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.resources.list": {
+    "params": [
+      "session_id",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.resources.delete": {
+    "params": [
+      "resource_id",
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.resources.add": {
+    "params": [
+      "session_id",
+      "file_id",
+      "type",
+      "mount_path",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\resources.py",
+    "class": "AsyncResources"
+  },
+  "client.beta.sessions.events": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessionsWithStreamingResponse"
+  },
+  "client.beta.sessions.resources": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessionsWithStreamingResponse"
+  },
+  "client.beta.sessions.threads": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessionsWithStreamingResponse"
+  },
+  "client.beta.sessions.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.create": {
+    "params": [
+      "agent",
+      "environment_id",
+      "initial_events",
+      "metadata",
+      "resources",
+      "title",
+      "vault_ids",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.retrieve": {
+    "params": [
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.update": {
+    "params": [
+      "session_id",
+      "agent",
+      "metadata",
+      "title",
+      "vault_ids",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.list": {
+    "params": [
+      "agent_id",
+      "agent_version",
+      "created_at_gt",
+      "created_at_gte",
+      "created_at_lt",
+      "created_at_lte",
+      "deployment_id",
+      "include_archived",
+      "limit",
+      "memory_store_id",
+      "order",
+      "page",
+      "statuses",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.delete": {
+    "params": [
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.sessions.archive": {
+    "params": [
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\sessions.py",
+    "class": "AsyncSessions"
+  },
+  "client.beta.skills.versions": {
+    "params": [],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkillsWithStreamingResponse"
+  },
+  "client.beta.skills.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkills"
+  },
+  "client.beta.skills.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkills"
+  },
+  "client.beta.skills.create": {
+    "params": [
+      "files",
+      "display_title",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkills"
+  },
+  "client.beta.skills.retrieve": {
+    "params": [
+      "skill_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkills"
+  },
+  "client.beta.skills.list": {
+    "params": [
+      "limit",
+      "page",
+      "source",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkills"
+  },
+  "client.beta.skills.delete": {
+    "params": [
+      "skill_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\skills.py",
+    "class": "AsyncSkills"
+  },
+  "client.beta.skills.versions.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.skills.versions.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.skills.versions.create": {
+    "params": [
+      "skill_id",
+      "files",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.skills.versions.retrieve": {
+    "params": [
+      "version",
+      "skill_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.skills.versions.list": {
+    "params": [
+      "skill_id",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.skills.versions.delete": {
+    "params": [
+      "version",
+      "skill_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.skills.versions.download": {
+    "params": [
+      "version",
+      "skill_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\skills\\versions.py",
+    "class": "AsyncVersions"
+  },
+  "client.beta.tunnels.certificates.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\tunnels\\certificates.py",
+    "class": "AsyncCertificates"
+  },
+  "client.beta.tunnels.certificates.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\tunnels\\certificates.py",
+    "class": "AsyncCertificates"
+  },
+  "client.beta.tunnels.certificates.create": {
+    "params": [
+      "tunnel_id",
+      "ca_certificate_pem",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\certificates.py",
+    "class": "AsyncCertificates"
+  },
+  "client.beta.tunnels.certificates.retrieve": {
+    "params": [
+      "certificate_id",
+      "tunnel_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\certificates.py",
+    "class": "AsyncCertificates"
+  },
+  "client.beta.tunnels.certificates.list": {
+    "params": [
+      "tunnel_id",
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\certificates.py",
+    "class": "AsyncCertificates"
+  },
+  "client.beta.tunnels.certificates.archive": {
+    "params": [
+      "certificate_id",
+      "tunnel_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\certificates.py",
+    "class": "AsyncCertificates"
+  },
+  "client.beta.tunnels.certificates": {
+    "params": [],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnelsWithStreamingResponse"
+  },
+  "client.beta.tunnels.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.create": {
+    "params": [
+      "display_name",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.retrieve": {
+    "params": [
+      "tunnel_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.list": {
+    "params": [
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.archive": {
+    "params": [
+      "tunnel_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.reveal_token": {
+    "params": [
+      "tunnel_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.tunnels.rotate_token": {
+    "params": [
+      "tunnel_id",
+      "reason",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\tunnels\\tunnels.py",
+    "class": "AsyncTunnels"
+  },
+  "client.beta.vaults.credentials.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.create": {
+    "params": [
+      "vault_id",
+      "auth",
+      "display_name",
+      "metadata",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.retrieve": {
+    "params": [
+      "credential_id",
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.update": {
+    "params": [
+      "credential_id",
+      "vault_id",
+      "auth",
+      "display_name",
+      "metadata",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.list": {
+    "params": [
+      "vault_id",
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.delete": {
+    "params": [
+      "credential_id",
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.archive": {
+    "params": [
+      "credential_id",
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials.mcp_oauth_validate": {
+    "params": [
+      "credential_id",
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\credentials.py",
+    "class": "AsyncCredentials"
+  },
+  "client.beta.vaults.credentials": {
+    "params": [],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaultsWithStreamingResponse"
+  },
+  "client.beta.vaults.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.create": {
+    "params": [
+      "display_name",
+      "metadata",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.retrieve": {
+    "params": [
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.update": {
+    "params": [
+      "vault_id",
+      "display_name",
+      "metadata",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.list": {
+    "params": [
+      "include_archived",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.delete": {
+    "params": [
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.vaults.archive": {
+    "params": [
+      "vault_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\vaults\\vaults.py",
+    "class": "AsyncVaults"
+  },
+  "client.beta.sessions.threads.events.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\threads\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.threads.events.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\threads\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.threads.events.list": {
+    "params": [
+      "thread_id",
+      "session_id",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\threads\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.threads.events.stream": {
+    "params": [
+      "thread_id",
+      "session_id",
+      "event_deltas",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\threads\\events.py",
+    "class": "AsyncEvents"
+  },
+  "client.beta.sessions.threads.events": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\threads\\threads.py",
+    "class": "AsyncThreadsWithStreamingResponse"
+  },
+  "client.beta.sessions.threads.with_raw_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\threads\\threads.py",
+    "class": "AsyncThreads"
+  },
+  "client.beta.sessions.threads.with_streaming_response": {
+    "params": [],
+    "source": "resources\\beta\\sessions\\threads\\threads.py",
+    "class": "AsyncThreads"
+  },
+  "client.beta.sessions.threads.retrieve": {
+    "params": [
+      "thread_id",
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\threads\\threads.py",
+    "class": "AsyncThreads"
+  },
+  "client.beta.sessions.threads.list": {
+    "params": [
+      "session_id",
+      "limit",
+      "page",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\threads\\threads.py",
+    "class": "AsyncThreads"
+  },
+  "client.beta.sessions.threads.archive": {
+    "params": [
+      "thread_id",
+      "session_id",
+      "betas",
+      "extra_headers",
+      "extra_query",
+      "extra_body",
+      "timeout"
+    ],
+    "source": "resources\\beta\\sessions\\threads\\threads.py",
+    "class": "AsyncThreads"
+  }
+}

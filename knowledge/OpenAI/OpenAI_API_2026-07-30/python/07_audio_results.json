@@ -1,0 +1,33 @@
+{
+  "topic_id": "IN18-IN19",
+  "description": "Audio",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN18-IN19",
+    "description": "Audio",
+    "total": 2,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "total_duration_ms": 4154
+  },
+  "tests": [
+    {
+      "name": "text_to_speech",
+      "topic": "IN18-IN19",
+      "status": "passed",
+      "duration_ms": 4154,
+      "details": {
+        "bytes": 20352
+      }
+    },
+    {
+      "name": "audio_transcription",
+      "topic": "IN18-IN19",
+      "status": "skipped",
+      "duration_ms": 0,
+      "error": "Requires audio file input"
+    }
+  ]
+}

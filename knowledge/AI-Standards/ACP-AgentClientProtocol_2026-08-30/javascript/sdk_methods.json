@@ -1,0 +1,814 @@
+{
+  "package": "@agentclientprotocol/sdk",
+  "version": "1.4.0",
+  "node": "v22.21.1",
+  "exportPaths": [
+    ".",
+    "./experimental/v2",
+    "./experimental/http-client",
+    "./experimental/ws-client",
+    "./experimental/server",
+    "./experimental/node",
+    "./schema/schema.json",
+    "./schema/v2/schema.unstable.json"
+  ],
+  "modules": [
+    {
+      "module": "@agentclientprotocol/sdk",
+      "classes": [
+        {
+          "name": "ActiveSession",
+          "methods": [
+            "sessionId",
+            "modes",
+            "meta",
+            "newSessionResponse",
+            "prompt",
+            "nextUpdate",
+            "readText",
+            "dispose",
+            "promptBlocks"
+          ]
+        },
+        {
+          "name": "AgentApp",
+          "methods": [
+            "connect",
+            "connectWith",
+            "onConnect",
+            "onRequest",
+            "onNotification",
+            "request",
+            "notification",
+            "connectConnection",
+            "openStreamConnection"
+          ]
+        },
+        {
+          "name": "AgentContext",
+          "methods": [
+            "request",
+            "notify"
+          ]
+        },
+        {
+          "name": "AgentSideConnection",
+          "methods": [
+            "sessionUpdate",
+            "requestPermission",
+            "readTextFile",
+            "writeTextFile",
+            "createTerminal",
+            "createElicitation",
+            "completeElicitation",
+            "request",
+            "notify",
+            "extMethod",
+            "extNotification",
+            "signal",
+            "closed"
+          ]
+        },
+        {
+          "name": "ClientApp",
+          "methods": [
+            "connect",
+            "connectWith",
+            "onConnect",
+            "onRequest",
+            "onNotification",
+            "request",
+            "notification",
+            "connectConnection",
+            "openStreamConnection"
+          ]
+        },
+        {
+          "name": "ClientContext",
+          "methods": [
+            "buildSession",
+            "attachSession",
+            "request",
+            "notify"
+          ]
+        },
+        {
+          "name": "ClientSideConnection",
+          "methods": [
+            "initialize",
+            "newSession",
+            "loadSession",
+            "unstable_forkSession",
+            "listSessions",
+            "deleteSession",
+            "resumeSession",
+            "closeSession",
+            "setSessionMode",
+            "setSessionConfigOption",
+            "authenticate",
+            "unstable_listProviders",
+            "unstable_setProvider",
+            "unstable_disableProvider",
+            "logout",
+            "prompt",
+            "cancel",
+            "unstable_startNes",
+            "unstable_suggestNes",
+            "unstable_closeNes",
+            "unstable_didOpenDocument",
+            "unstable_didChangeDocument",
+            "unstable_didCloseDocument",
+            "unstable_didSaveDocument",
+            "unstable_didFocusDocument",
+            "unstable_acceptNes",
+            "unstable_rejectNes",
+            "request",
+            "notify",
+            "extMethod",
+            "extNotification",
+            "signal",
+            "closed"
+          ]
+        },
+        {
+          "name": "RequestError",
+          "methods": [
+            "toResult",
+            "toErrorResponse"
+          ]
+        },
+        {
+          "name": "SessionBuilder",
+          "methods": [
+            "toRequest",
+            "withAdditionalDirectories",
+            "withMcpServer",
+            "start",
+            "withSession"
+          ]
+        },
+        {
+          "name": "TerminalHandle",
+          "methods": [
+            "currentOutput",
+            "waitForExit",
+            "kill",
+            "release"
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "agent",
+          "length": 1
+        },
+        {
+          "name": "client",
+          "length": 1
+        },
+        {
+          "name": "ndJsonStream",
+          "length": 2
+        }
+      ],
+      "constants": [
+        {
+          "name": "AGENT_METHODS",
+          "type": "object",
+          "keys": [
+            "initialize",
+            "authenticate",
+            "providers_list",
+            "providers_set",
+            "providers_disable",
+            "session_new",
+            "session_load",
+            "session_set_mode",
+            "session_set_config_option",
+            "session_prompt"
+          ]
+        },
+        {
+          "name": "CLIENT_METHODS",
+          "type": "object",
+          "keys": [
+            "session_request_permission",
+            "session_update",
+            "fs_write_text_file",
+            "fs_read_text_file",
+            "terminal_create",
+            "terminal_output",
+            "terminal_release",
+            "terminal_wait_for_exit",
+            "terminal_kill",
+            "mcp_connect"
+          ]
+        },
+        {
+          "name": "CreateElicitationRequest",
+          "type": "object",
+          "keys": [
+            "isForm",
+            "isUrl",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "CreateElicitationResponse",
+          "type": "object",
+          "keys": [
+            "isAccept",
+            "isDecline",
+            "isCancel",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "ElicitationPropertySchema",
+          "type": "object",
+          "keys": [
+            "isString",
+            "isNumber",
+            "isInteger",
+            "isBoolean",
+            "isArray",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "MultiSelectItems",
+          "type": "object",
+          "keys": [
+            "isString",
+            "isTitled",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "PROTOCOL_METHODS",
+          "type": "object",
+          "keys": [
+            "cancel_request"
+          ]
+        },
+        {
+          "name": "PROTOCOL_VERSION",
+          "type": "number",
+          "value": "1"
+        },
+        {
+          "name": "methods",
+          "type": "object",
+          "keys": [
+            "agent",
+            "client",
+            "protocol"
+          ]
+        }
+      ],
+      "exportCount": 22
+    },
+    {
+      "module": "@agentclientprotocol/sdk/experimental/v2",
+      "classes": [
+        {
+          "name": "ActiveSession",
+          "methods": [
+            "sessionId",
+            "configOptions",
+            "meta",
+            "newSessionResponse",
+            "prompt",
+            "nextUpdate",
+            "readText",
+            "dispose",
+            "promptBlocks"
+          ]
+        },
+        {
+          "name": "AgentApp",
+          "methods": [
+            "connect",
+            "connectWith",
+            "onConnect",
+            "onRequest",
+            "onNotification",
+            "request",
+            "notification",
+            "connectConnection",
+            "openStreamConnection",
+            "assertInitializeHandler"
+          ]
+        },
+        {
+          "name": "AgentContext",
+          "methods": [
+            "request",
+            "notify",
+            "batch"
+          ]
+        },
+        {
+          "name": "AgentProtocolRouter",
+          "methods": [
+            "withV1",
+            "withV2",
+            "connect",
+            "route",
+            "highestCompatible",
+            "supportedDescription"
+          ]
+        },
+        {
+          "name": "ClientApp",
+          "methods": [
+            "connect",
+            "connectWith",
+            "onConnect",
+            "onRequest",
+            "onNotification",
+            "request",
+            "notification",
+            "connectConnection",
+            "openStreamConnection"
+          ]
+        },
+        {
+          "name": "ClientContext",
+          "methods": [
+            "buildSession",
+            "attachSession",
+            "request",
+            "notify",
+            "batch"
+          ]
+        },
+        {
+          "name": "RequestError",
+          "methods": [
+            "toResult",
+            "toErrorResponse"
+          ]
+        },
+        {
+          "name": "SessionBuilder",
+          "methods": [
+            "toRequest",
+            "withAdditionalDirectories",
+            "withMcpServer",
+            "start",
+            "withSession"
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "agent",
+          "length": 1
+        },
+        {
+          "name": "agentProtocolRouter",
+          "length": 0
+        },
+        {
+          "name": "batchNotification",
+          "length": 2
+        },
+        {
+          "name": "batchRequest",
+          "length": 4
+        },
+        {
+          "name": "client",
+          "length": 1
+        },
+        {
+          "name": "ndJsonStream",
+          "length": 2
+        }
+      ],
+      "constants": [
+        {
+          "name": "AGENT_METHODS",
+          "type": "object",
+          "keys": [
+            "initialize",
+            "auth_login",
+            "providers_list",
+            "providers_set",
+            "providers_disable",
+            "session_new",
+            "session_set_config_option",
+            "session_prompt",
+            "session_cancel",
+            "mcp_message"
+          ]
+        },
+        {
+          "name": "AuthMethod",
+          "type": "object",
+          "keys": [
+            "isTerminal",
+            "isAgent",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "AvailableCommandInput",
+          "type": "object",
+          "keys": [
+            "isText",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "CLIENT_METHODS",
+          "type": "object",
+          "keys": [
+            "session_request_permission",
+            "session_update",
+            "mcp_connect",
+            "mcp_message",
+            "mcp_disconnect",
+            "elicitation_create",
+            "elicitation_complete"
+          ]
+        },
+        {
+          "name": "ContentBlock",
+          "type": "object",
+          "keys": [
+            "isText",
+            "isImage",
+            "isAudio",
+            "isResourceLink",
+            "isResource",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "CreateElicitationRequest",
+          "type": "object",
+          "keys": [
+            "isForm",
+            "isUrl",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "CreateElicitationResponse",
+          "type": "object",
+          "keys": [
+            "isAccept",
+            "isDecline",
+            "isCancel",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "DiffChange",
+          "type": "object",
+          "keys": [
+            "isAdd",
+            "isDelete",
+            "isModify",
+            "isMove",
+            "isCopy",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "ElicitationPropertySchema",
+          "type": "object",
+          "keys": [
+            "isString",
+            "isNumber",
+            "isInteger",
+            "isBoolean",
+            "isArray",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "McpServer",
+          "type": "object",
+          "keys": [
+            "isHttp",
+            "isAcp",
+            "isStdio",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "MultiSelectItems",
+          "type": "object",
+          "keys": [
+            "isString",
+            "isTitled",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "NesSuggestion",
+          "type": "object",
+          "keys": [
+            "isEdit",
+            "isJump",
+            "isRename",
+            "isSearchAndReplace",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "PROTOCOL_METHODS",
+          "type": "object",
+          "keys": [
+            "cancel_request"
+          ]
+        },
+        {
+          "name": "PROTOCOL_VERSION",
+          "type": "number",
+          "value": "2"
+        },
+        {
+          "name": "PlanUpdateContent",
+          "type": "object",
+          "keys": [
+            "isItems",
+            "isFile",
+            "isMarkdown",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "ReplayFrom",
+          "type": "object",
+          "keys": [
+            "isStart",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "RequestPermissionOutcome",
+          "type": "object",
+          "keys": [
+            "isCancelled",
+            "isSelected",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "RequestPermissionSubject",
+          "type": "object",
+          "keys": [
+            "isToolCall",
+            "isCommand",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "SessionConfigOption",
+          "type": "object",
+          "keys": [
+            "isSelect",
+            "isBoolean",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "SessionUpdate",
+          "type": "object",
+          "keys": [
+            "isUserMessageChunk",
+            "isUserMessage",
+            "isAgentMessageChunk",
+            "isAgentMessage",
+            "isAgentThoughtChunk",
+            "isAgentThought",
+            "isStateUpdate",
+            "isToolCallContentChunk",
+            "isToolCallUpdate",
+            "isTerminalUpdate"
+          ]
+        },
+        {
+          "name": "SetSessionConfigOptionRequest",
+          "type": "object",
+          "keys": [
+            "isId",
+            "isBoolean",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "StateUpdate",
+          "type": "object",
+          "keys": [
+            "isRunning",
+            "isIdle",
+            "isRequiresAction",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "ToolCallContent",
+          "type": "object",
+          "keys": [
+            "isContent",
+            "isDiff",
+            "isTerminal",
+            "isCustom"
+          ]
+        },
+        {
+          "name": "methods",
+          "type": "object",
+          "keys": [
+            "agent",
+            "client",
+            "protocol"
+          ]
+        }
+      ],
+      "exportCount": 38
+    },
+    {
+      "module": "@agentclientprotocol/sdk/experimental/http-client",
+      "classes": [
+        {
+          "name": "MemoryAcpCookieStore",
+          "methods": [
+            "store",
+            "apply",
+            "clear",
+            "cookieHeader"
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "createHttpStream",
+          "length": 1
+        }
+      ],
+      "constants": [],
+      "exportCount": 2
+    },
+    {
+      "module": "@agentclientprotocol/sdk/experimental/ws-client",
+      "classes": [
+        {
+          "name": "MemoryAcpCookieStore",
+          "methods": [
+            "store",
+            "apply",
+            "clear",
+            "cookieHeader"
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "createWebSocketStream",
+          "length": 1
+        }
+      ],
+      "constants": [],
+      "exportCount": 2
+    },
+    {
+      "module": "@agentclientprotocol/sdk/experimental/server",
+      "classes": [
+        {
+          "name": "AcpServer",
+          "methods": [
+            "handleRequest",
+            "prepareWebSocketUpgrade",
+            "close",
+            "handlePost",
+            "handleGet",
+            "handleDelete",
+            "handleInitialize",
+            "forwardConnectedMessage"
+          ]
+        }
+      ],
+      "functions": [],
+      "constants": [],
+      "exportCount": 1
+    },
+    {
+      "module": "@agentclientprotocol/sdk/experimental/node",
+      "classes": [],
+      "functions": [
+        {
+          "name": "createNodeHttpHandler",
+          "length": 1
+        },
+        {
+          "name": "createNodeWebSocketUpgradeHandler",
+          "length": 2
+        }
+      ],
+      "constants": [
+        {
+          "name": "DEFAULT_MAX_REQUEST_BODY_BYTES",
+          "type": "number",
+          "value": "16777216"
+        }
+      ],
+      "exportCount": 3
+    },
+    {
+      "module": "@agentclientprotocol/sdk/schema/schema.json",
+      "classes": [],
+      "functions": [],
+      "constants": [
+        {
+          "name": "$schema",
+          "type": "string",
+          "value": "https://json-schema.org/draft/2020-12/schema"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "value": "Agent Client Protocol"
+        },
+        {
+          "name": "anyOf",
+          "type": "object",
+          "keys": [
+            "0",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "name": "$defs",
+          "type": "object",
+          "keys": [
+            "AgentRequest",
+            "RequestId",
+            "WriteTextFileRequest",
+            "SessionId",
+            "ReadTextFileRequest",
+            "RequestPermissionRequest",
+            "ToolCallUpdate",
+            "ToolCallId",
+            "ToolKind",
+            "ToolCallStatus"
+          ]
+        }
+      ],
+      "exportCount": 4
+    },
+    {
+      "module": "@agentclientprotocol/sdk/schema/v2/schema.unstable.json",
+      "classes": [],
+      "functions": [],
+      "constants": [
+        {
+          "name": "$schema",
+          "type": "string",
+          "value": "https://json-schema.org/draft/2020-12/schema"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "value": "Agent Client Protocol"
+        },
+        {
+          "name": "anyOf",
+          "type": "object",
+          "keys": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        {
+          "name": "$defs",
+          "type": "object",
+          "keys": [
+            "AgentRequest",
+            "RequestId",
+            "RequestPermissionRequest",
+            "SessionId",
+            "RequestPermissionSubject",
+            "ToolCallUpdate",
+            "ToolCallId",
+            "ToolKind",
+            "ToolCallStatus",
+            "ToolCallContent"
+          ]
+        }
+      ],
+      "exportCount": 4
+    }
+  ]
+}

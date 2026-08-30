@@ -1,0 +1,42 @@
+[
+  {
+    "n": 1,
+    "label": "Web search tool (server-side)",
+    "status": "PASS",
+    "ms": 9063,
+    "stop_reason": "end_turn",
+    "content_types": [
+      "server_tool_use",
+      "web_search_tool_result",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text"
+    ]
+  },
+  {
+    "n": 2,
+    "label": "Web search with user_location",
+    "status": "PASS",
+    "ms": 2294,
+    "stop_reason": "end_turn",
+    "content_types": [
+      "text"
+    ]
+  },
+  {
+    "n": 3,
+    "label": "Web search with blocked_domains",
+    "status": "PASS",
+    "ms": 13152,
+    "stop_reason": "end_turn",
+    "content_types": [
+      "text"
+    ]
+  }
+]

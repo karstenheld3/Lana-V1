@@ -1,0 +1,44 @@
+[
+  {
+    "n": 1,
+    "label": "Automatic caching (cache_control top-level)",
+    "status": "PASS",
+    "ms": 2452,
+    "cache_creation": 0,
+    "cache_read": 0
+  },
+  {
+    "n": 2,
+    "label": "Explicit cache breakpoint on system block",
+    "status": "PASS",
+    "ms": 1896,
+    "cache_creation": 0,
+    "cache_read": 0
+  },
+  {
+    "n": 3,
+    "label": "1-hour TTL cache",
+    "status": "PASS",
+    "ms": 2498,
+    "cache_creation": 0
+  },
+  {
+    "n": 4,
+    "label": "Multi-turn with automatic cache extension",
+    "status": "PASS",
+    "ms": 4542,
+    "cache_creation": 0,
+    "cache_read": 0,
+    "input_tokens": 301
+  },
+  {
+    "n": 5,
+    "label": "Cache diagnostic usage fields (IN42)",
+    "status": "PASS",
+    "ms": 2144,
+    "input_tokens": 272,
+    "output_tokens": 4,
+    "cache_creation": 0,
+    "cache_read": 0
+  }
+]

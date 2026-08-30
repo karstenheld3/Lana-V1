@@ -12,7 +12,7 @@
 
 ## Authoritative ACP Documentation
 
-**`docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` is the authoritative ACP documentation** (replaces `ACP-AgentClientProtocol_2026-06-12/`). All MVP-2 ACP SPEC/IMPL/TEST work MUST cite the 2026-08-30 folder.
+**`knowledge/AI-Standards/ACP-AgentClientProtocol_2026-08-30/` is the authoritative ACP documentation** (replaces `ACP-AgentClientProtocol_2026-06-12/`). All MVP-2 ACP SPEC/IMPL/TEST work MUST cite the 2026-08-30 folder.
 
 ## Key Documents
 

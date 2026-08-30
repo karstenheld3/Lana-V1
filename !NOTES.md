@@ -12,10 +12,16 @@
 - **Goal**: Python-only CLI agent named "Lana-V1" adapting the Windsurf Cascade architecture (multi-LLM pipeline, extensibility, internal tools) with ACP support and OpenAI/Anthropic backends only
 - **Scenario**: SINGLE-PROJECT, SINGLE-VERSION, SESSION-MODE
 
+## Folder Purposes
+
+- `knowledge\` - documentation of stuff used by agent to implement and maintain product
+- `docs\` - product documentation
+- `specs\` - internal specifications and plans
+
 ## Key Inputs
 
-- Cascade architecture reference: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md`
-- ACP protocol research: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/`
+- Cascade architecture reference: `knowledge/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md`
+- ACP protocol research: `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-06-12/`
 - Existing configuration: `config/` (model-registry.json, model-parameter-mapping.json, model-pricing.json, .api-keys.txt)
 - Source code target: `src/`
 
@@ -26,6 +32,11 @@
 3. ACP support (Agent Client Protocol)
 4. No LLM backend except OpenAI and Anthropic (depending on model)
 5. Use existing `config/` folder files
+
+## Versioning Strategy (from user, 2026-08-30)
+
+10. Lana-V1 starts at version **1.1.0**. Only minor and patch versions are bumped (1.1.x, 1.2.0, ...). No major version bump in this repo.
+11. Lana 1.x supports ACP 1.x. Lana 2.x (separate repo) will support ACP 2.x.
 
 ## Design Constraints (from user, 2026-08-30)
 

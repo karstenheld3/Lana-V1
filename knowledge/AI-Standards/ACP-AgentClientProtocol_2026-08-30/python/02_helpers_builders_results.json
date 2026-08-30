@@ -1,0 +1,65 @@
+{
+  "suite": "02_helpers_builders",
+  "total": 8,
+  "passed": 8,
+  "failed": 0,
+  "skipped": 0,
+  "results": [
+    {
+      "name": "helpers_available",
+      "status": "pass",
+      "duration_ms": 842.7,
+      "detail": "Available helpers: ['AgentMessageChunk', 'AgentPlanUpdate', 'AgentThoughtChunk', 'Any', 'AudioContentBlock', 'AvailableCommand', 'AvailableCommandsUpdate', 'BlobResourceContents', 'ContentBlock', 'ContentToolCallContent']...",
+      "error": ""
+    },
+    {
+      "name": "content_builder",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "text_content helper not found, using schema directly: text=Hello from schema",
+      "error": ""
+    },
+    {
+      "name": "session_update_builder",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "agent_message_chunk helper: cannot import name 'agent_message_chunk' from 'acp.helpers' (E:\\Dev\\.tools\\llm-venv\\Lib\\site-packages\\acp\\helpers.py)",
+      "error": ""
+    },
+    {
+      "name": "tool_call_builder",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "tool_call_update helper: cannot import name 'tool_call_update' from 'acp.helpers' (E:\\Dev\\.tools\\llm-venv\\Lib\\site-packages\\acp\\helpers.py)",
+      "error": ""
+    },
+    {
+      "name": "permission_option_builder",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "PermissionOption created: kind=allow_once",
+      "error": ""
+    },
+    {
+      "name": "mcp_server_config",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "McpServerStdio: name=filesystem, command=npx",
+      "error": ""
+    },
+    {
+      "name": "json_rpc_roundtrip",
+      "status": "pass",
+      "duration_ms": 0.1,
+      "detail": "JSON roundtrip OK: keys=['protocol_version', 'client_capabilities']",
+      "error": ""
+    },
+    {
+      "name": "schema_version_constant",
+      "status": "pass",
+      "duration_ms": 7.5,
+      "detail": "Package version: 0.12.1",
+      "error": ""
+    }
+  ]
+}

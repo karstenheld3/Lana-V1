@@ -1,0 +1,33 @@
+{
+  "topic_id": "IN33-IN34",
+  "description": "Files and Uploads",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN33-IN34",
+    "description": "Files and Uploads",
+    "total": 2,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "total_duration_ms": 3502
+  },
+  "tests": [
+    {
+      "name": "files_list",
+      "topic": "IN33-IN34",
+      "status": "passed",
+      "duration_ms": 3502,
+      "details": {
+        "file_count": 708
+      }
+    },
+    {
+      "name": "file_upload",
+      "topic": "IN33-IN34",
+      "status": "skipped",
+      "duration_ms": 0,
+      "error": "File upload creates persistent state, skipping in automated tests"
+    }
+  ]
+}

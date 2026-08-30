@@ -1,0 +1,35 @@
+[
+  {
+    "n": 1,
+    "label": "JSON schema output (output_config.format)",
+    "status": "PASS",
+    "ms": 2595,
+    "parsed": {
+      "name": "John Smith",
+      "email": "john@example.com",
+      "plan_interest": "Enterprise",
+      "demo_requested": true
+    },
+    "has_all_fields": true
+  },
+  {
+    "n": 2,
+    "label": "Pydantic parse (client.messages.parse)",
+    "status": "PASS",
+    "ms": 2076,
+    "parsed_type": "LeadInfo",
+    "name": "John Smith"
+  },
+  {
+    "n": 3,
+    "label": "Strict tool use (strict: true)",
+    "status": "PASS",
+    "ms": 2391,
+    "has_tool": true,
+    "input": {
+      "product_id": "SKU-123",
+      "quantity": 5,
+      "priority": "high"
+    }
+  }
+]

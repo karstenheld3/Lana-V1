@@ -1,0 +1,30 @@
+{
+  "topic_id": "IN21-IN22",
+  "description": "Image Generation",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN21-IN22",
+    "description": "Image Generation",
+    "total": 2,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "total_duration_ms": 13640
+  },
+  "tests": [
+    {
+      "name": "image_generate_basic",
+      "topic": "IN21-IN22",
+      "status": "passed",
+      "duration_ms": 13640
+    },
+    {
+      "name": "image_edit",
+      "topic": "IN21-IN22",
+      "status": "skipped",
+      "duration_ms": 0,
+      "error": "Requires image file input, not suitable for automated test"
+    }
+  ]
+}

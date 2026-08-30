@@ -315,7 +315,7 @@ Parameter descriptions (for the JSON Schema): `ID` = "The ID of the trajectory t
 
 **Primary Sources:**
 - `LANAAGNT-IN02-SC-CSCD-LIVSSN`: Live Cascade session tool definitions (2026-08-29, same system family as the V2.3.15 wire capture) - all 15 descriptions and parameter contracts
-- `LANAAGNT-IN02-SC-CSMP-EBK`: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` chapters 8-9 - cross-check source; confirms 12 of 15 verbatim, documents the gap for `multi_edit`, `command_status`, `skill`
+- `LANAAGNT-IN02-SC-CSMP-EBK`: `knowledge/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` chapters 8-9 - cross-check source; confirms 12 of 15 verbatim, documents the gap for `multi_edit`, `command_status`, `skill`
 
 ## 10. Document History
 

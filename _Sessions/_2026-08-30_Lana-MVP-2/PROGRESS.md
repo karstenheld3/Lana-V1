@@ -17,7 +17,7 @@
 - [x] Created `_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]`: Option A (native in-process), 11 FRs, 4 NFRs, 9 DDs, 5 IGs; topic LANAACPB registered
 - [x] Created `_IMPL_LANA_MVP-2_ACP.md [LANAACPB-IP01]`: 6 phases, 21 ECs, 13 ISs, 41 TCs, 12 VCs
 - [x] Created `_INFO_LANAACPB-IN01_AcpV1WireShapeVerification.md [LANAACPB-IN01]`: 6 discrepancies resolved against live docs; wire-shape authority
-- [x] Fixed `docs/AI-Standards/ACP-AgentClientProtocol_2026-08-30/`: 8 files corrected, 2 additional hallucinations found; LANAACPB-PR-0001 resolved
+- [x] Fixed `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-08-30/`: 8 files corrected, 2 additional hallucinations found; LANAACPB-PR-0001 resolved
 - [x] Created `_TEST_LANA_MVP-2_ACP.md [LANAACPB-TP01]`: 4 layers, 10 automated scenarios + 1 manual
 - [x] ACP frontend IMPLEMENTED and green: all 6 phases, 48 ACP tests + 179 MVP-1 regression = 227 offline green
 - [x] Created `_INFO_ROBUSTNESS_HAZARDS.md [LANAAGNT-IN03]`: 4 CR, 7 BL, 6 UX findings, 5 verified non-findings

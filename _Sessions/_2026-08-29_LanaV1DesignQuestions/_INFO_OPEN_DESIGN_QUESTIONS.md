@@ -5,8 +5,8 @@
 **Timeline**: Created 2026-08-29, Updated 0 times
 
 **Depends on:**
-- `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` (Cascade architecture reference, V2.3.15 wire capture)
-- `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-01_Summary.md [ACP-IN01]` and `_INFO_ACP-04_Architecture.md [ACP-IN04]`
+- `knowledge/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` (Cascade architecture reference, V2.3.15 wire capture)
+- `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-01_Summary.md [ACP-IN01]` and `_INFO_ACP-04_Architecture.md [ACP-IN04]`
 - `config/model-registry.json`, `config/model-parameter-mapping.json`, `config/model-pricing.json`, `config/.api-keys.txt`
 
 ## Summary
@@ -358,9 +358,9 @@ Additional P3 items not numbered separately: test strategy for LLM interactions 
 ## 13. Sources
 
 **Primary Sources:**
-- `LANAAGNT-IN01-SC-CSMP-EBK`: `docs/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` - Complete Cascade architecture (V2.3.15 wire capture): 4-model pipeline, 47 flags, 27+25 tools, checkpoint mechanism, system prompt, context budget [VERIFIED - read in full, 4810 lines]
-- `LANAAGNT-IN01-SC-ACP-SUMRY`: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-01_Summary.md` - ACP v1 scope, v2 draft changes, skills/slash-commands out of protocol scope
-- `LANAAGNT-IN01-SC-ACP-ARCH`: `docs/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-04_Architecture.md` - Three-actor model, baseline methods, client capabilities, v2 fs/terminal removal risk
+- `LANAAGNT-IN01-SC-CSMP-EBK`: `knowledge/Windsurf/HowCascadeWorks/HowWindsurfCascadeWorks.md` - Complete Cascade architecture (V2.3.15 wire capture): 4-model pipeline, 47 flags, 27+25 tools, checkpoint mechanism, system prompt, context budget [VERIFIED - read in full, 4810 lines]
+- `LANAAGNT-IN01-SC-ACP-SUMRY`: `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-01_Summary.md` - ACP v1 scope, v2 draft changes, skills/slash-commands out of protocol scope
+- `LANAAGNT-IN01-SC-ACP-ARCH`: `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-06-12/_INFO_ACP-04_Architecture.md` - Three-actor model, baseline methods, client capabilities, v2 fs/terminal removal risk
 - `LANAAGNT-IN01-SC-CFG-MDLREG`: `config/model-registry.json` v1.7.0 - Enabled models, context windows, provider parameter methods
 - `LANAAGNT-IN01-SC-CFG-PARMAP`: `config/model-parameter-mapping.json` v2.3.0 - 7 effort levels, per-provider factor mapping
 

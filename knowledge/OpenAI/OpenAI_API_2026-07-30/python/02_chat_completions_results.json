@@ -1,0 +1,47 @@
+{
+  "topic_id": "IN55-IN57",
+  "description": "Chat Completions",
+  "sdk_version": "openai 2.45.0",
+  "summary": {
+    "topic_id": "IN55-IN57",
+    "description": "Chat Completions",
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "total_duration_ms": 5080
+  },
+  "tests": [
+    {
+      "name": "basic_chat_completion",
+      "topic": "IN55-IN57",
+      "status": "passed",
+      "duration_ms": 2377,
+      "details": {
+        "model": "gpt-4o-mini-2024-07-18"
+      }
+    },
+    {
+      "name": "chat_streaming",
+      "topic": "IN55-IN57",
+      "status": "passed",
+      "duration_ms": 975,
+      "details": {
+        "chunk_count": 8
+      }
+    },
+    {
+      "name": "chat_with_temperature",
+      "topic": "IN55-IN57",
+      "status": "passed",
+      "duration_ms": 827
+    },
+    {
+      "name": "chat_multi_turn",
+      "topic": "IN55-IN57",
+      "status": "passed",
+      "duration_ms": 901
+    }
+  ]
+}

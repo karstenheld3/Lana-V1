@@ -1,0 +1,86 @@
+{
+  "suite": "01_imports_schema",
+  "total": 11,
+  "passed": 11,
+  "failed": 0,
+  "skipped": 0,
+  "results": [
+    {
+      "name": "import_acp",
+      "status": "pass",
+      "duration_ms": 818.8,
+      "detail": "acp package imported: ['AGENT_METHODS', 'AcceptElicitationResponse', 'Agent', 'Any', 'AuthenticateRequest']...",
+      "error": ""
+    },
+    {
+      "name": "import_schema",
+      "status": "pass",
+      "duration_ms": 0.1,
+      "detail": "acp.schema has 294 public attributes",
+      "error": ""
+    },
+    {
+      "name": "import_helpers",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "acp.helpers has 59 public attributes",
+      "error": ""
+    },
+    {
+      "name": "initialize_request",
+      "status": "pass",
+      "duration_ms": 0.1,
+      "detail": "InitializeRequest created: protocolVersion=1",
+      "error": ""
+    },
+    {
+      "name": "initialize_response",
+      "status": "pass",
+      "duration_ms": 0.1,
+      "detail": "InitializeResponse created: protocolVersion=1",
+      "error": ""
+    },
+    {
+      "name": "new_session_request",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "NewSessionRequest created: cwd=/home/user/project",
+      "error": ""
+    },
+    {
+      "name": "prompt_request",
+      "status": "pass",
+      "duration_ms": 0.1,
+      "detail": "PromptRequest created: sessionId=sess_abc123",
+      "error": ""
+    },
+    {
+      "name": "text_content",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "TextContent: text=Hello, world!",
+      "error": ""
+    },
+    {
+      "name": "tool_call_start",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "ToolCallStart: id=call_001, kind=read",
+      "error": ""
+    },
+    {
+      "name": "permission_kinds",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "PermissionOptionKind values: ['allow_once', 'allow_always', 'reject_once', 'reject_always']",
+      "error": ""
+    },
+    {
+      "name": "stop_reasons",
+      "status": "pass",
+      "duration_ms": 0.0,
+      "detail": "StopReason values: ['end_turn', 'max_tokens', 'max_turn_requests', 'refusal', 'cancelled']",
+      "error": ""
+    }
+  ]
+}

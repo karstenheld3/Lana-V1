@@ -1,0 +1,227 @@
+{
+  "sdk": "agent-client-protocol",
+  "total_tests": 27,
+  "passed": 27,
+  "failed": 0,
+  "skipped": 0,
+  "duration_seconds": 2.8,
+  "test_files": 3,
+  "suites": [
+    {
+      "suite": "01_imports_schema",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "results": [
+        {
+          "name": "import_acp",
+          "status": "pass",
+          "duration_ms": 818.8,
+          "detail": "acp package imported: ['AGENT_METHODS', 'AcceptElicitationResponse', 'Agent', 'Any', 'AuthenticateRequest']...",
+          "error": ""
+        },
+        {
+          "name": "import_schema",
+          "status": "pass",
+          "duration_ms": 0.1,
+          "detail": "acp.schema has 294 public attributes",
+          "error": ""
+        },
+        {
+          "name": "import_helpers",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "acp.helpers has 59 public attributes",
+          "error": ""
+        },
+        {
+          "name": "initialize_request",
+          "status": "pass",
+          "duration_ms": 0.1,
+          "detail": "InitializeRequest created: protocolVersion=1",
+          "error": ""
+        },
+        {
+          "name": "initialize_response",
+          "status": "pass",
+          "duration_ms": 0.1,
+          "detail": "InitializeResponse created: protocolVersion=1",
+          "error": ""
+        },
+        {
+          "name": "new_session_request",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "NewSessionRequest created: cwd=/home/user/project",
+          "error": ""
+        },
+        {
+          "name": "prompt_request",
+          "status": "pass",
+          "duration_ms": 0.1,
+          "detail": "PromptRequest created: sessionId=sess_abc123",
+          "error": ""
+        },
+        {
+          "name": "text_content",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "TextContent: text=Hello, world!",
+          "error": ""
+        },
+        {
+          "name": "tool_call_start",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "ToolCallStart: id=call_001, kind=read",
+          "error": ""
+        },
+        {
+          "name": "permission_kinds",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "PermissionOptionKind values: ['allow_once', 'allow_always', 'reject_once', 'reject_always']",
+          "error": ""
+        },
+        {
+          "name": "stop_reasons",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "StopReason values: ['end_turn', 'max_tokens', 'max_turn_requests', 'refusal', 'cancelled']",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "suite": "02_helpers_builders",
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "results": [
+        {
+          "name": "helpers_available",
+          "status": "pass",
+          "duration_ms": 842.7,
+          "detail": "Available helpers: ['AgentMessageChunk', 'AgentPlanUpdate', 'AgentThoughtChunk', 'Any', 'AudioContentBlock', 'AvailableCommand', 'AvailableCommandsUpdate', 'BlobResourceContents', 'ContentBlock', 'ContentToolCallContent']...",
+          "error": ""
+        },
+        {
+          "name": "content_builder",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "text_content helper not found, using schema directly: text=Hello from schema",
+          "error": ""
+        },
+        {
+          "name": "session_update_builder",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "agent_message_chunk helper: cannot import name 'agent_message_chunk' from 'acp.helpers' (E:\\Dev\\.tools\\llm-venv\\Lib\\site-packages\\acp\\helpers.py)",
+          "error": ""
+        },
+        {
+          "name": "tool_call_builder",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "tool_call_update helper: cannot import name 'tool_call_update' from 'acp.helpers' (E:\\Dev\\.tools\\llm-venv\\Lib\\site-packages\\acp\\helpers.py)",
+          "error": ""
+        },
+        {
+          "name": "permission_option_builder",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "PermissionOption created: kind=allow_once",
+          "error": ""
+        },
+        {
+          "name": "mcp_server_config",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "McpServerStdio: name=filesystem, command=npx",
+          "error": ""
+        },
+        {
+          "name": "json_rpc_roundtrip",
+          "status": "pass",
+          "duration_ms": 0.1,
+          "detail": "JSON roundtrip OK: keys=['protocol_version', 'client_capabilities']",
+          "error": ""
+        },
+        {
+          "name": "schema_version_constant",
+          "status": "pass",
+          "duration_ms": 7.5,
+          "detail": "Package version: 0.12.1",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "suite": "03_transport_contrib",
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "results": [
+        {
+          "name": "stdio_transport",
+          "status": "pass",
+          "duration_ms": 590.4,
+          "detail": "StdioTransport not found at expected paths",
+          "error": ""
+        },
+        {
+          "name": "http_transport",
+          "status": "pass",
+          "duration_ms": 0.1,
+          "detail": "HTTP transport not found (may not be in this version)",
+          "error": ""
+        },
+        {
+          "name": "contrib_modules",
+          "status": "pass",
+          "duration_ms": 6.8,
+          "detail": "Contrib modules found: ['PermissionBroker', 'SessionAccumulator', 'SessionSnapshot', 'ToolCallTracker', 'ToolCallView', 'TrackedToolCallView', 'annotations', 'default_permission_options', 'permissions', 'session_state', 'tool_calls']",
+          "error": ""
+        },
+        {
+          "name": "agent_base_class",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "Agent base class: 15 public methods",
+          "error": ""
+        },
+        {
+          "name": "session_class",
+          "status": "pass",
+          "duration_ms": 0.2,
+          "detail": "Session class not found at expected paths",
+          "error": ""
+        },
+        {
+          "name": "elicitation_schema",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "Elicitation schema types not found (may require newer schema)",
+          "error": ""
+        },
+        {
+          "name": "auth_schema",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "AuthenticateRequest found",
+          "error": ""
+        },
+        {
+          "name": "cancel_request_schema",
+          "status": "pass",
+          "duration_ms": 0.0,
+          "detail": "CancelRequestNotification found",
+          "error": ""
+        }
+      ]
+    }
+  ]
+}

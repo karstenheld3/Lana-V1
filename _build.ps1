@@ -73,11 +73,15 @@ $lanaLibrary = Join-Path $RootDir '.lana'
 if (-not (Test-Path $lanaLibrary -PathType Container)) { Fail ".lana prompt library missing - bundle would lose the agent library (EC-13)." }
 $bundleConfig = Join-Path $BundleDir 'config'
 $bundleAgent  = Join-Path $BundleDir 'agent'
+# Empty both targets first so no stale files survive (DD-08)
+if (Test-Path $bundleAgent)  { Remove-Item $bundleAgent  -Recurse -Force }
+if (Test-Path $bundleConfig) { Remove-Item $bundleConfig -Recurse -Force }
+New-Item -ItemType Directory -Path $bundleAgent  -Force | Out-Null
 New-Item -ItemType Directory -Path $bundleConfig -Force | Out-Null
 # Config trio: explicit file list - .api-keys.txt NEVER syncs (DD-09)
-robocopy (Join-Path $RootDir 'config') $bundleConfig 'model-registry.json' 'model-parameter-mapping.json' 'model-pricing.json' /PURGE /NJH /NJS /NDL /NC /NS /NP | Out-Null
+robocopy (Join-Path $RootDir 'config') $bundleConfig 'model-registry.json' 'model-parameter-mapping.json' 'model-pricing.json' /NJH /NJS /NDL /NC /NS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { Fail "config sync failed (robocopy exit $LASTEXITCODE)." }
-# Agent library: full mirror - stale bundle files are removed (DD-08)
+# Agent library: full copy from .lana/ (DD-08)
 robocopy $lanaLibrary $bundleAgent /MIR /NJH /NJS /NDL /NC /NS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { Fail "agent library sync failed (robocopy exit $LASTEXITCODE)." }
 # Key-leak guard (IG-05, EC-12): API_KEY assignment with a real-key-shaped value (40+ char token) aborts; short placeholders like 'sk-proj-your-key-here' pass
