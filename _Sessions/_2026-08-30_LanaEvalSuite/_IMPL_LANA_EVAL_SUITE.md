@@ -246,6 +246,10 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 
 ## 9. Document History
 
+**[2026-08-30 21:50]**
+- Changed (user request): run folder structure now `runs/YYYY-MM-DD_HH-MM-SS/` (seconds added, scope suffix dropped) with one subfolder per test key (`01-T01/`)
+- Added: golden benchmark comparison - per-file match/differs/missing + difflib similarity in results.json and REPORT.md "Golden Benchmark Comparison" section (informational anchor, not a gate)
+
 **[2026-08-30 21:05]**
 - Changed: STRUT P6-P10 executed and checked - workflow categorization (NOTES.md), Bucket 1 T03/T04, Bucket 2 T02/T03 sequences, Bucket 3 T02 deep-research, goldens for 8/9 tests
 - Added: runner fixes - parse_queue-based validation + count, UTF-8 console output
