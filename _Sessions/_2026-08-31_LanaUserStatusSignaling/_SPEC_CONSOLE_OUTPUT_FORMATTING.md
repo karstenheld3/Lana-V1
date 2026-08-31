@@ -37,6 +37,9 @@
 8. [Key Mechanisms](#8-key-mechanisms)
 9. [Action Flow](#9-action-flow)
 10. [UX Design](#10-ux-design)
+    - 10.1-10.4: Component diagrams (OutputScope, ActivityBox, ActionBox, Error Messages)
+    - 10.5-10.14: Interaction cases (11 scenarios)
+    - 10.15: Color Reference
 11. [Logging Requirements](#11-logging-requirements)
 12. [Technical Constraints](#12-technical-constraints)
 13. [Document History](#13-document-history)
@@ -280,41 +283,166 @@ User types prompt
 
 ## 10. UX Design
 
-### Complete Prompt Output
+### 10.1 Component: OutputScope
+
+The bracket scope wraps all output for one prompt. Header opens, footer closes.
+
+**Header anatomy:**
 
 ```
-> fix the import error in parser.py
-┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
-│
-│ ┌──────────────────────────────────────────────────────┐
-│ │ thinking... 3 secs                                   │
-│ │ running read_file... 1 sec                           │
-│ │ running edit... 0 secs                               │
-│ │ ⠹ working...                                         │
-│ └──────────────────────────────────────────────────────┘
-│                    --- collapses to ---
-│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
-│
-│ I'll read parser.py to find the import error.
-│
-│ WARNING: Token budget exceeded, compacted context
-│
-│ ┌─[ Action ]──────────────────────────────────────┐
-│ │ run_command rm -rf build/ && make clean          │
-│ │ Approve? [ y = yes, n = no, a = all ]           │
-│ ├─────────────────────────────────────────────────┤
-│ │ Answer: y = yes                                 │
-│ └─────────────────────────────────────────────────┘
-│
-│   thinking... 2 secs -> running pytest... 12 secs
-│
-│ Fixed. Changed `json_parser` to `parser_core` on line 3.
-│ All 12 tests pass.
-│
+> {user prompt}
+┌─[ {model} | {context_pct}% (of {context_total} context) | {timestamp} ]   [dim]
+│                                                                             [dim]
+```
+
+**Footer anatomy:**
+
+```
+│                                                                             [dim]
+└─[ {N} turn(s) | {N} tool(s) | ${cost} | {duration} ]                      [dim]
+```
+
+**Pluralization examples:**
+
+```
+└─[ 1 turn | 0 tools | $0.001 | 4 secs ]
+└─[ 1 turn | 1 tool | $0.003 | 8 secs ]
 └─[ 3 turns | 5 tools | $0.009 | 23 secs ]
+└─[ 2 turns | 12 tools | $0.041 | 1 min 12 secs ]
 ```
 
-### Pure Text Response (No Tools)
+### 10.2 Component: ActivityBox
+
+**Stage 1 - Initial (turn just started):**
+
+```
+│ ┌──────────────────────────────────────────────────────┐   [dim]
+│ │ ⠹ thinking...                                        │   [dim, spinner]
+│ └──────────────────────────────────────────────────────┘   [dim]
+```
+
+**Stage 2 - Growing (first tool requested):**
+
+```
+│ ┌──────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 3 secs                                   │   [dim]
+│ │ ⠹ running read_file...                               │   [dim, spinner]
+│ └──────────────────────────────────────────────────────┘   [dim]
+```
+
+**Stage 3 - Growing (multiple tools):**
+
+```
+│ ┌──────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 3 secs                                   │   [dim]
+│ │ running read_file... 1 sec                           │   [dim]
+│ │ running edit... 0 secs                               │   [dim]
+│ │ ⠹ working...                                         │   [dim, spinner]
+│ └──────────────────────────────────────────────────────┘   [dim]
+```
+
+**Stage 4 - Long-running tool (elapsed ticking):**
+
+```
+│ ┌──────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                   │   [dim]
+│ │ ⠹ running run_command... 12 secs                     │   [dim, spinner]
+│ └──────────────────────────────────────────────────────┘   [dim]
+```
+
+**Collapsed summary (after box erased):**
+
+```
+│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs              [dim]
+```
+
+**Collapsed summary (thinking only, no tools):**
+
+```
+│   thinking... 2 secs                                                       [dim]
+```
+
+**Collapsed summary (many tools, wraps to terminal width):**
+
+```
+│   thinking... 2 secs -> read_file... 1 sec -> grep_search... 1 sec ->     [dim]
+│   edit... 0 secs -> run_command... 8 secs                                  [dim]
+```
+
+### 10.3 Component: ActionBox
+
+**Anatomy (before user input):**
+
+```
+│                                                                             [dim]
+│ ┌─[ Action ]──────────────────────────────────────────────────┐      [bold cyan]
+│ │ run_command rm -rf build/ && make clean                      │      [bold cyan]
+│ │ Approve? [ y = yes, n = no, a = all ]                       │      [bold cyan]
+│ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
+│ │ Answer: _                                                   │      [bold cyan]
+│                                                                 (cursor waiting)
+```
+
+**After approval (y = yes):**
+
+```
+│ ┌─[ Action ]──────────────────────────────────────────────────┐      [bold cyan]
+│ │ run_command rm -rf build/ && make clean                      │      [bold cyan]
+│ │ Approve? [ y = yes, n = no, a = all ]                       │      [bold cyan]
+│ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
+│ │ Answer: y = yes                                             │      [bold cyan]
+│ └─────────────────────────────────────────────────────────────┘      [bold cyan]
+│                                                                             [dim]
+```
+
+**After denial (n = no):**
+
+```
+│ ┌─[ Action ]──────────────────────────────────────────────────┐      [bold cyan]
+│ │ run_command rm -rf /important/data                           │      [bold cyan]
+│ │ Approve? [ y = yes, n = no, a = all ]                       │      [bold cyan]
+│ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
+│ │ Answer: n = no                                              │      [bold cyan]
+│ └─────────────────────────────────────────────────────────────┘      [bold cyan]
+│                                                                             [dim]
+```
+
+**After approve-all (a = all):**
+
+```
+│ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
+│ │ Answer: a = all                                             │      [bold cyan]
+│ └─────────────────────────────────────────────────────────────┘      [bold cyan]
+```
+
+### 10.4 Component: Error Messages
+
+**WARNING (yellow, empty line above):**
+
+```
+│
+│ WARNING: Rate limit exceeded, retrying in 8 secs                       [yellow]
+```
+
+**ERROR (red, empty line above):**
+
+```
+│
+│ ERROR: Edit failed: file is read-only (src/db.py)                         [red]
+```
+
+**NOTICE (activity box only, not in scrollback):**
+
+```
+│ ┌──────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 5 secs                                   │   [dim]
+│ │ ⠹ compacting context...                              │   [dim, spinner]
+│ └──────────────────────────────────────────────────────┘   [dim]
+```
+
+### 10.5 Case: Pure Text Q&A (No Tools)
+
+Single turn, thinking only, no tool calls.
 
 ```
 > what does the config module do?
@@ -329,7 +457,53 @@ User types prompt
 └─[ 1 turn | 0 tools | $0.001 | 4 secs ]
 ```
 
-### Tool Failure and Recovery
+### 10.6 Case: Single Turn with Fast Tools
+
+Tools complete quickly, collapsed summary shows chain.
+
+```
+> read the README and fix the typo on line 5
+┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:53:00 ]
+│
+│   thinking... 3 secs -> read_file... 0 secs -> edit... 0 secs
+│
+│ Fixed the typo on line 5: changed "recieve" to "receive".
+│
+└─[ 1 turn | 2 tools | $0.002 | 5 secs ]
+```
+
+### 10.7 Case: Multi-Turn with Tools, Approval, and Compaction
+
+Full interaction: multiple turns, tool calls, approval gate, warning, compaction.
+
+```
+> fix the import error in parser.py
+┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
+│
+│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
+│
+│ I'll read parser.py to find the import error.
+│
+│ WARNING: Token budget exceeded, compacted context
+│
+│ ┌─[ Action ]──────────────────────────────────────────────────┐
+│ │ run_command rm -rf build/ && make clean                      │
+│ │ Approve? [ y = yes, n = no, a = all ]                       │
+│ ├─────────────────────────────────────────────────────────────┤
+│ │ Answer: y = yes                                             │
+│ └─────────────────────────────────────────────────────────────┘
+│
+│   thinking... 2 secs -> running pytest... 12 secs
+│
+│ Fixed. Changed `json_parser` to `parser_core` on line 3.
+│ All 12 tests pass.
+│
+└─[ 3 turns | 5 tools | $0.009 | 23 secs ]
+```
+
+### 10.8 Case: Tool Failure, ERROR, Retry, Recovery
+
+Tool fails, error printed, agent retries with different approach.
 
 ```
 > refactor the database connection pooling
@@ -339,14 +513,148 @@ User types prompt
 │
 │ ERROR: Edit failed: file is read-only (src/db.py)
 │
-│   edit... 0 secs
+│   thinking... 1 sec -> run_command... 0 secs -> edit... 0 secs
 │
-│ I'll refactor the database connection pooling.
+│ Made the file writable and applied the refactoring. Connection
+│ pooling now uses a shared pool with configurable max connections.
 │
-└─[ 1 turn | 4 tools | $0.005 | 8 secs ]
+└─[ 2 turns | 6 tools | $0.007 | 11 secs ]
 ```
 
-### Color Reference
+### 10.9 Case: Approval Denied
+
+User denies a dangerous command. Agent proceeds without it.
+
+```
+> clean up all temporary files
+┌─[ claude-4-sonnet | 30% (of 0.2M context) | 2026-08-31 20:54:00 ]
+│
+│   thinking... 2 secs
+│
+│ ┌─[ Action ]──────────────────────────────────────────────────┐
+│ │ run_command rm -rf /tmp/project_* && rm -rf ~/.cache/lana   │
+│ │ Approve? [ y = yes, n = no, a = all ]                       │
+│ ├─────────────────────────────────────────────────────────────┤
+│ │ Answer: n = no                                              │
+│ └─────────────────────────────────────────────────────────────┘
+│
+│   thinking... 1 sec -> run_command... 0 secs
+│
+│ Understood. I cleaned only the project build artifacts instead.
+│
+└─[ 2 turns | 2 tools | $0.004 | 9 secs ]
+```
+
+### 10.10 Case: Long-Running Tool
+
+A single tool dominates elapsed time. Activity box shows ticking counter.
+
+```
+> run the full test suite
+┌─[ claude-4-sonnet | 55% (of 0.2M context) | 2026-08-31 20:55:00 ]
+│
+│   thinking... 1 sec -> running run_command... 45 secs
+│
+│ All 847 tests passed. No failures, 3 skipped.
+│
+└─[ 1 turn | 1 tool | $0.003 | 48 secs ]
+```
+
+### 10.11 Case: Heavy Compaction with Many Tools
+
+Large context triggers compaction mid-conversation.
+
+```
+> analyze all source files and create a dependency graph
+┌─[ claude-4-sonnet | 92% (of 0.2M context) | 2026-08-31 20:56:00 ]
+│
+│   thinking... 3 secs -> read_file... 1 sec -> read_file... 0 secs ->
+│   read_file... 1 sec -> read_file... 0 secs -> read_file... 1 sec ->
+│   grep_search... 1 sec -> grep_search... 0 secs
+│
+│ I've analyzed the source tree. Here are the key dependencies:
+│
+│   thinking... 2 secs -> read_file... 0 secs -> read_file... 0 secs ->
+│   read_file... 1 sec -> read_file... 0 secs
+│
+│ WARNING: Context 95% full, compacting to preserve conversation
+│
+│   thinking... 3 secs -> read_file... 1 sec -> read_file... 0 secs
+│
+│ The complete dependency graph shows 4 clusters with 2 circular
+│ dependencies between agent.py and tools/__init__.py.
+│
+└─[ 3 turns | 17 tools | $0.041 | 38 secs ]
+```
+
+### 10.12 Case: Provider Retry with WARNING
+
+Provider returns a retryable error. WARNING printed, then agent resumes.
+
+```
+> explain the caching strategy
+┌─[ claude-4-sonnet | 40% (of 0.2M context) | 2026-08-31 20:57:00 ]
+│
+│   thinking... 2 secs
+│
+│ WARNING: Rate limit exceeded (429), retrying in 8 secs
+│
+│   thinking... 10 secs
+│
+│ The caching strategy uses prompt caching for the system prompt
+│ and tool definitions, reducing input tokens by 60-80%.
+│
+└─[ 1 turn | 0 tools | $0.002 | 22 secs ]
+```
+
+### 10.13 Case: Consecutive Prompts in Session
+
+Two prompts in sequence. Each gets its own OutputScope.
+
+```
+> what does the config module do?
+┌─[ claude-4-sonnet | 10% (of 0.2M context) | 2026-08-31 20:58:00 ]
+│
+│   thinking... 2 secs
+│
+│ The config module loads settings from lana-config.json at startup.
+│
+└─[ 1 turn | 0 tools | $0.001 | 4 secs ]
+
+> now add a validation for the "temperature" field
+┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:58:10 ]
+│
+│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
+│
+│ Added validation: temperature must be between 0.0 and 2.0.
+│ Values outside this range now raise a ConfigError at startup.
+│
+└─[ 1 turn | 2 tools | $0.003 | 6 secs ]
+```
+
+### 10.14 Case: Non-Terminal Fallback
+
+When `sys.stdout.isatty()` is False (piped output, CI). No ANSI codes, no activity box animation, no cursor control. Bracket prefix and structure preserved as plain text.
+
+```
+> fix the import error in parser.py
+┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
+│
+│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
+│
+│ I'll read parser.py to find the import error.
+│
+│   thinking... 2 secs -> running pytest... 12 secs
+│
+│ Fixed. Changed `json_parser` to `parser_core` on line 3.
+│ All 12 tests pass.
+│
+└─[ 3 turns | 5 tools | $0.009 | 23 secs ]
+```
+
+Note: Identical to terminal output after collapse. The activity box GROWING state is never shown; only collapsed summaries appear.
+
+### 10.15 Color Reference
 
 - **Dim** (`\033[2m`): Header, footer, bracket prefix, activity box, collapsed summaries
 - **No style**: Model text content
@@ -372,6 +680,11 @@ User types prompt
 - Windows Terminal, PowerShell 7, and Windows ConHost all support the required ANSI sequences. Legacy cmd.exe requires `os.system('')` or `colorama.init()` to enable ANSI processing
 
 ## 13. Document History
+
+**[2026-08-31 20:58]**
+- Added: Section 10 expanded from 4 to 15 subsections
+- Added: Component diagrams for OutputScope (header/footer anatomy, pluralization), ActivityBox (4 growth stages, 3 collapse variants), ActionBox (before input, 3 answer states), Error Messages (WARNING, ERROR, NOTICE)
+- Added: 10 interaction case diagrams: fast tools, approval denied, long-running tool, heavy compaction, provider retry, consecutive prompts, non-terminal fallback
 
 **[2026-08-31 20:56]**
 - Fixed: Expanded acronyms on first use (ANSI, JSONL, SIGINT)
