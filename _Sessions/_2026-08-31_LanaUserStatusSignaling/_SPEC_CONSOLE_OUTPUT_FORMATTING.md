@@ -2,7 +2,7 @@
 
 **Doc ID**: LANAUSRX-SP01
 **Feature**: CONSOLE_FORMAT
-**Goal**: Specify the visual layout, styling, and behavior of Lana's CLI console output during agent prompt execution
+**Goal**: Specify the visual layout, styling, and behavior of Lana's Command-Line Interface (CLI) console output during agent prompt execution
 **Timeline**: Created 2026-08-31
 
 **Target file(s):**
@@ -21,8 +21,8 @@
 - `markup=False` on every `console.print()` call (BG-0004). Styling via `style=` parameter only
 - Any gap >300ms gets a spinner or status indicator (DLPHS-IN10 Section 16.2)
 - Yellow = WARNING, red = ERROR. Never borrowed for other purposes
-- Footer box uses ANSI cursor control, not Rich Live (zero Rich dependency for the footer)
-- Hide cursor (`\033[?25l`) during footer updates, show cursor (`\033[?25h`) on stop
+- Activity box uses American National Standards Institute (ANSI) cursor control, not Rich Live (zero Rich dependency)
+- Hide cursor (`\033[?25l`) during activity box updates, show cursor (`\033[?25h`) on stop
 - Word-wrap text to terminal width minus bracket prefix (2 chars)
 
 ## Table of Contents
@@ -63,6 +63,10 @@
 This spec synthesizes Approach C (Live Footer) from `LANAUSRX-IN03` with elements from Approach D (parenthetical asides) and Approach B (quiet infrastructure). The prototype `proto_c_live_footer.py` validated the design through 5 demo scenarios covering all interaction types.
 
 The current renderer (`render.py`) uses Rich Console with a status spinner. This spec replaces the rendering logic with ANSI-native output that uses only `sys.stdout.write()` for the activity box and cursor control, while retaining Rich Console for basic styled text output in the scrollback.
+
+**Events not rendered by this spec:**
+- `session_started` - Not rendered in CLI (session-file-only event)
+- `thinking_delta` with `show_thinking=True` - Printed inline as dim text within bracket scope (existing behavior preserved, not changed by this spec)
 
 ## 3. Domain Objects
 
@@ -133,7 +137,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 **LANAUSRX-FR-05: Activity Box Collapse**
 - On `text_delta` or `turn_finished`: erase the activity box from screen
 - Emit a single dim summary line to scrollback: `  thinking... 3 secs -> running read_file... 1 sec -> running edit... 0 secs`
-- Arrow separator `->` between entries
+- Arrow separator ` -> ` between entries
 - Clear log for next turn
 
 **LANAUSRX-FR-06: Model Text Output**
@@ -179,7 +183,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 - Bracket prefix and header/footer still emitted as plain text
 
 **LANAUSRX-NFR-04: Reliability - Cursor Restoration**
-- If the process crashes or receives SIGINT during active footer, cursor must be restored
+- If the process crashes or receives SIGINT (signal interrupt) during active activity box, cursor must be restored
 - Register `atexit` handler and SIGINT handler to emit `\033[?25h`
 
 ## 6. Design Decisions
@@ -188,7 +192,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 
 **LANAUSRX-DD-02:** Bracket scope (OutputScope) wraps every prompt. Rationale: Visual grouping separates sequential prompts in scrollback. The `│ ` prefix creates a consistent left margin for all content. `┌─` and `└─` provide clear start/end boundaries.
 
-**LANAUSRX-DD-03:** Activity box collapses to summary instead of persisting. Rationale: Tool operation details are ephemeral infrastructure. The collapsed summary provides enough forensic context ("thinking -> read_file -> edit") without polluting scrollback with full tool lines. Full detail available in JSONL log.
+**LANAUSRX-DD-03:** Activity box collapses to summary instead of persisting. Rationale: Tool operation details are ephemeral infrastructure. The collapsed summary provides enough forensic context ("thinking -> read_file -> edit") without polluting scrollback with full tool lines. Full detail available in JSON Lines (JSONL) log.
 
 **LANAUSRX-DD-04:** Approval prompts use bold cyan ActionBox. Rationale: Cyan is the accent/primary color in the design system, distinct from severity colors (yellow, red) and metadata (dim). Bold cyan makes approvals visually prominent as the single "10% emphasis" element.
 
@@ -204,7 +208,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 
 **LANAUSRX-IG-02:** Every `_draw_footer` / `_update_footer` call emits `\033[?25l` before writing lines and the corresponding `_erase_footer` / `_stop_footer` emits `\033[?25h`.
 
-**LANAUSRX-IG-03:** Activity box cursor-up count always matches the actual number of lines previously written. The renderer tracks `_footer_line_count` and uses `\033[{N}F` to move up exactly N lines.
+**LANAUSRX-IG-03:** Activity box cursor-up count always matches the actual number of lines previously written. The renderer tracks the rendered line count and uses `\033[{N}F` to move up exactly N lines.
 
 **LANAUSRX-IG-04:** Bracket prefix `│ ` is prepended to every line emitted within an OutputScope, including activity box lines, text lines, error lines, and action box lines.
 
@@ -216,7 +220,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 
 The activity box uses a 3-step cursor protocol:
 
-1. **Draw**: Write N lines (top border, log entries, active line, bottom border). Record N as `_footer_line_count`
+1. **Draw**: Write N lines (top border, log entries, active line, bottom border). Record N as the rendered line count
 2. **Update**: Emit `\033[{N}F` (cursor up N lines), then draw new lines (possibly N+1 if box grew). Clear orphan lines if count decreased
 3. **Erase**: Emit `\033[{N}F`, write `\033[K\n` (clear line) N times, then `\033[{N}F` again to position cursor at the top of the cleared area
 
@@ -288,7 +292,7 @@ User types prompt
 │ │ running edit... 0 secs                               │
 │ │ ⠹ working...                                         │
 │ └──────────────────────────────────────────────────────┘
-│                        ↕ collapses to ↕
+│                    --- collapses to ---
 │   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
 │
 │ I'll read parser.py to find the import error.
@@ -364,10 +368,19 @@ User types prompt
 - ANSI escape codes require a terminal (`sys.stdout.isatty()`). Non-terminal mode must fall back to plain text
 - Activity box cursor-up assumes no other process writes to stdout between draw and update. Interleaved output corrupts positioning
 - `shutil.get_terminal_size()` returns a default (80, 24) when terminal size cannot be determined
-- Braille spinner characters (U+280B through U+280F) are safe in all modern terminal emulators. Not monospace-safe on legacy terminals; degrade to single character width
+- Braille spinner characters (braille pattern dots in the U+2800 block, e.g. U+280B, U+2839) are safe in all modern terminal emulators. Not monospace-safe on legacy terminals; degrade to single character width
 - Windows Terminal, PowerShell 7, and Windows ConHost all support the required ANSI sequences. Legacy cmd.exe requires `os.system('')` or `colorama.init()` to enable ANSI processing
 
 ## 13. Document History
+
+**[2026-08-31 20:56]**
+- Fixed: Expanded acronyms on first use (ANSI, JSONL, SIGINT)
+- Fixed: Terminology consistency - "footer box" replaced with "activity box" in MNF section
+- Fixed: Removed implementation variable name `_footer_line_count` from Key Mechanisms and IG-03
+- Fixed: Braille character range claim (was "U+280B through U+280F", now correct block reference)
+- Fixed: Replaced ambiguous-width `↕` character with `---` in UX diagram
+- Added: Events not rendered (session_started, thinking_delta with show_thinking)
+- Added: JSONL acronym expansion
 
 **[2026-08-31 20:52]**
 - Initial specification created from prototype validation and LANAUSRX-IN03 design analysis
