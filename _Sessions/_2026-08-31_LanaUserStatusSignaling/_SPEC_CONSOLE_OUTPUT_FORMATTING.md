@@ -142,7 +142,8 @@ An **ApprovalBox** is a permanent bold cyan box in scrollback for approval promp
 
 **LANAUSRX-FR-05: Activity Box Collapse**
 - On `text_delta` or `turn_finished`: erase the activity box from screen
-- Emit a single dim summary line to scrollback using short form (tool name only, no args): `thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs`
+- Emit a single dim summary line to scrollback using short form (tool name only, no args): `thinking... 3 -> read_file... 1 -> edit... 0 secs`
+  - Time unit (`secs`/`sec`) appears only on the last entry in the chain
 - Arrow separator ` -> ` between entries
 - Clear log for next turn
 
@@ -261,7 +262,7 @@ User types prompt
 │
 ├─> text_delta
 │   └─> ActivityBox collapses:
-│       print("│   thinking... 3s -> read_file... 1s")  [dim]
+│       print("│   thinking... 3 -> read_file... 1 secs")  [dim]
 │       print("│ {model text}")                          [no style]
 │
 ├─> error (WARNING)
@@ -370,7 +371,7 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 **Collapsed summary (after box erased, short form - name only):**
 
 ```
-│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs              [dim]
+│   thinking... 3 -> read_file... 1 -> edit... 0 secs                       [dim]
 ```
 
 **Collapsed summary (thinking only, no tool calls):**
@@ -382,8 +383,8 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 **Collapsed summary (many tool calls, wraps to terminal width):**
 
 ```
-│   thinking... 2 secs -> read_file... 1 sec -> grep_search... 1 sec ->     [dim]
-│   edit... 0 secs -> run_command... 8 secs                                  [dim]
+│   thinking... 2 -> read_file... 1 -> grep_search... 1 ->                  [dim]
+│   edit... 0 -> run_command... 8 secs                                       [dim]
 ```
 
 ### 10.3 Component: ApprovalBox
@@ -482,7 +483,7 @@ Tools complete quickly, collapsed summary shows chain.
 > read the README and fix the typo on line 5
 ┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:53:00 ]
 │
-│   thinking... 3 secs -> read_file... 0 secs -> edit... 0 secs
+│   thinking... 3 -> read_file... 0 -> edit... 0 secs
 │
 │ Fixed the typo on line 5: changed "recieve" to "receive".
 │
@@ -497,7 +498,7 @@ Full interaction: multiple turns, tool calls, approval gate, warning, compaction
 > fix the import error in parser.py
 ┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
 │
-│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
+│   thinking... 3 -> read_file... 1 -> edit... 0 secs
 │
 │ I'll read parser.py to find the import error.
 │
@@ -510,7 +511,7 @@ Full interaction: multiple turns, tool calls, approval gate, warning, compaction
 │ │ Answer: y = yes                                             │
 │ └─────────────────────────────────────────────────────────────┘
 │
-│   thinking... 2 secs -> running pytest... 12 secs
+│   thinking... 2 -> running pytest... 12 secs
 │
 │ Fixed. Changed `json_parser` to `parser_core` on line 3.
 │ All 12 tests pass.
@@ -526,11 +527,11 @@ Tool fails, error printed, agent retries with different approach.
 > refactor the database connection pooling
 ┌─[ claude-4-sonnet | 45% (of 0.2M context) | 2026-08-31 20:52:00 ]
 │
-│   thinking... 2 secs -> read_file... 1 sec -> read_file... 1 sec -> edit... FAIL
+│   thinking... 2 -> read_file... 1 -> read_file... 1 -> edit... FAIL
 │
 │ ERROR: Edit failed: file is read-only (src/db.py)
 │
-│   thinking... 1 sec -> run_command... 0 secs -> edit... 0 secs
+│   thinking... 1 -> run_command... 0 -> edit... 0 secs
 │
 │ Made the file writable and applied the refactoring. Connection
 │ pooling now uses a shared pool with configurable max connections.
@@ -555,7 +556,7 @@ User denies a dangerous command. Agent proceeds without it.
 │ │ Answer: n = no                                              │
 │ └─────────────────────────────────────────────────────────────┘
 │
-│   thinking... 1 sec -> run_command... 0 secs
+│   thinking... 1 -> run_command... 0 secs
 │
 │ Understood. I cleaned only the project build artifacts instead.
 │
@@ -570,7 +571,7 @@ A single tool dominates elapsed time. Activity box shows ticking counter.
 > run the full test suite
 ┌─[ claude-4-sonnet | 55% (of 0.2M context) | 2026-08-31 20:55:00 ]
 │
-│   thinking... 1 sec -> running run_command... 45 secs
+│   thinking... 1 -> running run_command... 45 secs
 │
 │ All 847 tests passed. No failures, 3 skipped.
 │
@@ -585,18 +586,18 @@ Large context triggers compaction mid-conversation.
 > analyze all source files and create a dependency graph
 ┌─[ claude-4-sonnet | 92% (of 0.2M context) | 2026-08-31 20:56:00 ]
 │
-│   thinking... 3 secs -> read_file... 1 sec -> read_file... 0 secs ->
-│   read_file... 1 sec -> read_file... 0 secs -> read_file... 1 sec ->
-│   grep_search... 1 sec -> grep_search... 0 secs
+│   thinking... 3 -> read_file... 1 -> read_file... 0 ->
+│   read_file... 1 -> read_file... 0 -> read_file... 1 ->
+│   grep_search... 1 -> grep_search... 0 secs
 │
 │ I've analyzed the source tree. Here are the key dependencies:
 │
-│   thinking... 2 secs -> read_file... 0 secs -> read_file... 0 secs ->
-│   read_file... 1 sec -> read_file... 0 secs
+│   thinking... 2 -> read_file... 0 -> read_file... 0 ->
+│   read_file... 1 -> read_file... 0 secs
 │
 │ WARNING: Context 95% full, compacting to preserve conversation
 │
-│   thinking... 3 secs -> read_file... 1 sec -> read_file... 0 secs
+│   thinking... 3 -> read_file... 1 -> read_file... 0 secs
 │
 │ The complete dependency graph shows 4 clusters with 2 circular
 │ dependencies between agent.py and tools/__init__.py.
@@ -641,7 +642,7 @@ Two prompts in sequence. Each gets its own OutputScope.
 > now add a validation for the "temperature" field
 ┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:58:10 ]
 │
-│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
+│   thinking... 3 -> read_file... 1 -> edit... 0 secs
 │
 │ Added validation: temperature must be between 0.0 and 2.0.
 │ Values outside this range now raise a ConfigError at startup.
@@ -657,11 +658,11 @@ When `sys.stdout.isatty()` is False (piped output, CI). No ANSI codes, no activi
 > fix the import error in parser.py
 ┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
 │
-│   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs
+│   thinking... 3 -> read_file... 1 -> edit... 0 secs
 │
 │ I'll read parser.py to find the import error.
 │
-│   thinking... 2 secs -> running pytest... 12 secs
+│   thinking... 2 -> running pytest... 12 secs
 │
 │ Fixed. Changed `json_parser` to `parser_core` on line 3.
 │ All 12 tests pass.
