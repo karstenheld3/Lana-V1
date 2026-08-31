@@ -68,6 +68,35 @@ if (Test-Path $Script:Artifact) {
     }
   }
 }
+# Pre-flight: clean stale build artifacts that cause [WinError 5] when IDE indexers or previous builds hold file handles
+$staleTargets = @(
+  (Join-Path $RootDir 'src\lana.egg-info')    # setuptools metadata - most common lock target
+  (Join-Path $BuildDir 'lib')                  # setuptools build_py output
+  (Join-Path $BuildDir 'bdist.win-amd64')      # setuptools bdist staging
+)
+foreach ($target in $staleTargets) {
+  if (Test-Path $target) {
+    try {
+      Remove-Item $target -Recurse -Force -ErrorAction Stop
+      Write-Host "  Pre-flight: cleaned stale $($target | Split-Path -Leaf)/"
+    } catch {
+      Write-Host "  Pre-flight: cannot delete $target - a process holds a lock." -ForegroundColor Red
+      Write-Host "  Close file explorers, IDE windows, or terminals that may lock this path, then press SPACE to retry..." -ForegroundColor Yellow
+      while ($true) {
+        $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        if ($key.VirtualKeyCode -eq 32) {
+          try {
+            Remove-Item $target -Recurse -Force -ErrorAction Stop
+            Write-Host "  Pre-flight: cleaned $($target | Split-Path -Leaf)/ on retry."
+            break
+          } catch {
+            Write-Host "  Still locked: $($_.Exception.Message)" -ForegroundColor Red
+          }
+        }
+      }
+    }
+  }
+}
 
 # ---------------------------------------------------------------------------- [ 1 / 8 ] toolchain
 Step 'Verifying toolchain...'
@@ -208,7 +237,20 @@ New-Item -ItemType Directory -Path $bundleAgent -Force | Out-Null
 New-Item -ItemType Directory -Path $bundleConfig -Force | Out-Null
 Write-Host '  src/lana/bundled/agent/ and config/ cleaned (build-time only, not tracked in git).'
 
-if (Test-Path $oldExe) { Remove-Item $oldExe -Force -ErrorAction SilentlyContinue; Write-Host '  Deleted _old.exe.' }
+if (Test-Path $oldExe) {
+  try {
+    Remove-Item $oldExe -Force -ErrorAction Stop
+    Write-Host '  Deleted _old.exe.'
+  } catch {
+    Start-Sleep -Milliseconds 500
+    try {
+      Remove-Item $oldExe -Force -ErrorAction Stop
+      Write-Host '  Deleted _old.exe (retry).'
+    } catch {
+      Write-Host "  WARNING: cannot delete _old.exe - file locked (ACP agent still running?). Delete manually: $oldExe" -ForegroundColor Yellow
+    }
+  }
+}
 
 $sizeMb = [Math]::Round((Get-Item $Script:Artifact).Length / 1MB, 0)
 $signedLabel = if ($signThumbprint) { 'signed' } else { 'unsigned' }

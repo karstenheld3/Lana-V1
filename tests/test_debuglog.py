@@ -79,6 +79,8 @@ def test_format_duration():
   assert format_duration(90000) == "1 min 30 secs"
   assert format_duration(150000) == "2 mins 30 secs"
   assert format_duration(4500000) == "1 hour 15 mins"
+  assert format_duration(61000) == "1 min 1 sec"  # LOG-GN-05: singular second
+  assert format_duration(3660000) == "1 hour 1 min"  # LOG-GN-05: singular minute
 
 
 # FR-06: op-specific human-readable detail per domain (LOG-GN-02 quoting, LOG-GN-04 durations)

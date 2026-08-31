@@ -20,9 +20,9 @@ def format_duration(ms) -> str:
   if ms < 1000: return f"{ms} ms"
   if ms < 60000: return f"{ms / 1000:.1f} secs"
   minutes, seconds = divmod(round(ms / 1000), 60)
-  if minutes < 60: return f"{minutes} min" + ("s" if minutes != 1 else "") + f" {seconds} secs"
+  if minutes < 60: return f"{minutes} min" + ("s" if minutes != 1 else "") + f" {seconds} sec" + ("s" if seconds != 1 else "")
   hours, minutes = divmod(minutes, 60)
-  return f"{hours} hour" + ("s" if hours != 1 else "") + f" {minutes} mins"
+  return f"{hours} hour" + ("s" if hours != 1 else "") + f" {minutes} min" + ("s" if minutes != 1 else "")
 
 
 # One human-readable detail string per (dom, op); unknown ops fall back to raw field dump
