@@ -143,9 +143,10 @@ An **ApprovalBox** is a permanent bold cyan box in scrollback for approval promp
 **LANAUSRX-FR-05: Activity Box Finalize**
 - On `text_delta` or `turn_finished`: finalize the activity box in-place
 - Remove spinner and active line, keep all completed log entries inside box borders
-- Each log entry shows its elapsed time: `running [ read_file(path) ]... 1 sec`
+- Consecutive identical tool calls grouped into one line: `running [ read_file(path) ]... x5 0 secs`
+- Single occurrences have no count suffix: `running [ read_file(path) ]... 1 sec`
 - Multi-line tool signatures logged as short form: `running [ edit(...) ]... 1 sec`
-- Failed tools logged with FAIL: `running [ edit(...) ]... FAIL`
+- Failed tools logged with FAIL (never grouped): `running [ edit(...) ]... FAIL`
 - The finalized box stays in permanent scrollback as a dim bordered record
 - Clear log for next turn
 
@@ -391,14 +392,13 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 │ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
-**Finalized box (many tool calls):**
+**Finalized box (many tool calls, consecutive grouped):**
 
 ```
 │ ┌──────────────────────────────────────────────────────────────┐   [dim]
 │ │ thinking... 2 secs                                           │   [dim]
-│ │ running [ read_file(path) ]... 1 sec                         │   [dim]
-│ │ running [ read_file(path) ]... 0 secs                        │   [dim]
-│ │ running [ grep_search(query, path) ]... 1 sec                │   [dim]
+│ │ running [ read_file(path) ]... x5 0 secs                     │   [dim]
+│ │ running [ grep_search(query, path) ]... x2 1 sec             │   [dim]
 │ │ running [ edit(path, old, new) ]... 0 secs                   │   [dim]
 │ │ running [ run_command(cmd) ]... 8 secs                       │   [dim]
 │ └──────────────────────────────────────────────────────────────┘   [dim]
@@ -646,30 +646,21 @@ Large context triggers compaction mid-conversation.
 │
 │ ┌──────────────────────────────────────────────────────────┐
 │ │ thinking... 3 secs                                       │
-│ │ running [ read_file(path) ]... 1 sec                     │
-│ │ running [ read_file(path) ]... 0 secs                    │
-│ │ running [ read_file(path) ]... 1 sec                     │
-│ │ running [ read_file(path) ]... 0 secs                    │
-│ │ running [ read_file(path) ]... 1 sec                     │
-│ │ running [ grep_search(query, path) ]... 1 sec            │
-│ │ running [ grep_search(query, path) ]... 0 secs           │
+│ │ running [ read_file(path) ]... x5 0 secs                 │
+│ │ running [ grep_search(query, path) ]... x2 0 secs        │
 │ └──────────────────────────────────────────────────────────┘
 │ I've analyzed the source tree. Here are the key dependencies:
 │
 │ ┌──────────────────────────────────────────────────────────┐
 │ │ thinking... 2 secs                                       │
-│ │ running [ read_file(path) ]... 0 secs                    │
-│ │ running [ read_file(path) ]... 0 secs                    │
-│ │ running [ read_file(path) ]... 1 sec                     │
-│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ read_file(path) ]... x4 0 secs                 │
 │ └──────────────────────────────────────────────────────────┘
 │
 │ WARNING: Context 95% full, compacting to preserve conversation
 │
 │ ┌──────────────────────────────────────────────────────────┐
 │ │ thinking... 3 secs                                       │
-│ │ running [ read_file(path) ]... 1 sec                     │
-│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ read_file(path) ]... x2 0 secs                 │
 │ └──────────────────────────────────────────────────────────┘
 │ The complete dependency graph shows 4 clusters with 2 circular
 │ dependencies between agent.py and tools/__init__.py.
@@ -782,6 +773,10 @@ Note: Non-terminal renders the same finalized boxes as plain text (no ANSI). The
 - Windows Terminal, PowerShell 7, and Windows ConHost all support the required ANSI sequences. Legacy cmd.exe requires `os.system('')` or `colorama.init()` to enable ANSI processing
 
 ## 13. Document History
+
+**[2026-08-31 21:29]**
+- Added: FR-05 consecutive identical tool calls grouped in finalized box (`x5` suffix, summed elapsed)
+- Changed: 10.2 "many tool calls" variant and 10.11 case diagram updated with grouped format
 
 **[2026-08-31 21:14]**
 - Changed: FR-05 renamed from "Activity Box Collapse" to "Activity Box Finalize" - box stays as permanent scrollback instead of collapsing to summary line
