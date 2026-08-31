@@ -140,11 +140,13 @@ An **ApprovalBox** is a permanent bold cyan box in scrollback for approval promp
 - Box redraws in-place via ANSI cursor-up. Box grows vertically as log entries accumulate
 - Spinner (braille dots) animates on the active line only
 
-**LANAUSRX-FR-05: Activity Box Collapse**
-- On `text_delta` or `turn_finished`: erase the activity box from screen
-- Emit a single dim summary line to scrollback using short form (tool name only, no args): `thinking... 3 -> read_file... 1 -> edit... 0 secs`
-  - Time unit (`secs`/`sec`) appears only on the last entry in the chain
-- Arrow separator ` -> ` between entries
+**LANAUSRX-FR-05: Activity Box Finalize**
+- On `text_delta` or `turn_finished`: finalize the activity box in-place
+- Remove spinner and active line, keep all completed log entries inside box borders
+- Each log entry shows its elapsed time: `running [ read_file(path) ]... 1 sec`
+- Multi-line tool signatures logged as short form: `running [ edit(...) ]... 1 sec`
+- Failed tools logged with FAIL: `running [ edit(...) ]... FAIL`
+- The finalized box stays in permanent scrollback as a dim bordered record
 - Clear log for next turn
 
 **LANAUSRX-FR-06: Model Text Output**
@@ -235,9 +237,9 @@ The activity box uses a 3-step cursor protocol:
 
 Text content is wrapped using `textwrap.wrap()` with `width = terminal_columns - len(prefix) - 1`. Each wrapped line gets the bracket prefix. Terminal width queried via `shutil.get_terminal_size()`.
 
-### Activity Collapse
+### Activity Finalize
 
-When collapsing, the renderer joins all log entries with ` -> ` and emits as a single dim line prefixed with `│   ` (bracket + 2-space indent). The summary reads left-to-right as a chronological chain.
+When finalizing, the renderer redraws the activity box in-place without the spinner and active line. All completed log entries remain inside the box borders as permanent scrollback. Each entry shows its elapsed time individually.
 
 ## 9. Action Flow
 
@@ -261,8 +263,11 @@ User types prompt
 │       └──────────────────────────────────────┘
 │
 ├─> text_delta
-│   └─> ActivityBox collapses:
-│       print("│   thinking... 3 -> read_file... 1 secs")  [dim]
+│   └─> ActivityBox finalizes (box stays, spinner removed):
+│       ┌──────────────────────────────────────┐
+│       │ thinking... 3 secs                   │   [dim, permanent]
+│       │ running [ read_file(path) ]... 1 sec │   [dim, permanent]
+│       └──────────────────────────────────────┘
 │       print("│ {model text}")                          [no style]
 │
 ├─> error (WARNING)
@@ -368,23 +373,54 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 │ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
-**Collapsed summary (after box erased, short form - name only):**
+**Finalized box (after spinner removed, stays in scrollback):**
 
 ```
-│   thinking... 3 -> read_file... 1 -> edit... 0 secs                       [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 3 secs                                           │   [dim]
+│ │ running [ read_file(path) ]... 1 sec                         │   [dim]
+│ │ running [ edit(path, old, new) ]... 0 secs                   │   [dim]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
-**Collapsed summary (thinking only, no tool calls):**
+**Finalized box (thinking only, no tool calls):**
 
 ```
-│   thinking... 2 secs                                                       [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                           │   [dim]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
-**Collapsed summary (many tool calls, wraps to terminal width):**
+**Finalized box (many tool calls):**
 
 ```
-│   thinking... 2 -> read_file... 1 -> grep_search... 1 ->                  [dim]
-│   edit... 0 -> run_command... 8 secs                                       [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                           │   [dim]
+│ │ running [ read_file(path) ]... 1 sec                         │   [dim]
+│ │ running [ read_file(path) ]... 0 secs                        │   [dim]
+│ │ running [ grep_search(query, path) ]... 1 sec                │   [dim]
+│ │ running [ edit(path, old, new) ]... 0 secs                   │   [dim]
+│ │ running [ run_command(cmd) ]... 8 secs                       │   [dim]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
+```
+
+**Finalized box (multi-line tool logged as short form):**
+
+```
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                           │   [dim]
+│ │ running [ edit(...) ]... 1 sec                               │   [dim]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
+```
+
+**Finalized box (tool failure):**
+
+```
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                           │   [dim]
+│ │ running [ read_file(path) ]... 1 sec                         │   [dim]
+│ │ running [ edit(...) ]... FAIL                                │   [dim]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
 ### 10.3 Component: ApprovalBox
@@ -466,8 +502,9 @@ Single turn, thinking only, no tool calls.
 > what does the config module do?
 ┌─[ claude-4-sonnet | 80% (of 0.2M context) | 2026-08-31 20:51:00 ]
 │
-│   thinking... 2 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ └──────────────────────────────────────────────────────────┘
 │ The config module loads settings from lana-config.json at startup.
 │ It validates required fields (model, provider, temperature) and
 │ falls back to defaults for optional ones.
@@ -477,14 +514,17 @@ Single turn, thinking only, no tool calls.
 
 ### 10.6 Case: Single Turn with Fast Tools
 
-Tools complete quickly, collapsed summary shows chain.
+Tools complete quickly, finalized box shows chain.
 
 ```
 > read the README and fix the typo on line 5
 ┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:53:00 ]
 │
-│   thinking... 3 -> read_file... 0 -> edit... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 3 secs                                       │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ edit(path, old, new) ]... 0 secs               │
+│ └──────────────────────────────────────────────────────────┘
 │ Fixed the typo on line 5: changed "recieve" to "receive".
 │
 └─[ 1 turn | 2 tool calls | $0.002 | 5 secs ]
@@ -498,8 +538,11 @@ Full interaction: multiple turns, tool calls, approval gate, warning, compaction
 > fix the import error in parser.py
 ┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
 │
-│   thinking... 3 -> read_file... 1 -> edit... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 3 secs                                       │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ edit(path, old, new) ]... 0 secs               │
+│ └──────────────────────────────────────────────────────────┘
 │ I'll read parser.py to find the import error.
 │
 │ WARNING: Token budget exceeded, compacted context
@@ -511,8 +554,10 @@ Full interaction: multiple turns, tool calls, approval gate, warning, compaction
 │ │ Answer: y = yes                                             │
 │ └─────────────────────────────────────────────────────────────┘
 │
-│   thinking... 2 -> running pytest... 12 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ │ running [ run_command(cmd) ]... 12 secs                  │
+│ └──────────────────────────────────────────────────────────┘
 │ Fixed. Changed `json_parser` to `parser_core` on line 3.
 │ All 12 tests pass.
 │
@@ -527,12 +572,20 @@ Tool fails, error printed, agent retries with different approach.
 > refactor the database connection pooling
 ┌─[ claude-4-sonnet | 45% (of 0.2M context) | 2026-08-31 20:52:00 ]
 │
-│   thinking... 2 -> read_file... 1 -> read_file... 1 -> edit... FAIL
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ edit(...) ]... FAIL                            │
+│ └──────────────────────────────────────────────────────────┘
 │
 │ ERROR: Edit failed: file is read-only (src/db.py)
 │
-│   thinking... 1 -> run_command... 0 -> edit... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 1 sec                                        │
+│ │ running [ run_command(cmd) ]... 0 secs                   │
+│ │ running [ edit(path, old, new) ]... 0 secs               │
+│ └──────────────────────────────────────────────────────────┘
 │ Made the file writable and applied the refactoring. Connection
 │ pooling now uses a shared pool with configurable max connections.
 │
@@ -547,7 +600,9 @@ User denies a dangerous command. Agent proceeds without it.
 > clean up all temporary files
 ┌─[ claude-4-sonnet | 30% (of 0.2M context) | 2026-08-31 20:54:00 ]
 │
-│   thinking... 2 secs
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ └──────────────────────────────────────────────────────────┘
 │
 │ ┌─[ Approval ]────────────────────────────────────────────────┐
 │ │ run_command rm -rf /tmp/project_* && rm -rf ~/.cache/lana   │
@@ -556,8 +611,9 @@ User denies a dangerous command. Agent proceeds without it.
 │ │ Answer: n = no                                              │
 │ └─────────────────────────────────────────────────────────────┘
 │
-│   thinking... 1 -> run_command... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ running [ run_command(cmd) ]... 0 secs                   │
+│ └──────────────────────────────────────────────────────────┘
 │ Understood. I cleaned only the project build artifacts instead.
 │
 └─[ 2 turns | 2 tool calls | $0.004 | 9 secs ]
@@ -571,8 +627,10 @@ A single tool dominates elapsed time. Activity box shows ticking counter.
 > run the full test suite
 ┌─[ claude-4-sonnet | 55% (of 0.2M context) | 2026-08-31 20:55:00 ]
 │
-│   thinking... 1 -> running run_command... 45 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 1 sec                                        │
+│ │ running [ run_command(cmd) ]... 45 secs                  │
+│ └──────────────────────────────────────────────────────────┘
 │ All 847 tests passed. No failures, 3 skipped.
 │
 └─[ 1 turn | 1 tool call | $0.003 | 48 secs ]
@@ -586,19 +644,33 @@ Large context triggers compaction mid-conversation.
 > analyze all source files and create a dependency graph
 ┌─[ claude-4-sonnet | 92% (of 0.2M context) | 2026-08-31 20:56:00 ]
 │
-│   thinking... 3 -> read_file... 1 -> read_file... 0 ->
-│   read_file... 1 -> read_file... 0 -> read_file... 1 ->
-│   grep_search... 1 -> grep_search... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 3 secs                                       │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ grep_search(query, path) ]... 1 sec            │
+│ │ running [ grep_search(query, path) ]... 0 secs           │
+│ └──────────────────────────────────────────────────────────┘
 │ I've analyzed the source tree. Here are the key dependencies:
 │
-│   thinking... 2 -> read_file... 0 -> read_file... 0 ->
-│   read_file... 1 -> read_file... 0 secs
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ └──────────────────────────────────────────────────────────┘
 │
 │ WARNING: Context 95% full, compacting to preserve conversation
 │
-│   thinking... 3 -> read_file... 1 -> read_file... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 3 secs                                       │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ read_file(path) ]... 0 secs                    │
+│ └──────────────────────────────────────────────────────────┘
 │ The complete dependency graph shows 4 clusters with 2 circular
 │ dependencies between agent.py and tools/__init__.py.
 │
@@ -613,12 +685,15 @@ Provider returns a retryable error. WARNING printed, then agent resumes.
 > explain the caching strategy
 ┌─[ claude-4-sonnet | 40% (of 0.2M context) | 2026-08-31 20:57:00 ]
 │
-│   thinking... 2 secs
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ └──────────────────────────────────────────────────────────┘
 │
 │ WARNING: Rate limit exceeded (429), retrying in 8 secs
 │
-│   thinking... 10 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 10 secs                                      │
+│ └──────────────────────────────────────────────────────────┘
 │ The caching strategy uses prompt caching for the system prompt
 │ and tool definitions, reducing input tokens by 60-80%.
 │
@@ -633,8 +708,9 @@ Two prompts in sequence. Each gets its own OutputScope.
 > what does the config module do?
 ┌─[ claude-4-sonnet | 10% (of 0.2M context) | 2026-08-31 20:58:00 ]
 │
-│   thinking... 2 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ └──────────────────────────────────────────────────────────┘
 │ The config module loads settings from lana-config.json at startup.
 │
 └─[ 1 turn | 0 tool calls | $0.001 | 4 secs ]
@@ -642,8 +718,11 @@ Two prompts in sequence. Each gets its own OutputScope.
 > now add a validation for the "temperature" field
 ┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:58:10 ]
 │
-│   thinking... 3 -> read_file... 1 -> edit... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 3 secs                                       │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ edit(path, old, new) ]... 0 secs               │
+│ └──────────────────────────────────────────────────────────┘
 │ Added validation: temperature must be between 0.0 and 2.0.
 │ Values outside this range now raise a ConfigError at startup.
 │
@@ -658,27 +737,32 @@ When `sys.stdout.isatty()` is False (piped output, CI). No ANSI codes, no activi
 > fix the import error in parser.py
 ┌─[ claude-4-sonnet | 12% (of 0.2M context) | 2026-08-31 20:50:00 ]
 │
-│   thinking... 3 -> read_file... 1 -> edit... 0 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 3 secs                                       │
+│ │ running [ read_file(path) ]... 1 sec                     │
+│ │ running [ edit(path, old, new) ]... 0 secs               │
+│ └──────────────────────────────────────────────────────────┘
 │ I'll read parser.py to find the import error.
 │
-│   thinking... 2 -> running pytest... 12 secs
-│
+│ ┌──────────────────────────────────────────────────────────┐
+│ │ thinking... 2 secs                                       │
+│ │ running [ run_command(cmd) ]... 12 secs                  │
+│ └──────────────────────────────────────────────────────────┘
 │ Fixed. Changed `json_parser` to `parser_core` on line 3.
 │ All 12 tests pass.
 │
 └─[ 3 turns | 5 tool calls | $0.009 | 23 secs ]
 ```
 
-Note: Identical to terminal output after collapse. The activity box GROWING state is never shown; only collapsed summaries appear.
+Note: Non-terminal renders the same finalized boxes as plain text (no ANSI). The activity box GROWING state is never shown; only finalized boxes appear.
 
 ### 10.15 Color Reference
 
-- **Dim** (`\033[2m`): Header, footer, bracket prefix, activity box, collapsed summaries
+- **Dim** (`\033[2m`): Header, footer, bracket prefix, activity box (growing and finalized)
 - **No style**: Model text content
 - **Yellow** (`\033[33m`): WARNING messages
 - **Red** (`\033[31m`): ERROR messages
-- **Bold cyan** (`\033[1;36m`): Action box borders and content
+- **Bold cyan** (`\033[1;36m`): Approval box borders and content
 - **Bold** (`\033[1m`): Title line only
 
 ## 11. Logging Requirements
@@ -698,6 +782,14 @@ Note: Identical to terminal output after collapse. The activity box GROWING stat
 - Windows Terminal, PowerShell 7, and Windows ConHost all support the required ANSI sequences. Legacy cmd.exe requires `os.system('')` or `colorama.init()` to enable ANSI processing
 
 ## 13. Document History
+
+**[2026-08-31 21:14]**
+- Changed: FR-05 renamed from "Activity Box Collapse" to "Activity Box Finalize" - box stays as permanent scrollback instead of collapsing to summary line
+- Changed: All case diagrams (10.5-10.14) updated to show finalized boxes instead of collapsed summary lines
+- Changed: Action flow diagram updated with finalized box example
+- Changed: "Activity Collapse" mechanism renamed to "Activity Finalize"
+- Added: Finalized box variants for many tools, multi-line short form, and tool failure
+- Changed: Color reference updated ("collapsed summaries" to "finalized"), "Action box" to "Approval box"
 
 **[2026-08-31 20:58]**
 - Added: Section 10 expanded from 4 to 15 subsections
