@@ -41,8 +41,13 @@
 ## Build
 
 - **NEVER run `_build.bat` or `_build.ps1` from an agent session.** The user builds manually via the batch file.
-- `dist\lana-acp.bat` is the ACP launcher used by Windsurf/Devin — points to `dist\lana-1.1.0-win-x64.exe`
 - After code changes that affect the exe, tell the user to rebuild — do not build yourself
+
+## ACP Registry (Devin Desktop)
+
+- **Windows registry path bug**: Devin Desktop reads `%APPDATA%\Code\User\acp\registry.json` on Windows regardless of channel (stable/next). The `.windsurf-next\acp\registry.json` path is IGNORED. Always edit the `%APPDATA%\Code\User\` copy.
+- Two files exist: `C:\Users\User\.windsurf-next\acp\registry.json` (unused) and `C:\Users\User\AppData\Roaming\Code\User\acp\registry.json` (actual). Keep both in sync or only edit the real one.
+- After editing, run "Reload ACP Connections" from Command Palette or restart Devin Desktop.
 
 ## Source Control Approach
 

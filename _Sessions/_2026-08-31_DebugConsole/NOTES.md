@@ -51,6 +51,16 @@ The debug console is the **single source of truth** to analyze and fix issues ac
 - **ACP mode**: stdout = JSON-RPC protocol. `acp.log()` writes timestamped lines to stderr. `build_runtime()` prints are redirected to stderr via `contextlib.redirect_stdout`
 - **Current `--debug`**: `dump_debug()` in each adapter writes raw request/response JSON to `.lana-data/logs/`. No timing, no console output, no tool/ACP coverage
 
+### ACP Registry (Highlander Principle)
+
+There can only be one. On Windows, both Devin Desktop and Devin Next read from the **same** registry file:
+
+```
+%APPDATA%\Code\User\acp\registry.json
+```
+
+`%APPDATA%\Devin - Next\User\acp\registry.json` exists but is NOT read by Devin Next. Do not touch it. `cmd` must point directly to the `.exe` -- `.bat` wrappers silently fail (Node.js `child_process.spawn` cannot execute `.bat` files). For the debug console in ACP mode, pass `--debug-console` in the `args` array: `["--debug-console", "--acp"]`.
+
 ### Timing Gaps (no instrumentation exists)
 
 - **LLM calls**: No duration measured for `stream_turn()` or time-to-first-token
@@ -143,7 +153,7 @@ Agent recommended Option A; user chose **Option B** (LANADEBG-DD-01). Rationale:
 
 ## Bug List
 
-- (none yet)
+- **LANADEBG-BG-0001**: Anthropic 400 after cancellation - orphaned `tool_use` without `tool_result`
 
 ## Significant Prompts Log
 
