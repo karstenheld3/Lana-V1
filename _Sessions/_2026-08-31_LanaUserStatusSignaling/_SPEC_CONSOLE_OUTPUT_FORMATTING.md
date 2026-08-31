@@ -37,7 +37,7 @@
 8. [Key Mechanisms](#8-key-mechanisms)
 9. [Action Flow](#9-action-flow)
 10. [UX Design](#10-ux-design)
-    - 10.1-10.4: Component diagrams (OutputScope, ActivityBox, ActionBox, Error Messages)
+    - 10.1-10.4: Component diagrams (OutputScope, ActivityBox, ApprovalBox, Error Messages)
     - 10.5-10.14: Interaction cases (11 scenarios)
     - 10.15: Color Reference
 11. [Logging Requirements](#11-logging-requirements)
@@ -49,10 +49,10 @@
 **Problem:** Lana's CLI output is a flat stream of unstyled text. Users cannot distinguish model text from metadata, have no real-time progress during tool operations, and lack visual hierarchy to separate prompts.
 
 **Solution:**
-- Bracket-scoped output per prompt with header (model, context, timestamp) and footer (turns, tools, cost, duration)
+- Bracket-scoped output per prompt with header (model, context, timestamp) and footer (turns, tool calls, cost, duration)
 - Activity box that grows line-by-line during tool operations and collapses to a single summary line when done
 - Three visual tiers: content (full brightness), metadata (dim), emphasis (color)
-- Approval prompts in styled action boxes with explicit option labels
+- Approval prompts in styled approval boxes with explicit option labels
 
 **What we don't want:**
 - Rich library dependency for the footer/activity box (ANSI escape codes suffice)
@@ -80,7 +80,7 @@ An **OutputScope** is the visual bracket wrapping all output for a single prompt
 **Key properties:**
 - `header` - Opening line: `┌─[ model | context% (of NM context) | timestamp ]`
 - `body` - All output between header and footer, prefixed with `│ `
-- `footer` - Closing line: `└─[ N turns | N tools | $X.XXX | N secs ]`
+- `footer` - Closing line: `└─[ N turns | N tool calls | $X.XXX | N secs ]`
 
 ### ActivityBox
 
@@ -95,12 +95,12 @@ An **ActivityBox** is an ephemeral box-drawing bordered region that shows chrono
 - GROWING: Box visible, new activities append as rows
 - COLLAPSED: Box erased, single summary line emitted to scrollback
 
-### ActionBox
+### ApprovalBox
 
-An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts.
+An **ApprovalBox** is a permanent bold cyan box in scrollback for approval prompts.
 
 **Key properties:**
-- `header` - `┌─[ Action ]───...───┐`
+- `header` - `┌─[ Approval ]───...───┐`
 - `content` - Tool action and arguments
 - `prompt` - `Approve? [ y = yes, n = no, a = all ]`
 - `separator` - `├───...───┤`
@@ -124,8 +124,8 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 - Styled dim
 
 **LANAUSRX-FR-03: Footer Content**
-- Format: `└─[ {N} turn(s) | {N} tool(s) | ${cost} | {duration} ]`
-- Pluralization: "1 turn" vs "2 turns", "1 tool" vs "2 tools"
+- Format: `└─[ {N} turn(s) | {N} tool call(s) | ${cost} | {duration} ]`
+- Pluralization: "1 turn" vs "2 turns", "1 tool call" vs "2 tool calls"
 - Duration in `format_duration()` format: "1 sec", "N secs"
 - Styled dim
 
@@ -154,8 +154,8 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 - ERROR: `│ ERROR: {message}` styled red. Empty line above
 - NOTICE: Shown in activity box as temporary activity text, not in scrollback
 
-**LANAUSRX-FR-08: Action Box for Approvals**
-- Approval prompts rendered as ActionBox in scrollback (permanent)
+**LANAUSRX-FR-08: Approval Box**
+- Approval prompts rendered as ApprovalBox in scrollback (permanent)
 - Styled bold cyan
 - Empty line before and after the box
 - Box opens, shows content and prompt, then separator, then waits for input on "Answer:" line
@@ -197,7 +197,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 
 **LANAUSRX-DD-03:** Activity box collapses to summary instead of persisting. Rationale: Tool operation details are ephemeral infrastructure. The collapsed summary provides enough forensic context ("thinking -> read_file -> edit") without polluting scrollback with full tool lines. Full detail available in JSON Lines (JSONL) log.
 
-**LANAUSRX-DD-04:** Approval prompts use bold cyan ActionBox. Rationale: Cyan is the accent/primary color in the design system, distinct from severity colors (yellow, red) and metadata (dim). Bold cyan makes approvals visually prominent as the single "10% emphasis" element.
+**LANAUSRX-DD-04:** Approval prompts use bold cyan ApprovalBox. Rationale: Cyan is the accent/primary color in the design system, distinct from severity colors (yellow, red) and metadata (dim). Bold cyan makes approvals visually prominent as the single "10% emphasis" element.
 
 **LANAUSRX-DD-05:** 70/20/10 color distribution. Rationale: DLPHS-IN10 Section 3.7. 70% dim (activity box, header, footer, collapsed summaries), 20% default (model text), 10% emphasis (bold cyan approvals, yellow warnings, red errors).
 
@@ -213,7 +213,7 @@ An **ActionBox** is a permanent bold cyan box in scrollback for approval prompts
 
 **LANAUSRX-IG-03:** Activity box cursor-up count always matches the actual number of lines previously written. The renderer tracks the rendered line count and uses `\033[{N}F` to move up exactly N lines.
 
-**LANAUSRX-IG-04:** Bracket prefix `│ ` is prepended to every line emitted within an OutputScope, including activity box lines, text lines, error lines, and action box lines.
+**LANAUSRX-IG-04:** Bracket prefix `│ ` is prepended to every line emitted within an OutputScope, including activity box lines, text lines, error lines, and approval box lines.
 
 **LANAUSRX-IG-05:** `markup=False` on every Rich `console.print()` call. No exceptions.
 
@@ -267,8 +267,8 @@ User types prompt
 │       print("│ WARNING: {msg}")                        [yellow]
 │
 ├─> approval_required
-│   └─> ActionBox in scrollback:
-│       print("│ ┌─[ Action ]───────────┐")             [bold cyan]
+│   └─> ApprovalBox in scrollback:
+│       print("│ ┌─[ Approval ]─────────┐")             [bold cyan]
 │       print("│ │ run_command ...       │")             [bold cyan]
 │       print("│ │ Approve? [y/n/a]     │")             [bold cyan]
 │       print("│ ├──────────────────────┤")             [bold cyan]
@@ -277,7 +277,7 @@ User types prompt
 │
 ├─> All turns done
 │   └─> print("│")                                       [dim, empty]
-│       print("└─[ 3 turns | 5 tools | $0.009 | 23 secs ]")  [dim]
+│       print("└─[ 3 turns | 5 tool calls | $0.009 | 23 secs ]")  [dim]
 │       print()
 ```
 
@@ -292,23 +292,23 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 ```
 > {user prompt}
 ┌─[ {model} | {context_pct}% (of {context_total} context) | {timestamp} ]   [dim]
-│                                                                             [dim]
+│                                                                           [dim]
 ```
 
 **Footer anatomy:**
 
 ```
-│                                                                             [dim]
-└─[ {N} turn(s) | {N} tool(s) | ${cost} | {duration} ]                      [dim]
+│                                                                           [dim]
+└─[ {N} turn(s) | {N} tool call(s) | ${cost} | {duration} ]                      [dim]
 ```
 
 **Pluralization examples:**
 
 ```
-└─[ 1 turn | 0 tools | $0.001 | 4 secs ]
-└─[ 1 turn | 1 tool | $0.003 | 8 secs ]
-└─[ 3 turns | 5 tools | $0.009 | 23 secs ]
-└─[ 2 turns | 12 tools | $0.041 | 1 min 12 secs ]
+└─[ 1 turn | 0 tool calls | $0.001 | 4 secs ]
+└─[ 1 turn | 1 tool call | $0.003 | 8 secs ]
+└─[ 3 turns | 5 tool calls | $0.009 | 23 secs ]
+└─[ 2 turns | 12 tool calls | $0.041 | 1 min 12 secs ]
 ```
 
 ### 10.2 Component: ActivityBox
@@ -369,13 +369,13 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 │   edit... 0 secs -> run_command... 8 secs                                  [dim]
 ```
 
-### 10.3 Component: ActionBox
+### 10.3 Component: ApprovalBox
 
 **Anatomy (before user input):**
 
 ```
 │                                                                             [dim]
-│ ┌─[ Action ]──────────────────────────────────────────────────┐      [bold cyan]
+│ ┌─[ Approval ]────────────────────────────────────────────────┐      [bold cyan]
 │ │ run_command rm -rf build/ && make clean                      │      [bold cyan]
 │ │ Approve? [ y = yes, n = no, a = all ]                       │      [bold cyan]
 │ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
@@ -386,7 +386,7 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 **After approval (y = yes):**
 
 ```
-│ ┌─[ Action ]──────────────────────────────────────────────────┐      [bold cyan]
+│ ┌─[ Approval ]────────────────────────────────────────────────┐      [bold cyan]
 │ │ run_command rm -rf build/ && make clean                      │      [bold cyan]
 │ │ Approve? [ y = yes, n = no, a = all ]                       │      [bold cyan]
 │ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
@@ -398,7 +398,7 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 **After denial (n = no):**
 
 ```
-│ ┌─[ Action ]──────────────────────────────────────────────────┐      [bold cyan]
+│ ┌─[ Approval ]────────────────────────────────────────────────┐      [bold cyan]
 │ │ run_command rm -rf /important/data                           │      [bold cyan]
 │ │ Approve? [ y = yes, n = no, a = all ]                       │      [bold cyan]
 │ ├─────────────────────────────────────────────────────────────┤      [bold cyan]
@@ -454,7 +454,7 @@ Single turn, thinking only, no tool calls.
 │ It validates required fields (model, provider, temperature) and
 │ falls back to defaults for optional ones.
 │
-└─[ 1 turn | 0 tools | $0.001 | 4 secs ]
+└─[ 1 turn | 0 tool calls | $0.001 | 4 secs ]
 ```
 
 ### 10.6 Case: Single Turn with Fast Tools
@@ -469,7 +469,7 @@ Tools complete quickly, collapsed summary shows chain.
 │
 │ Fixed the typo on line 5: changed "recieve" to "receive".
 │
-└─[ 1 turn | 2 tools | $0.002 | 5 secs ]
+└─[ 1 turn | 2 tool calls | $0.002 | 5 secs ]
 ```
 
 ### 10.7 Case: Multi-Turn with Tools, Approval, and Compaction
@@ -486,7 +486,7 @@ Full interaction: multiple turns, tool calls, approval gate, warning, compaction
 │
 │ WARNING: Token budget exceeded, compacted context
 │
-│ ┌─[ Action ]──────────────────────────────────────────────────┐
+│ ┌─[ Approval ]────────────────────────────────────────────────┐
 │ │ run_command rm -rf build/ && make clean                      │
 │ │ Approve? [ y = yes, n = no, a = all ]                       │
 │ ├─────────────────────────────────────────────────────────────┤
@@ -498,7 +498,7 @@ Full interaction: multiple turns, tool calls, approval gate, warning, compaction
 │ Fixed. Changed `json_parser` to `parser_core` on line 3.
 │ All 12 tests pass.
 │
-└─[ 3 turns | 5 tools | $0.009 | 23 secs ]
+└─[ 3 turns | 5 tool calls | $0.009 | 23 secs ]
 ```
 
 ### 10.8 Case: Tool Failure, ERROR, Retry, Recovery
@@ -518,7 +518,7 @@ Tool fails, error printed, agent retries with different approach.
 │ Made the file writable and applied the refactoring. Connection
 │ pooling now uses a shared pool with configurable max connections.
 │
-└─[ 2 turns | 6 tools | $0.007 | 11 secs ]
+└─[ 2 turns | 6 tool calls | $0.007 | 11 secs ]
 ```
 
 ### 10.9 Case: Approval Denied
@@ -531,7 +531,7 @@ User denies a dangerous command. Agent proceeds without it.
 │
 │   thinking... 2 secs
 │
-│ ┌─[ Action ]──────────────────────────────────────────────────┐
+│ ┌─[ Approval ]────────────────────────────────────────────────┐
 │ │ run_command rm -rf /tmp/project_* && rm -rf ~/.cache/lana   │
 │ │ Approve? [ y = yes, n = no, a = all ]                       │
 │ ├─────────────────────────────────────────────────────────────┤
@@ -542,7 +542,7 @@ User denies a dangerous command. Agent proceeds without it.
 │
 │ Understood. I cleaned only the project build artifacts instead.
 │
-└─[ 2 turns | 2 tools | $0.004 | 9 secs ]
+└─[ 2 turns | 2 tool calls | $0.004 | 9 secs ]
 ```
 
 ### 10.10 Case: Long-Running Tool
@@ -557,7 +557,7 @@ A single tool dominates elapsed time. Activity box shows ticking counter.
 │
 │ All 847 tests passed. No failures, 3 skipped.
 │
-└─[ 1 turn | 1 tool | $0.003 | 48 secs ]
+└─[ 1 turn | 1 tool call | $0.003 | 48 secs ]
 ```
 
 ### 10.11 Case: Heavy Compaction with Many Tools
@@ -584,7 +584,7 @@ Large context triggers compaction mid-conversation.
 │ The complete dependency graph shows 4 clusters with 2 circular
 │ dependencies between agent.py and tools/__init__.py.
 │
-└─[ 3 turns | 17 tools | $0.041 | 38 secs ]
+└─[ 3 turns | 17 tool calls | $0.041 | 38 secs ]
 ```
 
 ### 10.12 Case: Provider Retry with WARNING
@@ -604,7 +604,7 @@ Provider returns a retryable error. WARNING printed, then agent resumes.
 │ The caching strategy uses prompt caching for the system prompt
 │ and tool definitions, reducing input tokens by 60-80%.
 │
-└─[ 1 turn | 0 tools | $0.002 | 22 secs ]
+└─[ 1 turn | 0 tool calls | $0.002 | 22 secs ]
 ```
 
 ### 10.13 Case: Consecutive Prompts in Session
@@ -619,7 +619,7 @@ Two prompts in sequence. Each gets its own OutputScope.
 │
 │ The config module loads settings from lana-config.json at startup.
 │
-└─[ 1 turn | 0 tools | $0.001 | 4 secs ]
+└─[ 1 turn | 0 tool calls | $0.001 | 4 secs ]
 
 > now add a validation for the "temperature" field
 ┌─[ claude-4-sonnet | 15% (of 0.2M context) | 2026-08-31 20:58:10 ]
@@ -629,7 +629,7 @@ Two prompts in sequence. Each gets its own OutputScope.
 │ Added validation: temperature must be between 0.0 and 2.0.
 │ Values outside this range now raise a ConfigError at startup.
 │
-└─[ 1 turn | 2 tools | $0.003 | 6 secs ]
+└─[ 1 turn | 2 tool calls | $0.003 | 6 secs ]
 ```
 
 ### 10.14 Case: Non-Terminal Fallback
@@ -649,7 +649,7 @@ When `sys.stdout.isatty()` is False (piped output, CI). No ANSI codes, no activi
 │ Fixed. Changed `json_parser` to `parser_core` on line 3.
 │ All 12 tests pass.
 │
-└─[ 3 turns | 5 tools | $0.009 | 23 secs ]
+└─[ 3 turns | 5 tool calls | $0.009 | 23 secs ]
 ```
 
 Note: Identical to terminal output after collapse. The activity box GROWING state is never shown; only collapsed summaries appear.
@@ -683,7 +683,7 @@ Note: Identical to terminal output after collapse. The activity box GROWING stat
 
 **[2026-08-31 20:58]**
 - Added: Section 10 expanded from 4 to 15 subsections
-- Added: Component diagrams for OutputScope (header/footer anatomy, pluralization), ActivityBox (4 growth stages, 3 collapse variants), ActionBox (before input, 3 answer states), Error Messages (WARNING, ERROR, NOTICE)
+- Added: Component diagrams for OutputScope (header/footer anatomy, pluralization), ActivityBox (4 growth stages, 3 collapse variants), ApprovalBox (before input, 3 answer states), Error Messages (WARNING, ERROR, NOTICE)
 - Added: 10 interaction case diagrams: fast tools, approval denied, long-running tool, heavy compaction, provider retry, consecutive prompts, non-terminal fallback
 
 **[2026-08-31 20:56]**
