@@ -95,7 +95,7 @@ class LiveFooterRenderer:
         self._activity: str | list[str] = ""  # str or list for multi-line
         self._current_tool_short: str = ""  # short name (e.g. "running edit...")
         self._current_tool_sig_single: str = ""  # full single-line sig for log
-        self._log: list[str] = []  # chronological activity entries
+        self._log: list[tuple[str, int]] = []  # (label, elapsed_secs)
         self._turn_count: int = 0
         self._tool_count: int = 0
         self._total_tools: int = 0
@@ -108,7 +108,10 @@ class LiveFooterRenderer:
         return _SPINNER[self._spinner_idx % len(_SPINNER)]
 
     def _box_width(self) -> int:
-        max_entry = max((len(e) for e in self._log), default=0)
+        max_entry = 0
+        for label, secs in self._log:
+            text = f"{label} FAIL" if secs < 0 else f"{label} {format_duration(secs)}"
+            max_entry = max(max_entry, len(text))
         # spinner + space + longest entry + padding
         return max(max_entry + 8, _MIN_BOX_W)
 
@@ -129,20 +132,44 @@ class LiveFooterRenderer:
         result.append("  ) ]...")
         return result
 
+    def _grouped_log(self) -> list[tuple[str, int, int]]:
+        """Group consecutive identical labels: [(label, total_secs, count)].
+
+        FAIL entries (secs < 0) are never grouped.
+        """
+        groups: list[tuple[str, int, int]] = []
+        for label, secs in self._log:
+            if secs >= 0 and groups and groups[-1][0] == label and groups[-1][1] >= 0:
+                prev_label, prev_secs, prev_count = groups[-1]
+                groups[-1] = (prev_label, prev_secs + secs, prev_count + 1)
+            else:
+                groups.append((label, secs, 1))
+        return groups
+
     def _build_footer_lines(self, finalized: bool = False) -> list[str]:
         """Build the activity box.
 
-        finalized=False: growing box with spinner on active line.
-        finalized=True:  static box for permanent scrollback (no spinner).
+        finalized=False: growing box with spinner on active line (ungrouped).
+        finalized=True:  static box for permanent scrollback (grouped, no spinner).
         """
         w = self._box_width()
         bdr = "\u2500"
         lines = []
         # Top border
         lines.append(f"{_BRK}\u250c{bdr * (w - 2)}\u2510")
-        # Completed log entries
-        for entry in self._log:
-            lines.append(f"{_BRK}\u2502 {entry.ljust(w - 3)}\u2502")
+        if finalized:
+            # Grouped entries
+            for label, total_secs, count in self._grouped_log():
+                suffix = f" x{count}" if count > 1 else ""
+                time_str = "FAIL" if total_secs < 0 else format_duration(total_secs)
+                entry = f"{label}{suffix} {time_str}"
+                lines.append(f"{_BRK}\u2502 {entry.ljust(w - 3)}\u2502")
+        else:
+            # Ungrouped entries (live box)
+            for label, secs in self._log:
+                time_str = "FAIL" if secs < 0 else format_duration(secs)
+                entry = f"{label} {time_str}"
+                lines.append(f"{_BRK}\u2502 {entry.ljust(w - 3)}\u2502")
         if not finalized:
             # Active line(s) with spinner on first line
             elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
@@ -248,7 +275,7 @@ class LiveFooterRenderer:
             activity = self._current_tool_short or "working..."
         if activity and activity not in ("working...",):
             elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
-            self._log.append(f"{activity} {format_duration(elapsed)}")
+            self._log.append((activity, elapsed))
 
     def _start_footer(self, activity: str):
         self._activity = activity
@@ -326,9 +353,9 @@ class LiveFooterRenderer:
             self._tool_count += 1
             status = d.get("status", "ok")
             if status == "error":
-                # Log with FAIL suffix instead of elapsed time
+                # Log with FAIL marker (elapsed=-1 signals FAIL)
                 sig = self._current_tool_short or f"running [ {d.get('name', '')}(...) ]..."
-                self._log.append(f"{sig} FAIL")
+                self._log.append((sig, -1))
             else:
                 self._add_log(self._activity)
             self._activity = "working..."
