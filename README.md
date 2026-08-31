@@ -124,7 +124,7 @@ Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (
 
 **Setup:**
 
-1. Add Lana to the local ACP registry. Use `Ctrl+Shift+P` > **`Open Local ACP Registry Config`** to create/open the file at the correct path. On macOS/Linux this is `~/.windsurf/acp/registry.json` (or `~/.windsurf-next/` for Next). On Windows the documented paths are wrong -- the actual location is `%APPDATA%\Code\User\acp\registry.json` (see note below):
+1. Add Lana to the local ACP registry. Use `Ctrl+Shift+P` > **`Open Local ACP Registry Config`** to create/open the file at the correct path. On Windows both Devin Desktop and Next share `%APPDATA%\Code\User\acp\registry.json`; on macOS/Linux the paths are per-channel (`~/.windsurf/acp/` or `~/.windsurf-next/acp/`):
 
 ```json
 {
@@ -157,9 +157,10 @@ Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (
 4. Start a new conversation and select **Lana** from the agent selector
 
 **Notes:**
-- `cmd` must be an absolute path to the built binary -- Devin Desktop does not download from `archive` URLs
+- `cmd` must be an absolute path to the `.exe` binary -- Devin Desktop does not download from `archive` URLs and cannot spawn `.bat` files
+- To open the debug console alongside ACP, add `"--debug-console"` before `"--acp"` in the `args` array
 - Configure API keys for Lana via the `...` button next to the agent in the Agents tab, or place keys in `config/.api-keys.txt` relative to the workspace
-- **Windows registry path bug**: The Devin docs say `~/.windsurf/acp/registry.json` but the extension source (`getWindsurfConfigDirectory`) hardcodes `%APPDATA%\Code\User` on Windows, ignoring the product channel. Use `Open Local ACP Registry Config` from the Command Palette to get the correct path for your installation.
+- See [SOP 7](SOPS.md#sop-7-register-lana-as-acp-agent) for the full step-by-step procedure and troubleshooting
 
 ## Specifications
 
