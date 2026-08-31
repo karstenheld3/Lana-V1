@@ -61,6 +61,34 @@ def test_resume_applies_checkpoint(tmp_path):
   assert state.messages[1].content == "new prompt" and state.messages[2].content == "new answer"
 
 
+# BG-0001: resume must synthesize tool_results for tool_call_requested without matching tool_call_finished
+# (real scenario: CancelledError during dispatch after ToolCallRequested emitted but before ToolCallFinished)
+def test_bg0001_resume_patches_orphaned_tool_use_after_cancellation(tmp_path):
+  store = SessionStore(tmp_path / "s.jsonl")
+  store.append(events.UserMessage(content="do three things"))
+  store.append(events.TurnStarted())
+  store.append(events.TextDelta(text="on it"))
+  store.append(events.ToolCallRequested(id="tc_1", tool="read_file", args={"file_path": "a.txt"}))
+  store.append(events.ToolCallFinished(id="tc_1", status="ok", result="file body", result_chars=9))
+  store.append(events.ToolCallRequested(id="tc_2", tool="list_dir", args={"DirectoryPath": "/ws"}))
+  store.append(events.ToolCallFinished(id="tc_2", status="ok", result="files", result_chars=5))
+  store.append(events.ToolCallRequested(id="tc_3", tool="read_file", args={"file_path": "b.txt"}))
+  # tc_3 tool_call_finished NEVER emitted (CancelledError during dispatch)
+  store.append(events.ErrorEvent(message="turn cancelled after 2 tool calls"))
+  store.close()
+  state = resume(tmp_path / "s.jsonl")
+  tool_messages = [msg for msg in state.messages if msg.role == "tool"]
+  assert len(tool_messages) == 3  # 2 real + 1 synthetic
+  synthetic = [msg for msg in tool_messages if msg.content == "Tool execution cancelled."]
+  assert len(synthetic) == 1 and synthetic[0].tool_call_id == "tc_3"
+  # Every tool_use in the assistant message has a matching tool_result
+  assistant = next(msg for msg in state.messages if msg.role == "assistant" and msg.tool_calls)
+  assert {call.id for call in assistant.tool_calls} == {msg.tool_call_id for msg in tool_messages}
+  # Cancelled call marked with correct status
+  cancelled_call = next(call for call in assistant.tool_calls if call.id == "tc_3")
+  assert cancelled_call.status == "cancelled"
+
+
 def test_session_files_never_deleted_and_unique(tmp_path):
   first = SessionStore.create(tmp_path)
   second = SessionStore.create(tmp_path)

@@ -243,5 +243,17 @@ class Agent:
     count = self.current_turn_completed_calls
     note = f"turn cancelled after {count} tool call" + ("s" if count != 1 else "")
     self.emit(ErrorEvent(message=note))
+    self._patch_orphaned_tool_results()  # BG-0001: provider APIs require every tool_use to have a matching tool_result
     self.messages.append(Message(role="user", content=f"<cancellation_note>{note}</cancellation_note>"))
     return note
+
+  # BG-0001: synthesize error tool_results for tool_use IDs that never got a result (cancellation mid-dispatch)
+  def _patch_orphaned_tool_results(self):
+    for i in range(len(self.messages) - 1, -1, -1):
+      msg = self.messages[i]
+      if msg.role == "assistant" and msg.tool_calls:
+        present = {self.messages[j].tool_call_id for j in range(i + 1, len(self.messages)) if self.messages[j].role == "tool"}
+        for call in msg.tool_calls:
+          if call.id not in present:
+            self.messages.append(Message(role="tool", content="Tool execution cancelled.", tool_call_id=call.id))
+        break

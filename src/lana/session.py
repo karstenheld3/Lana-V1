@@ -97,7 +97,13 @@ class _Projector:
     elif kind == "error" and event.message.startswith(CANCELLATION_NOTE_PREFIX):
       completed = [call for call in self.tool_calls if call.status in ("ok", "error")]
       self.cancelled_call_count = len(completed)
-      self.flush_assistant()  # keep completed calls + results (EC-10)
+      # BG-0001: synthesize tool_results for orphaned tool_use IDs (provider APIs require 1:1 match)
+      result_ids = {msg.tool_call_id for msg in self.results}
+      for call in self.tool_calls:
+        if call.id not in result_ids:
+          call.status = "cancelled"
+          self.results.append(Message(role="tool", content="Tool execution cancelled.", tool_call_id=call.id))
+      self.flush_assistant()  # keep completed calls + synthetic results (EC-10, BG-0001)
       self.messages.append(Message(role="user", content=f"<cancellation_note>{event.message}</cancellation_note>"))
       self.in_turn = False
 

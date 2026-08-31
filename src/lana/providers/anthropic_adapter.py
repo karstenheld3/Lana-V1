@@ -28,7 +28,11 @@ def build_messages(messages: list[Message]) -> list[dict]:
   for message in messages:
     if message.role == "system": continue
     if message.role == "user":
-      result.append({"role": "user", "content": [{"type": "text", "text": message.content}]})
+      text_block = {"type": "text", "text": message.content}
+      if result and result[-1]["role"] == "user":  # BG-0001: merge consecutive user messages (alternation rule)
+        result[-1]["content"].append(text_block)
+      else:
+        result.append({"role": "user", "content": [text_block]})
     elif message.role == "assistant":
       blocks: list[dict] = []
       for thinking in message.thinking:

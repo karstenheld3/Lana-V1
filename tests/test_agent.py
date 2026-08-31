@@ -78,8 +78,33 @@ def test_tc34_cancellation_keeps_results(agent_factory, tmp_path):
   assert any(message.role == "user" and "cancellation_note" in message.content for message in agent.messages)
   resumed = resume(agent.session.path)
   tool_messages = [message for message in resumed.messages if message.role == "tool"]
-  assert len(tool_messages) == 2  # completed results kept
+  assert len(tool_messages) == 2  # completed results kept (3rd tool never requested in events)
   assert any("turn cancelled after 2 tool calls" in message.content for message in resumed.messages)
+
+
+# BG-0001: cancellation mid-dispatch synthesizes tool_results for orphaned tool_use IDs (prevents provider 400)
+def test_bg0001_cancellation_patches_orphaned_tool_results(agent_factory, tmp_path):
+  target_dir = str(tmp_path / "ws")
+  calls = [{"name": "list_dir", "args": {"DirectoryPath": target_dir}}] * 3
+  turns = [{"text": "burst", "tool_calls": calls}, {"text": "never"}]
+  agent = agent_factory(turns)
+  seen = {"count": 0}
+
+  def after_first_result(event):
+    if event.type == "tool_call_finished": seen["count"] += 1
+    return seen["count"] == 1  # cancel after 1st of 3 tools
+
+  collect_until(agent, "go", after_first_result)
+  agent.note_cancellation()
+  tool_messages = [msg for msg in agent.messages if msg.role == "tool"]
+  assert len(tool_messages) == 3  # 1 real + 2 synthetic
+  cancelled_messages = [msg for msg in tool_messages if msg.content == "Tool execution cancelled."]
+  assert len(cancelled_messages) == 2  # 2nd and 3rd tool_use patched
+  # Verify all tool_use IDs from the assistant message have matching tool_results
+  assistant = next(msg for msg in agent.messages if msg.role == "assistant" and msg.tool_calls)
+  expected_ids = {call.id for call in assistant.tool_calls}
+  result_ids = {msg.tool_call_id for msg in tool_messages}
+  assert expected_ids == result_ids
 
 
 def test_unknown_tool_and_bad_args_keep_loop_alive(agent_factory):

@@ -54,6 +54,28 @@ def test_anthropic_messages_mapping():
   assert len(tool_results) == 2 and all(block["type"] == "tool_result" for block in tool_results)  # consecutive results merged
 
 
+# BG-0001: consecutive user messages (cancellation note + next prompt) must merge to satisfy alternation rule
+def test_bg0001_anthropic_build_messages_merges_consecutive_users():
+  messages = [
+    Message(role="user", content="read notes"),
+    Message(role="assistant", content="ok", tool_calls=[ToolCall(id="t1", name="read_file", args_json='{"file_path":"a.md"}', status="ok", result="body")]),
+    Message(role="tool", content="body", tool_call_id="t1"),
+    Message(role="user", content="<cancellation_note>turn cancelled after 1 tool call</cancellation_note>"),
+    Message(role="user", content="try again please"),
+  ]
+  built = anthropic_adapter.build_messages(messages)
+  roles = [msg["role"] for msg in built]
+  assert roles == ["user", "assistant", "user"], f"unexpected alternation: {roles}"  # all 3 user-role messages merge into one
+  # The merged user message contains tool_result + both text blocks
+  last_user = built[-1]
+  tool_results = [block for block in last_user["content"] if block.get("type") == "tool_result"]
+  texts = [block["text"] for block in last_user["content"] if block.get("type") == "text"]
+  assert len(tool_results) == 1 and tool_results[0]["tool_use_id"] == "t1"
+  assert len(texts) == 2
+  assert "cancellation_note" in texts[0]
+  assert "try again" in texts[1]
+
+
 def test_anthropic_tools_cache_breakpoint():
   tools = anthropic_adapter.build_tools(TOOLS + [{"name": "list_dir", "description": "d", "schema": {"type": "object", "additionalProperties": False, "properties": {}, "required": []}}])
   assert "cache_control" not in tools[0] and tools[-1]["cache_control"] == {"type": "ephemeral"}
