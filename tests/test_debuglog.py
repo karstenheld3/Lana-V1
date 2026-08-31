@@ -1,0 +1,131 @@
+"""LANADEBG-SP01: debug console writer, viewer formatting, agent instrumentation."""
+import io, json
+import lana.debuglog as debuglog
+from lana.debuglog import DebugLogWriter, args_summary, dlog
+from lana.debug_viewer import format_detail, render_line
+from tests.conftest import collect_events
+
+
+class FakeStdin:
+  def __init__(self, fail: bool = False):
+    self.lines: list[str] = []
+    self.flushes = 0
+    self.fail = fail
+
+  def write(self, text: str) -> None:
+    if self.fail: raise OSError("pipe broken")
+    self.lines.append(text)
+
+  def flush(self) -> None:
+    self.flushes += 1
+
+
+class FakeViewer:
+  def __init__(self, stdin):
+    self.stdin = stdin
+    self.pid = 999
+
+
+def install_fake(monkeypatch, fail: bool = False) -> tuple[FakeStdin, DebugLogWriter]:
+  stdin = FakeStdin(fail)
+  writer = DebugLogWriter(FakeViewer(stdin))
+  monkeypatch.setattr(debuglog, "_writer", writer)
+  return stdin, writer
+
+
+def parsed_lines(stdin: FakeStdin) -> list[dict]:
+  return [json.loads(line) for line in stdin.lines]
+
+
+# IG-04: flag absent -> dlog is a no-op behind one None check, enabled() False
+def test_dlog_disabled_is_noop(monkeypatch):
+  monkeypatch.setattr(debuglog, "_writer", None)
+  dlog("llm", "request", model="m")  # must not raise
+  assert debuglog.enabled() is False
+
+
+# NFR-03: one JSONL line per call, flushed at write time, ts/dom/op always present
+def test_dlog_writes_flushed_jsonl(monkeypatch):
+  stdin, _ = install_fake(monkeypatch)
+  dlog("llm", "request", model="claude-sonnet-4-5", msgs=3)
+  assert len(stdin.lines) == 1 and stdin.flushes == 1
+  entry = parsed_lines(stdin)[0]
+  assert entry["dom"] == "llm" and entry["op"] == "request" and entry["model"] == "claude-sonnet-4-5" and entry["msgs"] == 3
+  assert len(entry["ts"]) == 12  # HH:MM:SS.mmm
+
+
+# EC-01 / IG-02: first pipe failure disables permanently, warns once on stderr, never raises
+def test_pipe_failure_disables_permanently(monkeypatch, capsys):
+  stdin, writer = install_fake(monkeypatch, fail=True)
+  dlog("tool", "start", tool="read_file")  # must not raise
+  assert writer.dead is True and debuglog.enabled() is False
+  dlog("tool", "end", tool="read_file")  # no-op, no second warning
+  captured = capsys.readouterr()
+  assert captured.err.count("debug console pipe broken") == 1 and captured.out == ""
+
+
+# IG-05: identifiers only, truncated to 120 chars, empty for unknown shapes
+def test_args_summary():
+  assert args_summary({"CommandLine": "echo hi", "Cwd": "c:/x"}) == "echo hi"
+  assert args_summary({"file_path": "x" * 200}) == "x" * 120
+  assert args_summary({"old_string": "secret payload"}) == ""
+  assert args_summary({}) == ""
+
+
+# FR-06: op-specific human-readable detail per domain
+def test_viewer_format_detail():
+  assert "generator anthropic claude msgs=3 tools=17" == format_detail({"dom": "llm", "op": "request", "role": "generator", "provider": "anthropic", "model": "claude", "msgs": 3, "tools": 17})
+  assert "878ms" == format_detail({"dom": "llm", "op": "first_token", "dur_ms": 878})
+  assert format_detail({"dom": "llm", "op": "response", "dur_ms": 9287, "in_tok": 24130, "cache_read": 23800, "out_tok": 512, "cost_usd": 0.0214, "tool_calls": 2}) == "9287ms in=24130 (cache 23800) out=512 $0.0214 tool_calls=2"
+  assert format_detail({"dom": "llm", "op": "response", "dur_ms": 1, "cost_usd": None}).endswith("$? tool_calls=0")  # EC-24: unpriced model
+  assert format_detail({"dom": "tool", "op": "end", "tool": "read_file", "dur_ms": 18, "status": "ok", "chars": 4213}) == "read_file 18ms ok 4213 chars"
+  assert format_detail({"dom": "tool", "op": "approval", "action": "run_command", "dur_ms": 8213, "approved": True}) == "run_command 8213ms approved"
+  assert format_detail({"dom": "acp", "op": "recv", "method": "session/prompt", "id": 3}) == "session/prompt id=3"
+  assert format_detail({"dom": "acp", "op": "turn", "id": 3, "dur_ms": 11500, "stop": "end_turn", "updates": 47}) == "id=3 11500ms end_turn updates=47"
+  assert format_detail({"dom": "app", "op": "session", "file": "s.jsonl", "resumed": True}) == "s.jsonl (resumed)"
+  assert format_detail({"dom": "app", "op": "unknown_op", "extra": 1}) == '{"extra": 1}'  # fallback: raw field dump
+
+
+# EC-06 spirit: render_line never raises on odd entries
+def test_viewer_render_line_defensive():
+  from rich.console import Console
+  console = Console(file=io.StringIO(), highlight=False, soft_wrap=True)
+  render_line(console, {"ts": "13:04:22.123", "dom": "llm", "op": "error", "err": "boom"})
+  render_line(console, {})  # missing everything
+  render_line(console, {"dom": "tool", "op": "end", "status": "error", "tool": "x", "dur_ms": 1, "chars": 0})
+  output = console.file.getvalue()
+  assert "boom" in output
+
+
+# FR-02/FR-03 integration: scripted turn emits request/first_token/response and tool start/end lines in order
+def test_agent_instrumentation_sequence(agent_factory, tmp_path, monkeypatch):
+  stdin, _ = install_fake(monkeypatch)
+  target_dir = str(tmp_path / "ws")
+  turns = [
+    {"text": "Reading.", "tool_calls": [{"name": "list_dir", "args": {"DirectoryPath": target_dir}}], "usage": {"input": 1000, "output": 50}},
+    {"text": "Done.", "usage": {"input": 1200, "output": 20}},
+  ]
+  agent = agent_factory(turns)
+  collect_events(agent, "go")
+  ops = [(entry["dom"], entry["op"]) for entry in parsed_lines(stdin)]
+  assert ops == [("llm", "request"), ("llm", "first_token"), ("llm", "response"),
+                 ("tool", "start"), ("tool", "end"),
+                 ("llm", "request"), ("llm", "first_token"), ("llm", "response")]
+  response = parsed_lines(stdin)[2]
+  assert response["in_tok"] == 1000 and response["out_tok"] == 50 and response["tool_calls"] == 1
+  assert response["cost_usd"] is not None  # pre-computed by the cost engine before the log call (IG-03)
+  tool_end = parsed_lines(stdin)[4]
+  assert tool_end["tool"] == "list_dir" and tool_end["status"] == "ok" and tool_end["dur_ms"] >= 0 and tool_end["chars"] > 0
+
+
+# FR-03: approval gate line carries resolution and wait duration (non-interactive auto-deny path)
+def test_approval_line_on_denied_command(agent_factory, tmp_path, monkeypatch):
+  stdin, _ = install_fake(monkeypatch)
+  turns = [{"text": "run", "tool_calls": [{"name": "run_command", "args": {"CommandLine": "echo hi"}}], "usage": {"input": 10, "output": 5}},
+           {"text": "ok", "usage": {"input": 12, "output": 4}}]
+  agent = agent_factory(turns)  # no approve_callback -> auto-deny (FR-14)
+  collect_events(agent, "go")
+  approvals = [entry for entry in parsed_lines(stdin) if entry["op"] == "approval"]
+  assert len(approvals) == 1 and approvals[0]["approved"] is False and approvals[0]["action"] == "run_command"
+  tool_end = next(entry for entry in parsed_lines(stdin) if entry["op"] == "end")
+  assert tool_end["status"] == "error"  # denied call never executed

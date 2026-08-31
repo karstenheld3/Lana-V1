@@ -4,9 +4,10 @@ The loop is a pure async generator over AgentEvents - frontends only consume eve
 Every event is appended to the session JSONL at occurrence, user events before the turn starts (IG-02).
 Per-turn variability (date, cwd) lives in the user message metadata block, never in the system prompt (IG-01).
 """
-import asyncio, datetime, difflib, inspect
+import asyncio, datetime, difflib, inspect, time
 from typing import AsyncIterator, Callable, Optional
 from lana.config import AppConfig
+from lana.debuglog import args_summary, dlog
 from lana.events import ApprovalRequired, ErrorEvent, TextDelta, ThinkingDelta, ToolCallFinished, ToolCallRequested, TurnFinished, TurnStarted, UserMessage
 from lana.loader import PromptSystem
 from lana.models import Message, ToolCall
@@ -106,7 +107,9 @@ class Agent:
     needs_approval, action, detail = self.approval_needed(call, args)
     if not needs_approval: return None
     if self._approve_all:  # FR-12: approve-all active for the session - skip the interactive prompt
+      dlog("tool", "approval", action=action, dur_ms=0, approved=True)
       return ApprovalRequired(action=action, detail=detail, approved=True)
+    waited_at = time.perf_counter()
     if self.approve_callback:
       result = await _maybe_await(self.approve_callback(action, detail))
       if result == "all":  # FR-12 [y/n/a]: "a" approves current + all remaining in this session
@@ -116,6 +119,7 @@ class Agent:
         approved = bool(result)  # backward compat: ACP PermissionBroker returns bool
     else:
       approved = False
+    dlog("tool", "approval", action=action, dur_ms=int((time.perf_counter() - waited_at) * 1000), approved=approved)
     if not approved:
       call.status = "error"
       call.result = APPROVAL_DENIED_BY_USER if self.approve_callback else APPROVAL_DENIED_NON_INTERACTIVE
@@ -146,21 +150,31 @@ class Agent:
     self.messages.append(self.build_user_message(content))
     role = self.app.roles["generator"]
     adapter = get_adapter(role, self.app)
+    tool_definitions = self.tool_definitions or self.registry.definition_list()
     calls_this_prompt = 0
     while True:
       yield self.emit(TurnStarted(role="generator"))
+      dlog("llm", "request", role="generator", provider=role.provider, model=role.model_id, msgs=len(self.messages), tools=len(tool_definitions))
+      turn_started_at = time.perf_counter()
+      first_delta_logged = False
       text_parts, thinking_blocks, tool_calls, usage = [], [], [], None
       try:
-        async for delta in adapter.stream_turn(self.system_prompt, self.tool_definitions or self.registry.definition_list(), self.messages, role):
+        async for delta in adapter.stream_turn(self.system_prompt, tool_definitions, self.messages, role):
+          if not first_delta_logged and delta.kind in ("text", "thinking", "tool_call"):  # TTFT = first content delta (LANADEBG-FR-02)
+            first_delta_logged = True
+            dlog("llm", "first_token", dur_ms=int((time.perf_counter() - turn_started_at) * 1000))
           if delta.kind == "text": text_parts.append(delta.text); yield self.emit(TextDelta(text=delta.text))
           elif delta.kind == "thinking":
             if delta.thinking: thinking_blocks.append(delta.thinking)
             yield self.emit(ThinkingDelta(text=delta.text))
           elif delta.kind == "tool_call": tool_calls.append(delta.tool_call)
           elif delta.kind == "usage": usage = delta.usage
-          elif delta.kind == "notice": yield self.emit(ErrorEvent(message=f"WARNING: {delta.text}"))  # FR-16 UX-03: visible provider retries (DD-24)
+          elif delta.kind == "notice":
+            dlog("llm", "retry", err=delta.text[:300])
+            yield self.emit(ErrorEvent(message=f"WARNING: {delta.text}"))  # FR-16 UX-03: visible provider retries (DD-24)
       except Exception as error:
         self.stop_reason = "provider_error"
+        dlog("llm", "error", dur_ms=int((time.perf_counter() - turn_started_at) * 1000), err=str(error)[:300])
         message = f"Provider error: {error}"
         if is_context_overflow(str(error)): message += " - the conversation exceeds the model's context window. Switch the generator to a larger-window model or start a new session; the request was not retried (EC-20)."
         yield self.emit(ErrorEvent(message=message))
@@ -169,6 +183,10 @@ class Agent:
       self.messages.append(assistant)
       self.final_text = assistant.content or self.final_text
       cost = self.cost_fn("generator", usage) if (self.cost_fn and usage) else None
+      dlog("llm", "response", dur_ms=int((time.perf_counter() - turn_started_at) * 1000),
+           in_tok=usage.input_tokens if usage else 0, cache_read=usage.cache_read_tokens if usage else 0,
+           cache_write=usage.cache_write_tokens if usage else 0, out_tok=usage.output_tokens if usage else 0,
+           cost_usd=cost, tool_calls=len(tool_calls))
       payloads = [{"provider": block.provider, "payload": block.payload} for block in thinking_blocks] or None  # FR-08 full recall
       finished = TurnFinished(role="generator", input_tokens=usage.input_tokens if usage else 0, output_tokens=usage.output_tokens if usage else 0,
                               cache_read_tokens=usage.cache_read_tokens if usage else 0, cost_usd=cost, thinking_payloads=payloads)
@@ -178,6 +196,8 @@ class Agent:
         break
       for call in tool_calls:
         yield self.emit(ToolCallRequested(id=call.id, tool=call.name, args=self.safe_args(call), args_json=call.args_json))
+        dlog("tool", "start", tool=call.name, args=args_summary(self.safe_args(call)))
+        call_started_at = time.perf_counter()
         try:
           args = call.args()
         except ValueError as error:
@@ -186,6 +206,7 @@ class Agent:
           approval_event = await self.resolve_approval(call, args)
           if approval_event is not None: yield self.emit(approval_event)
           if call.status != "error": await self.dispatch_call(call, args)
+        dlog("tool", "end", tool=call.name, dur_ms=int((time.perf_counter() - call_started_at) * 1000), status=call.status, chars=len(call.result or ""))
         self.messages.append(Message(role="tool", content=call.result or "", tool_call_id=call.id))
         self.current_turn_completed_calls += 1
         calls_this_prompt += 1
@@ -204,7 +225,9 @@ class Agent:
   # Post-turn compaction hook (FR-07); events emitted and persisted like all others
   async def maybe_compact(self):
     if self.compactor is None: return
-    async for event in self.compactor(self): yield self.emit(event)
+    async for event in self.compactor(self):
+      if event.type == "checkpoint_created": dlog("app", "compaction", truncated=event.truncated_messages, kept=event.kept_messages)
+      yield self.emit(event)
 
   @staticmethod
   def safe_args(call: ToolCall) -> dict:

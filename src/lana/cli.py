@@ -9,6 +9,7 @@ from lana.agent import Agent, UnknownWorkflowError
 from lana.compaction import make_compactor
 from lana.config import ConfigError, load_lana_config, materialize_bundled_agent
 from lana.cost import CostTracker
+from lana.debuglog import dlog, enable as enable_debug_console
 from lana.events import PromptStep, SessionStarted
 from lana.prompt_queue import PromptQueueError, parse_queue
 from lana.loader import BUILTIN_COMMANDS, compute_fingerprint, load_prompt_systems
@@ -54,6 +55,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--config", metavar="PATH", help="config file override (env LANA_CONFIG)")
   parser.add_argument("--policy", choices=["manual", "auto", "turbo"], help="execution policy override")
   parser.add_argument("--debug", action="store_true", help="write redacted request/response JSON to .lana-data/logs/")
+  parser.add_argument("--debug-console", action="store_true", help="open a second console window with real-time debug/timing output (LANADEBG-SP01)")
+  parser.add_argument("--debug-viewer", action="store_true", help=argparse.SUPPRESS)  # internal: run as the debug console viewer (LANADEBG-DD-03)
   parser.add_argument("--show-thinking", action="store_true", help="stream model thinking dim-styled (FR-16)")
   parser.add_argument("--acp", action="store_true", help="ACP agent mode: JSON-RPC 2.0 over stdio (MVP-2, LANAACPB-SP01)")
   parser.add_argument("--version", action="version", version=f"%(prog)s {package_version()}")  # exits before config load - no zero-setup side effects (LANADIST-IP01-IS-01)
@@ -135,6 +138,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
     resume_path = Path(args.resume)
     if not resume_path.is_file():  # IG-05: startup inputs fail with self-contained errors, never tracebacks (BG-0005)
       raise ConfigError(f"Session file not found: '{resume_path}'.\n  HINT: pass an existing session JSONL from '<workspace>/{app.lana.data_dir}/sessions/' to --resume.")
+    dlog("app", "session", file=resume_path.name, resumed=True)
     print(f"Resuming '{args.resume}'...")  # FR-16 UX-05: name the file BEFORE the parse
     resumed = resume_session(resume_path)
     messages = resumed.messages
@@ -160,6 +164,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
     session = SessionStore.create(app.data_dir)
     session.append(SessionStarted(system_prompt=system_prompt, tool_definitions=registry.definition_list(),
                                   config_snapshot=config_snapshot, prompt_system_fingerprint=fingerprint))  # FR-08: FIRST line
+    dlog("app", "session", file=session.path.name, resumed=False)
   if interactive:
     tool_context.ask_user = prompt_question
     approve_callback, continue_callback = prompt_approval, prompt_continue
@@ -273,6 +278,12 @@ def main() -> int:
   for stream in (sys.stdout, sys.stderr):  # BG: piped stdio defaults to cp1252 on Windows - emoji in tool results crashed jsonl output (found by eval suite 02-T02)
     if stream.encoding and stream.encoding.lower() not in ("utf-8", "utf8"): stream.reconfigure(encoding="utf-8")
   args = build_arg_parser().parse_args()
+  if args.debug_viewer:  # internal viewer mode: render the debug stream from stdin (LANADEBG-DD-03, EC-07)
+    from lana.debug_viewer import run_viewer
+    return run_viewer()
+  if args.debug_console:
+    enable_debug_console()  # before any instrumented operation (LANADEBG-FR-01)
+    dlog("app", "startup", mode="acp" if args.acp else ("headless" if (args.prompt is not None or args.prompt_file) else "repl"), version=package_version())
   if args.acp:
     if args.prompt is not None or args.resume or args.prompt_file:  # DD-09: one process serves either the CLI or ACP, never both
       print("ERROR: --acp is mutually exclusive with -p, --resume, and --prompt-file (ACP sessions come from session/new and session/load).", file=sys.stderr)

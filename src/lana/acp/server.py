@@ -5,10 +5,11 @@ One asyncio loop coordinates the stdin read loop, turn execution, and client-bou
 processable while a turn is active (FR-10, EC-08/EC-22). Nothing is sent before `initialize`
 arrives (FR-02); the Lana runtime is built per session at `session/new` (FR-03).
 """
-import argparse, asyncio, contextlib, os, sys
+import argparse, asyncio, contextlib, os, sys, time
 from importlib import metadata
 from pathlib import Path
 from lana.acp import log
+from lana.debuglog import dlog
 from lana.acp.jsonrpc import (
   INTERNAL_ERROR, INVALID_PARAMS, INVALID_REQUEST, METHOD_NOT_FOUND, REQUEST_CANCELLED, Connection, Notification, Request, error_body,
 )
@@ -71,6 +72,7 @@ class AcpServer:
     for session in self.sessions.values():  # FR-01 BL-06: no tool child process outlives the server
       self.cleanup_session_processes(session, include_background=True)
     self.connection.close()  # drain the stdout writer thread (BL-01)
+    dlog("acp", "eof")
     log("stdin EOF - ACP server shut down.")
     return 0
 
@@ -84,14 +86,21 @@ class AcpServer:
 
   async def handle(self, message) -> None:
     if isinstance(message, Request):
+      dlog("acp", "recv", method=message.method, id=message.id)
+      handler_started_at = time.perf_counter()
       try:
         await self.handle_request(message)
+        if message.method != "session/prompt":  # prompt responds later - run_prompt_turn logs the real turn line
+          dlog("acp", "send", method=message.method, id=message.id, dur_ms=int((time.perf_counter() - handler_started_at) * 1000), status="ok")
       except AcpError as error:
         self.connection.respond(message.id, error=error_body(error.code, error.message))
+        dlog("acp", "send", method=message.method, id=message.id, dur_ms=int((time.perf_counter() - handler_started_at) * 1000), status=f"error {error.code}")
       except Exception as error:  # FR-11: errors never crash the connection
         log(f"  ERROR: {message.method}: {type(error).__name__}: {error}")
         self.connection.respond(message.id, error=error_body(INTERNAL_ERROR, f"{type(error).__name__}: {error}"))
+        dlog("acp", "send", method=message.method, id=message.id, dur_ms=int((time.perf_counter() - handler_started_at) * 1000), status=f"error {INTERNAL_ERROR}")
     elif isinstance(message, Notification):
+      dlog("acp", "recv", method=message.method)
       try:
         await self.handle_notification(message)
       except Exception as error:  # notifications have no response channel - log and continue
@@ -217,6 +226,10 @@ class AcpServer:
 
   async def run_prompt_turn(self, session: AcpSession, request_id, text: str) -> None:
     log("session/prompt: turn started.")
+    turn_started_at = time.perf_counter()
+    updates_sent = 0
+    def turn_line(stop: str) -> None:  # one summary line per prompt turn: duration, stop reason, update count (FR-04)
+      dlog("acp", "turn", id=request_id, dur_ms=int((time.perf_counter() - turn_started_at) * 1000), stop=stop, updates=updates_sent)
     last_error = ""
     try:
       async for event in session.agent.run_prompt(text):
@@ -224,9 +237,11 @@ class AcpServer:
         if event.type == "error": last_error = event.message
         for update in session.translator.translate(event):
           self.send_update(session.session_id, update)
+          updates_sent += 1
     except UnknownWorkflowError as error:  # client user typo-ed a slash command - not a wire error (IS-09)
       self.send_update(session.session_id, {"sessionUpdate": "agent_message_chunk", "messageId": session.translator.message_id, "content": {"type": "text", "text": str(error)}})
       self.connection.respond(request_id, result={"stopReason": "end_turn"})
+      turn_line("unknown_workflow")
       log(f"session/prompt: unknown workflow - {error}")
       return
     except asyncio.CancelledError:  # session/cancel or $/cancel_request (FR-10)
@@ -234,17 +249,21 @@ class AcpServer:
       self.cleanup_session_processes(session, include_background=False)  # FR-10 BL-02: the abandoned foreground tool must not keep mutating the workspace
       if session.cancel_with_error: self.connection.respond(request_id, error=error_body(REQUEST_CANCELLED, "Request cancelled."))
       else: self.connection.respond(request_id, result={"stopReason": "cancelled"})
+      turn_line("cancelled")
       log("session/prompt: cancelled.")
       return
     except Exception as error:  # never crash the connection (FR-11)
       self.connection.respond(request_id, error=error_body(INTERNAL_ERROR, f"{type(error).__name__}: {error}"))
+      turn_line("internal_error")
       log(f"  ERROR: session/prompt: {type(error).__name__}: {error}")
       return
     if session.agent.stop_reason == "provider_error":  # EC-13: JSON-RPC error on the prompt id
       self.connection.respond(request_id, error=error_body(INTERNAL_ERROR, last_error or "Provider error."))
+      turn_line("provider_error")
       log("session/prompt: provider error.")
       return
     self.connection.respond(request_id, result={"stopReason": "end_turn"})  # stopReason ONLY (LANAACPB-IN01)
+    turn_line("end_turn")
     log("session/prompt: end_turn.")
 
   # FR-10: notification - cancel the active turn, resolve blocked round-trips, never respond to it

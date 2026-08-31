@@ -8,10 +8,11 @@ runs in the default executor (Windows has no async console stdin), coordination 
 FR-01 hardening (LANAAGNT-IN03 BL-01): stdout writes run on a dedicated writer thread fed by a
 bounded queue - a client that stops draining stdout cannot freeze the event loop.
 """
-import asyncio, contextlib, json, queue, sys, threading
+import asyncio, contextlib, json, queue, sys, threading, time
 from dataclasses import dataclass
 from typing import Any, Optional
 from lana.acp import log
+from lana.debuglog import dlog
 
 PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, REQUEST_CANCELLED = -32700, -32600, -32601, -32602, -32603, -32800
 
@@ -153,10 +154,16 @@ class Connection:
     future = asyncio.get_running_loop().create_future()
     self.pending[request_id] = future
     self.send({"id": request_id, "method": method, "params": params})
+    started_at = time.perf_counter()  # LANADEBG-FR-04: round-trip = send to client response
     try:
-      return await future
+      result = await future
+    except (RoundTripCancelled, ClientErrorResponse) as error:
+      dlog("acp", "roundtrip", method=method, dur_ms=int((time.perf_counter() - started_at) * 1000), outcome=type(error).__name__)
+      raise
     finally:
       self.pending.pop(request_id, None)
+    dlog("acp", "roundtrip", method=method, dur_ms=int((time.perf_counter() - started_at) * 1000), outcome="ok")
+    return result
 
   # Route a client response to its pending future; False when the id is unknown or settled (EC-15)
   def resolve_response(self, response: Response) -> bool:
