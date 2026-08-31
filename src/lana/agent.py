@@ -227,7 +227,7 @@ class Agent:
   async def maybe_compact(self):
     if self.compactor is None: return
     async for event in self.compactor(self):
-      if event.type == "checkpoint_created": dlog("app", "compaction", truncated=event.truncated_messages, kept=event.kept_messages)
+      if event.type == "checkpoint_created": dlog("app", "compaction", truncated=event.truncated_messages, kept=event.kept_messages, checkpoint_chars=len(event.text))
       yield self.emit(event)
 
   @staticmethod

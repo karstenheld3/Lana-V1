@@ -99,6 +99,7 @@ def make_compactor(app: AppConfig):
     threshold = compaction_threshold(app)
     projected = project_from_messages(agent.messages)
     if projected < threshold: return
+    dlog("app", "compaction_start", projected=projected, threshold=threshold)  # LANADEBG-FR-05: announce with the trigger reason
     yield ErrorEvent(message=f"NOTICE: Compacting context (~{projected} tokens, threshold {threshold})...")  # FR-16 UX-04: announce BEFORE the paid call
     try:
       summary_text = await run_summarizer(agent)
@@ -115,6 +116,7 @@ def make_compactor(app: AppConfig):
       truncated_count = len(agent.messages) - len(tail)
       agent.messages = [Message(role="user", content=checkpoint_text)] + tail
     except Exception as error:
+      dlog("app", "compaction_failed", err=f"{type(error).__name__}: {error}"[:300])  # LANADEBG-FR-05: the debug stream must show this silent-continue path
       yield ErrorEvent(message=f"WARNING: Compaction failed after the Summarizer call ({type(error).__name__}: {error}). Continuing uncompacted - next turn may be expensive.")
       return
     yield CheckpointCreated(text=checkpoint_text, truncated_messages=truncated_count, kept_messages=len(tail))

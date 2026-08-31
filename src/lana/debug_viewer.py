@@ -8,11 +8,21 @@ import json, sys
 from rich.console import Console
 
 DOMAIN_STYLES = {"llm": "cyan", "tool": "green", "acp": "magenta", "app": "white"}
-ERROR_OPS = ("error",)
+ERROR_OPS = ("error", "compaction_failed")
 
 
 def format_cost(value) -> str:
   return "$?" if value is None else f"${value:.4f}"
+
+
+# LOG-GN-04 duration format: '245 ms' | '1.5 secs' | '2 mins 30 secs' | '1 hour 15 mins'
+def format_duration(ms) -> str:
+  if ms < 1000: return f"{ms} ms"
+  if ms < 60000: return f"{ms / 1000:.1f} secs"
+  minutes, seconds = divmod(round(ms / 1000), 60)
+  if minutes < 60: return f"{minutes} min" + ("s" if minutes != 1 else "") + f" {seconds} secs"
+  hours, minutes = divmod(minutes, 60)
+  return f"{hours} hour" + ("s" if hours != 1 else "") + f" {minutes} mins"
 
 
 # One human-readable detail string per (dom, op); unknown ops fall back to raw field dump
@@ -20,30 +30,37 @@ def format_detail(entry: dict) -> str:
   dom, op = entry.get("dom", ""), entry.get("op", "")
   if dom == "llm":
     if op == "request": return f"{entry.get('role', '')} {entry.get('provider', '')} {entry.get('model', '')} msgs={entry.get('msgs', 0)} tools={entry.get('tools', 0)}"
-    if op == "first_token": return f"{entry.get('dur_ms', 0)}ms"
+    if op == "first_token": return format_duration(entry.get("dur_ms", 0))
     if op == "response":
-      return (f"{entry.get('dur_ms', 0)}ms in={entry.get('in_tok', 0)} (cache {entry.get('cache_read', 0)}) out={entry.get('out_tok', 0)} "
+      return (f"{format_duration(entry.get('dur_ms', 0))} in={entry.get('in_tok', 0)} (cache {entry.get('cache_read', 0)}) out={entry.get('out_tok', 0)} "
               f"{format_cost(entry.get('cost_usd'))} tool_calls={entry.get('tool_calls', 0)}")
     if op == "retry": return str(entry.get("err", ""))
     if op == "error": return str(entry.get("err", ""))
-    if op == "sidecall": return f"{entry.get('role', '')} {entry.get('provider', '')} {entry.get('model', '')} {entry.get('dur_ms', 0)}ms results={entry.get('results', 0)}"
+    if op == "sidecall": return f"{entry.get('role', '')} {entry.get('provider', '')} {entry.get('model', '')} {format_duration(entry.get('dur_ms', 0))} results={entry.get('results', 0)}"
   elif dom == "tool":
-    if op == "start": return f"{entry.get('tool', '')} {entry.get('args', '')}"
+    if op == "start":
+      args = entry.get("args", "")
+      return f"{entry.get('tool', '')} '{args}'" if args else f"{entry.get('tool', '')}"  # LOG-GN-02: quote identifiers
     if op == "end":
-      base = f"{entry.get('tool', '')} {entry.get('dur_ms', 0)}ms {entry.get('status', '')} {entry.get('chars', 0)} chars"
+      base = f"{entry.get('tool', '')} {format_duration(entry.get('dur_ms', 0))} {entry.get('status', '')} {entry.get('chars', 0)} chars"
       return f"{base} {entry['err']}" if entry.get("err") else base
-    if op == "approval": return f"{entry.get('action', '')} {entry.get('dur_ms', 0)}ms {'approved' if entry.get('approved') else 'denied'}"
+    if op == "approval": return f"{entry.get('action', '')} {format_duration(entry.get('dur_ms', 0))} {'approved' if entry.get('approved') else 'denied'}"
   elif dom == "acp":
     if op == "recv": return f"{entry.get('method', '')}" + (f" id={entry['id']}" if "id" in entry else "")
-    if op == "send": return f"{entry.get('method', '')} id={entry.get('id', '')} {entry.get('dur_ms', 0)}ms {entry.get('status', '')}"
-    if op == "roundtrip": return f"{entry.get('method', '')} {entry.get('dur_ms', 0)}ms {entry.get('outcome', '')}"
-    if op == "turn": return f"id={entry.get('id', '')} {entry.get('dur_ms', 0)}ms {entry.get('stop', '')} updates={entry.get('updates', 0)}"
+    if op == "send": return f"{entry.get('method', '')} id={entry.get('id', '')} {format_duration(entry.get('dur_ms', 0))} {entry.get('status', '')}"
+    if op == "roundtrip": return f"{entry.get('method', '')} {format_duration(entry.get('dur_ms', 0))} {entry.get('outcome', '')}"
+    if op == "turn": return f"id={entry.get('id', '')} {format_duration(entry.get('dur_ms', 0))} {entry.get('stop', '')} updates={entry.get('updates', 0)}"
     if op == "eof": return "stdin EOF - server shutting down"
   elif dom == "app":
     if op == "startup": return f"{entry.get('mode', '')} v{entry.get('version', '')}"
     if op == "roles": return str(entry.get("roles", ""))
-    if op == "session": return f"{entry.get('file', '')}" + (" (resumed)" if entry.get("resumed") else "")
-    if op == "compaction": return f"truncated={entry.get('truncated', 0)} kept={entry.get('kept', 0)}"
+    if op == "session":
+      dur = f" {format_duration(entry['dur_ms'])}" if "dur_ms" in entry else ""
+      return f"'{entry.get('file', '')}'" + (" (resumed)" if entry.get("resumed") else "") + dur  # LOG-GN-02: quote file names
+    if op == "prompt_system": return f"{entry.get('rules', 0)} rules, {entry.get('workflows', 0)} workflows, {entry.get('skills', 0)} skills {format_duration(entry.get('dur_ms', 0))}"
+    if op == "compaction_start": return f"projected={entry.get('projected', 0)} threshold={entry.get('threshold', 0)} tokens"
+    if op == "compaction": return f"truncated={entry.get('truncated', 0)} kept={entry.get('kept', 0)} checkpoint={entry.get('checkpoint_chars', 0)} chars"
+    if op == "compaction_failed": return str(entry.get("err", ""))
   rest = {key: value for key, value in entry.items() if key not in ("ts", "dom", "op")}
   return json.dumps(rest, ensure_ascii=False) if rest else ""
 
@@ -52,7 +69,7 @@ def render_line(console, entry: dict) -> None:
   dom, op = entry.get("dom", "?"), entry.get("op", "?")
   detail = format_detail(entry)
   is_error = op in ERROR_OPS or entry.get("status") == "error"
-  console.print(f"{entry.get('ts', '')} ", style="dim", end="", markup=False)
+  console.print(f"{entry.get('ts', '')[-12:]} ", style="dim", end="", markup=False)  # display time only; the wire ts carries the full date (LOG-AP-01)
   console.print(f"{dom:<4} ", style="red" if is_error else DOMAIN_STYLES.get(dom, "white"), end="", markup=False)
   console.print(f"{op:<12} ", style="bold red" if is_error else "bold", end="", markup=False)
   console.print(detail, style="red" if is_error else "", markup=False)

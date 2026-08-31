@@ -11,8 +11,9 @@ import datetime, json, os, subprocess, sys
 _writer = None  # module singleton: None = disabled, dlog() returns after one check (IG-04)
 
 
+# Full date for machine parsing and session-JSONL correlation (LOG-AP-01); the viewer strips the date for display
 def now_ts() -> str:
-  return datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+  return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
 
 class DebugLogWriter:

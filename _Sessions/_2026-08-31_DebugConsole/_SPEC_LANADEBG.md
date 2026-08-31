@@ -84,7 +84,7 @@ A **DebugLog** is the process-wide writer that owns the viewer subprocess and it
 ### DebugLine
 
 A **DebugLine** is one JSONL object written to the pipe. Common fields:
-- `ts` - wall-clock time `HH:MM:SS.mmm`
+- `ts` - wall-clock time `YYYY-MM-DD HH:MM:SS.mmm` (full date for session-JSONL correlation, LOG-AP-01; the viewer displays time only)
 - `dom` - domain: `llm`, `tool`, `acp`, `app`
 - `op` - operation name within the domain
 - op-specific fields (see Data Structures)
@@ -124,8 +124,11 @@ The **Viewer** is a subprocess running in its own console window. Reads JSONL li
 **LANADEBG-FR-05: App Domain Coverage**
 - Startup: mode (repl, headless, acp), version
 - Roles banner: one `roles` line when the runtime is built (per ACP session; config is not loaded at startup time)
-- Session created or resumed: session file name
-- Compaction: truncated and kept message counts
+- Prompt system loaded: rule/workflow/skill counts, load duration ms
+- Session created or resumed: session file name; resume carries the parse duration ms
+- Compaction announce: `compaction_start` with projected tokens and threshold (the trigger reason)
+- Compaction report: truncated and kept message counts, checkpoint char size
+- Compaction failure after the summarizer call: `compaction_failed` with error text (the silent-continue path stays visible)
 
 **LANADEBG-FR-06: Viewer Rendering**
 - One line per DebugLine: dim timestamp, color-coded domain tag, aligned operation, detail fields
@@ -233,10 +236,13 @@ ACP mode additionally
 {"ts":"13:04:31.500","dom":"acp","op":"turn","id":3,"dur_ms":11500,"stop":"end_turn","updates":47}
 </acp>
 <app>
-{"ts":"13:04:19.500","dom":"app","op":"startup","mode":"acp","version":"1.2.0"}
-{"ts":"13:04:20.900","dom":"app","op":"roles","roles":"generator: claude-sonnet-4-5 (medium) | summarizer: gpt-4.1-mini (low) | websearch: gpt-4.1-mini (low)"}
-{"ts":"13:04:21.000","dom":"app","op":"session","file":"2026-08-31_130421_a1b2c3.jsonl","resumed":false}
-{"ts":"13:09:00.000","dom":"app","op":"compaction","truncated":40,"kept":10}
+{"ts":"2026-08-31 13:04:19.500","dom":"app","op":"startup","mode":"acp","version":"1.2.0"}
+{"ts":"2026-08-31 13:04:20.900","dom":"app","op":"roles","roles":"generator: claude-sonnet-4-5 (medium) | summarizer: gpt-4.1-mini (low) | websearch: gpt-4.1-mini (low)"}
+{"ts":"2026-08-31 13:04:20.950","dom":"app","op":"prompt_system","dur_ms":32,"rules":8,"workflows":48,"skills":24}
+{"ts":"2026-08-31 13:04:21.000","dom":"app","op":"session","file":"2026-08-31_130421_a1b2c3.jsonl","resumed":true,"dur_ms":40}
+{"ts":"2026-08-31 13:08:59.000","dom":"app","op":"compaction_start","projected":152000,"threshold":120000}
+{"ts":"2026-08-31 13:09:00.000","dom":"app","op":"compaction","truncated":40,"kept":6,"checkpoint_chars":5120}
+{"ts":"2026-08-31 13:09:00.100","dom":"app","op":"compaction_failed","err":"KeyError: ..."}
 </app>
 ```
 
@@ -318,6 +324,12 @@ WARNING: debug console pipe broken - debug logging disabled for this session.
 **LANADEBG-EC-08:** Inherited std handles point at the parent (stdin=PIPE side effect) → viewer ignores them: renders to its own console (CONOUT$), spawn detaches stdout/stderr (DD-08)
 
 ## 16. Document History
+
+**[2026-08-31 14:10]**
+- Changed: ts field carries the full date (LOG-AP-01, session-JSONL correlation); viewer displays time only
+- Added: compaction announce (`compaction_start` with projected/threshold), checkpoint char size on the report, `compaction_failed` line (FR-05)
+- Added: `prompt_system` load line and resume duration on the `session` line (FR-05)
+- Changed: viewer durations follow LOG-GN-04 (`245 ms`, `1.5 secs`, `2 mins 30 secs`); paths and file names quoted (LOG-GN-02)
 
 **[2026-08-31 13:50]**
 - Added: summarizer instrumentation and websearch `sidecall` line (FR-02, drift item 03)

@@ -114,6 +114,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
   skip_note = f", {skipped_empty} skipped: empty" if skipped_empty else ""
   print(f"  {len(prompt_system.rules)} rules ({injected} injected{skip_note}), {len(prompt_system.workflows)} workflows, {len(prompt_system.skills)} skills.")
   print(f"  OK. Loaded in {time.perf_counter() - started:.1f} secs.")
+  dlog("app", "prompt_system", dur_ms=int((time.perf_counter() - started) * 1000), rules=len(prompt_system.rules), workflows=len(prompt_system.workflows), skills=len(prompt_system.skills))
   if not (prompt_system.rules or prompt_system.workflows or prompt_system.skills):
     print(f"  NOTICE: prompt system is empty - Lana runs without rules, workflows, or skills. Add content to '{app.agent_folder}'.")
   for warning in prompt_system.warnings: print(f"  WARNING: {warning}")
@@ -139,9 +140,10 @@ def build_runtime(args, workspace: Path, interactive: bool):
     resume_path = Path(args.resume)
     if not resume_path.is_file():  # IG-05: startup inputs fail with self-contained errors, never tracebacks (BG-0005)
       raise ConfigError(f"Session file not found: '{resume_path}'.\n  HINT: pass an existing session JSONL from '<workspace>/{app.lana.data_dir}/sessions/' to --resume.")
-    dlog("app", "session", file=resume_path.name, resumed=True)
     print(f"Resuming '{args.resume}'...")  # FR-16 UX-05: name the file BEFORE the parse
+    resume_started_at = time.perf_counter()
     resumed = resume_session(resume_path)
+    dlog("app", "session", file=resume_path.name, resumed=True, dur_ms=int((time.perf_counter() - resume_started_at) * 1000))
     messages = resumed.messages
     tool_context.todo_state = resumed.todo_state
     cost_tracker.seed(resumed)  # IG-06: /cost totals survive resume (BG-0002)

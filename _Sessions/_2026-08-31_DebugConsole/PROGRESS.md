@@ -119,6 +119,13 @@
 
 ## Progress Changes
 
+**[2026-08-31 14:15]**
+- /improve vs logging rules (all 5 rule files re-read) driven by user questions on compaction visibility and exact timing
+- Compaction now fully observable: compaction_start (projected/threshold trigger), compaction report (+checkpoint_chars), compaction_failed (silent-continue path)
+- Exact timing: ts carries full date (LOG-AP-01), resume dur_ms, prompt_system load line
+- Viewer: LOG-GN-04 durations (245 ms / 1.5 secs / 2 mins 30 secs), LOG-GN-02 quoting, date stripped for display
+- Tests: 295 passed (+2: format_duration, compaction debug lines integration)
+
 **[2026-08-31 14:00]**
 - /drift-detect + /drift-correct executed: 7 FAIL closed, 2 MISSED recorded (__DRIFT_LANADEBG.md COMPLETE)
 - Corrections: tool end err text (FR-03), summarizer + websearch sidecall instrumentation (FR-02), roles line (FR-05), DD-03 [ASSUMED], NFR-01 measured [TESTED], REPL live test, PYTHON-IM-03 fix
