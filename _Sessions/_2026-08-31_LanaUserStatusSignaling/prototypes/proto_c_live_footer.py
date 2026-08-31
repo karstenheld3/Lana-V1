@@ -65,45 +65,27 @@ _SPINNER = ["\u280b", "\u2819", "\u2839", "\u2838", "\u283c", "\u2834", "\u2826"
 _BRK = "\u2502 "
 _BRK_EMPTY = "\u2502"
 
-# Footer is 3 lines: top border, content, bottom border
-_FOOTER_LINES = 3
-_UP = f"\033[{_FOOTER_LINES}F"  # cursor up N lines
 _CLR = "\033[K"                  # clear to end of line
 _HIDE_CUR = "\033[?25l"          # hide cursor
 _SHOW_CUR = "\033[?25h"          # show cursor
-
-
-def _footer_text(spinner_char: str, activity: str, elapsed: int,
-                 tool_count: int, total_tools: int, cost: float) -> list[str]:
-    """Build 3 footer lines with box border and bracket prefix."""
-    elapsed_str = format_duration(elapsed) if elapsed > 0 else ""
-    parts = []
-    act_part = activity or ""
-    if elapsed_str:
-        act_part = f"{act_part} {elapsed_str}" if act_part else elapsed_str
-    if act_part:
-        parts.append(act_part)
-    if total_tools > 0:
-        parts.append(f"{tool_count}/{total_tools} tools")
-    if cost > 0:
-        parts.append(f"${cost:.3f}")
-    content = " | ".join(parts)
-    inner = f"{spinner_char} {content}"
-    width = max(len(inner) + 4, 60)
-    top = "\u250c" + "\u2500" * (width - 2) + "\u2510"
-    mid = "\u2502 " + inner.ljust(width - 3) + "\u2502"
-    bot = "\u2514" + "\u2500" * (width - 2) + "\u2518"
-    return [f"{_BRK}{top}", f"{_BRK}{mid}", f"{_BRK}{bot}"]
+_MIN_BOX_W = 60                  # min footer box width
 
 
 class LiveFooterRenderer:
-    """Renders events per Approach C: Live Footer (Section 5.3)."""
+    """Renders events per Approach C: Live Footer (Section 5.3).
+
+    The footer box grows line-by-line as activities happen (thinking,
+    tool calls, etc.). When the turn ends or text begins, the box
+    collapses into a single dim summary line in scrollback.
+    """
 
     def __init__(self):
         self._footer_active: bool = False
+        self._footer_line_count: int = 0  # current rendered line count
         self._start_time: float = 0.0
         self._spinner_idx: int = 0
         self._activity: str = ""
+        self._log: list[str] = []  # chronological activity entries
         self._turn_count: int = 0
         self._tool_count: int = 0
         self._total_tools: int = 0
@@ -115,25 +97,90 @@ class LiveFooterRenderer:
     def _spinner_char(self) -> str:
         return _SPINNER[self._spinner_idx % len(_SPINNER)]
 
-    def _draw_footer(self):
-        """Draw footer (3 lines) at current cursor position."""
+    def _box_width(self) -> int:
+        max_entry = max((len(e) for e in self._log), default=0)
+        # spinner + space + longest entry + padding
+        return max(max_entry + 8, _MIN_BOX_W)
+
+    def _build_footer_lines(self) -> list[str]:
+        """Build the growing box: top, log entries, active line with spinner, bottom."""
+        w = self._box_width()
+        bdr = "\u2500"
+        lines = []
+        # Top border
+        lines.append(f"{_BRK}\u250c{bdr * (w - 2)}\u2510")
+        # Completed log entries (no spinner)
+        for entry in self._log:
+            lines.append(f"{_BRK}\u2502 {entry.ljust(w - 3)}\u2502")
+        # Active line with spinner
         elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
-        lines = _footer_text(
-            self._spinner_char(), self._activity, elapsed,
-            self._tool_count, self._total_tools, self._total_cost,
-        )
+        elapsed_str = f" {format_duration(elapsed)}" if elapsed > 0 else ""
+        active = f"{self._spinner_char()} {self._activity}{elapsed_str}"
+        lines.append(f"{_BRK}\u2502 {active.ljust(w - 3)}\u2502")
+        # Bottom border
+        lines.append(f"{_BRK}\u2514{bdr * (w - 2)}\u2518")
+        return lines
+
+    def _draw_footer(self):
+        """Draw footer at current cursor position."""
+        lines = self._build_footer_lines()
         sys.stdout.write(_HIDE_CUR)
         for line in lines:
             sys.stdout.write(f"{_DIM}{_CLR}{line}{_RST}\n")
         sys.stdout.flush()
+        self._footer_line_count = len(lines)
         self._footer_active = True
 
     def _update_footer(self):
-        """Redraw footer in-place using ANSI cursor up."""
+        """Redraw footer in-place. Handles growing box."""
         if not self._footer_active:
             return
-        sys.stdout.write(_UP)
-        self._draw_footer()
+        new_lines = self._build_footer_lines()
+        # Move up by OLD line count, redraw with NEW line count
+        if self._footer_line_count > 0:
+            sys.stdout.write(f"\033[{self._footer_line_count}F")
+        sys.stdout.write(_HIDE_CUR)
+        for line in new_lines:
+            sys.stdout.write(f"{_DIM}{_CLR}{line}{_RST}\n")
+        # Clear any leftover lines if box shrank (shouldn't happen but safe)
+        for _ in range(max(0, self._footer_line_count - len(new_lines))):
+            sys.stdout.write(f"{_CLR}\n")
+        sys.stdout.flush()
+        self._footer_line_count = len(new_lines)
+
+    def _erase_footer(self):
+        """Erase all footer lines from screen."""
+        if not self._footer_active:
+            return
+        if self._footer_line_count > 0:
+            sys.stdout.write(f"\033[{self._footer_line_count}F")
+        for _ in range(self._footer_line_count):
+            sys.stdout.write(f"{_CLR}\n")
+        if self._footer_line_count > 0:
+            sys.stdout.write(f"\033[{self._footer_line_count}F")
+        sys.stdout.write(_SHOW_CUR)
+        sys.stdout.flush()
+        self._footer_active = False
+        self._footer_line_count = 0
+
+    def _collapse_footer(self):
+        """Erase the box and emit a single summary line to scrollback."""
+        # Build summary from log
+        summary_parts = []
+        for entry in self._log:
+            summary_parts.append(entry)
+        summary = " \u2192 ".join(summary_parts)
+        self._erase_footer()
+        if summary:
+            _print(f"{_BRK}  {summary}", _DIM)
+        self._log.clear()
+
+    def _add_log(self, entry: str):
+        """Freeze current activity into log, set new activity."""
+        if self._activity and self._activity not in ("working...",):
+            elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
+            elapsed_str = f" {format_duration(elapsed)}" if elapsed > 0 else ""
+            self._log.append(f"{self._activity}{elapsed_str}")
 
     def _start_footer(self, activity: str):
         self._activity = activity
@@ -144,19 +191,10 @@ class LiveFooterRenderer:
             self._update_footer()
 
     def _stop_footer(self):
-        """Erase footer by moving up and clearing lines."""
-        if not self._footer_active:
-            return
-        sys.stdout.write(_UP)
-        for _ in range(_FOOTER_LINES):
-            sys.stdout.write(f"{_CLR}\n")
-        sys.stdout.write(_UP)
-        sys.stdout.write(_SHOW_CUR)
-        sys.stdout.flush()
-        self._footer_active = False
+        self._collapse_footer()
 
     def _pause_footer(self):
-        self._stop_footer()
+        self._erase_footer()
 
     def _resume_footer(self):
         if self._activity:
@@ -172,6 +210,7 @@ class LiveFooterRenderer:
 
         if t == "turn_started":
             self._turn_count += 1
+            self._log.clear()
             self._start_footer("thinking...")
             self._thinking = True
 
@@ -180,6 +219,7 @@ class LiveFooterRenderer:
 
         elif t == "text_delta":
             self._thinking = False
+            self._add_log("thinking...")
             self._activity = ""
             self._stop_footer()
             if self._had_text:
@@ -190,22 +230,30 @@ class LiveFooterRenderer:
             self._had_text = True
 
         elif t == "tool_call_requested":
-            self._thinking = False
+            if self._thinking:
+                self._add_log("thinking...")
+                self._thinking = False
+            else:
+                self._add_log(self._activity)
             self._total_tools += 1
             name = d["name"]
-            self._start_footer(f"running {name}...")
+            self._activity = f"running {name}..."
+            self._start_time = time.monotonic()
+            self._update_footer() if self._footer_active else self._start_footer(self._activity)
 
         elif t == "tool_call_finished":
             self._tool_count += 1
+            self._add_log(self._activity)
             self._activity = "working..."
+            self._start_time = time.monotonic()
             self._update_footer()
 
         elif t == "turn_finished":
             self._thinking = False
             cost = d.get("cost", 0)
             self._total_cost += cost
-            self._activity = f"turn {self._turn_count} complete"
-            self._update_footer()
+            self._add_log(self._activity)
+            self._stop_footer()
 
         elif t == "error":
             level = d.get("level", "ERROR")
@@ -227,11 +275,14 @@ class LiveFooterRenderer:
         elif t == "checkpoint_created":
             before = d.get("before", 0)
             after = d.get("after", 0)
+            self._add_log(self._activity)
             self._activity = f"compacted: {before} \u2192 {after}"
+            self._start_time = time.monotonic()
             self._update_footer()
 
         elif t == "approval_required":
-            self._stop_footer()
+            self._add_log(self._activity)
+            self._erase_footer()
             action = d.get("action", "")
             detail = d.get("detail", "")
             content = f"{action} {detail}"
@@ -257,6 +308,9 @@ class LiveFooterRenderer:
             _print(answer_text + " " * max(pad, 0) + "\u2502", _BCYAN)
             _print(f"{_BRK}{bot}", _BCYAN)
             _print(_BRK_EMPTY, _DIM)
+            # Restart footer after approval
+            self._log.clear()
+            self._start_footer("working...")
 
 
 # ---------------------------------------------------------------------------
