@@ -131,15 +131,18 @@ An **ApprovalBox** is a permanent bold cyan box in scrollback for approval promp
 
 **LANAUSRX-FR-04: Activity Box Growth**
 - On `turn_started`: create new activity box with "thinking..." as active line
-- On `tool_call_requested`: freeze current activity to log, set new active line "running {name}..."
+- On `tool_call_requested`: freeze current activity to log, set new active line with tool signature
+  - Format: `running [ {name}({args}) ]...` where args are key=value pairs
+  - Single-line if tool signature fits within box width: `running [ read_file(path) ]...`
+  - Multi-line if too long: tool name on first line, each param indented on subsequent lines
 - On `tool_call_finished`: freeze current activity to log, set active line to "working..."
-- Each log entry includes elapsed time: "thinking... 3 secs", "running read_file... 1 sec"
+- Each log entry includes elapsed time: `running [ read_file(path) ]... 1 sec`
 - Box redraws in-place via ANSI cursor-up. Box grows vertically as log entries accumulate
 - Spinner (braille dots) animates on the active line only
 
 **LANAUSRX-FR-05: Activity Box Collapse**
 - On `text_delta` or `turn_finished`: erase the activity box from screen
-- Emit a single dim summary line to scrollback: `  thinking... 3 secs -> running read_file... 1 sec -> running edit... 0 secs`
+- Emit a single dim summary line to scrollback using short form (tool name only, no args): `thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs`
 - Arrow separator ` -> ` between entries
 - Clear log for next turn
 
@@ -253,7 +256,7 @@ User types prompt
 │   └─> ActivityBox grows:
 │       ┌──────────────────────────────────────┐
 │       │ thinking... 3 secs                   │
-│       │ ⠹ running read_file...               │
+│       │ ⠹ running [ read_file(path) ]...      │
 │       └──────────────────────────────────────┘
 │
 ├─> text_delta
@@ -316,53 +319,67 @@ The bracket scope wraps all output for one prompt. Header opens, footer closes.
 **Stage 1 - Initial (turn just started):**
 
 ```
-│ ┌──────────────────────────────────────────────────────┐   [dim]
-│ │ ⠹ thinking...                                        │   [dim, spinner]
-│ └──────────────────────────────────────────────────────┘   [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ ⠹ thinking...                                                │   [dim, spinner]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
-**Stage 2 - Growing (first tool requested):**
+**Stage 2 - Growing (first tool, short args):**
 
 ```
-│ ┌──────────────────────────────────────────────────────┐   [dim]
-│ │ thinking... 3 secs                                   │   [dim]
-│ │ ⠹ running read_file...                               │   [dim, spinner]
-│ └──────────────────────────────────────────────────────┘   [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 3 secs                                           │   [dim]
+│ │ ⠹ running [ read_file(path) ]...                             │   [dim, spinner]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
 **Stage 3 - Growing (multiple tools):**
 
 ```
-│ ┌──────────────────────────────────────────────────────┐   [dim]
-│ │ thinking... 3 secs                                   │   [dim]
-│ │ running read_file... 1 sec                           │   [dim]
-│ │ running edit... 0 secs                               │   [dim]
-│ │ ⠹ working...                                         │   [dim, spinner]
-│ └──────────────────────────────────────────────────────┘   [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 3 secs                                           │   [dim]
+│ │ running [ read_file(path) ]... 1 sec                         │   [dim]
+│ │ running [ edit(path, old, new) ]... 0 secs                   │   [dim]
+│ │ ⠹ working...                                                 │   [dim, spinner]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
 **Stage 4 - Long-running tool (elapsed ticking):**
 
 ```
-│ ┌──────────────────────────────────────────────────────┐   [dim]
-│ │ thinking... 2 secs                                   │   [dim]
-│ │ ⠹ running run_command... 12 secs                     │   [dim, spinner]
-│ └──────────────────────────────────────────────────────┘   [dim]
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                           │   [dim]
+│ │ ⠹ running [ run_command(cmd) ]... 12 secs                    │   [dim, spinner]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
 ```
 
-**Collapsed summary (after box erased):**
+**Stage 5 - Multi-line params (args too long for one line):**
+
+```
+│ ┌──────────────────────────────────────────────────────────────┐   [dim]
+│ │ thinking... 2 secs                                           │   [dim]
+│ │ ⠹ running [ edit(                                            │   [dim, spinner]
+│ │       path,                                                  │   [dim]
+│ │       old_string,                                            │   [dim]
+│ │       new_string,                                            │   [dim]
+│ │       replace_all                                            │   [dim]
+│ │   ) ]...                                                     │   [dim]
+│ └──────────────────────────────────────────────────────────────┘   [dim]
+```
+
+**Collapsed summary (after box erased, short form - name only):**
 
 ```
 │   thinking... 3 secs -> read_file... 1 sec -> edit... 0 secs              [dim]
 ```
 
-**Collapsed summary (thinking only, no tools):**
+**Collapsed summary (thinking only, no tool calls):**
 
 ```
 │   thinking... 2 secs                                                       [dim]
 ```
 
-**Collapsed summary (many tools, wraps to terminal width):**
+**Collapsed summary (many tool calls, wraps to terminal width):**
 
 ```
 │   thinking... 2 secs -> read_file... 1 sec -> grep_search... 1 sec ->     [dim]
