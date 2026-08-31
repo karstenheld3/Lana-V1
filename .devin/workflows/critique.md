@@ -16,7 +16,7 @@ Find flawed assumptions, logic errors, and hidden risks.
 ## Required Skills
 
 Invoke based on context:
-- @write-documents for document review (use REVIEW_TEMPLATE.md, FAILS_TEMPLATE.md)
+- @write-documents for document review (use CRITIQUE_REVIEW_TEMPLATE.md, FAILS_TEMPLATE.md)
 
 **Note**: Code review against rules/conventions is done by `/verify`. This workflow focuses on logic, strategy, and goal alignment.
 
@@ -90,7 +90,7 @@ Invoke based on context:
 - **Prioritize by impact** - Critical logic flaws first
 - **Apply SOCAS** - Use @write-documents `SOCAS_RULES.md` for systematic quality evaluation. Report findings with SOCAS IDs and severity.
 
-**Categories and Labels**: See FAILS_TEMPLATE.md and REVIEW_TEMPLATE.md in @write-documents skill.
+**Categories and Labels**: See FAILS_TEMPLATE.md and CRITIQUE_REVIEW_TEMPLATE.md in @write-documents skill.
 
 **FAILS.md Location and Format**: See FAILS_TEMPLATE.md in @write-documents skill.
 
@@ -128,7 +128,7 @@ For each topic:
 
 ### Adding Research to Review
 
-Add "Industry Research Findings" section to `_REVIEW.md` - see REVIEW_TEMPLATE.md for format.
+Add "Industry Research Findings" section to `_REVIEW.md` - see CRITIQUE_REVIEW_TEMPLATE.md for format.
 
 ## Context-Specific Sections
 

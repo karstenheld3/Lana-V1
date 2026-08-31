@@ -26,7 +26,7 @@ This skill implements:
 - [WRITE-TEST-PLAN] - Create TEST documents (use `TEST_TEMPLATE.md`)
 - [WRITE-FIX] - Create FIX documents (use `FIXES_TEMPLATE.md`)
 - [WRITE-FAIL] - Create/update FAILS.md (use `FAILS_TEMPLATE.md`)
-- [WRITE-REVIEW] - Create _REVIEW.md documents (use `REVIEW_TEMPLATE.md`)
+- [WRITE-REVIEW] - Create _REVIEW.md documents (use `CRITIQUE_REVIEW_TEMPLATE.md` for `/critique`, `FACT-CHECK_REVIEW_TEMPLATE.md` for `/fact-check`)
 - [WRITE-TASKS-PLAN] - Create TASKS documents (use `TASKS_TEMPLATE.md`)
 - [WRITE-STRUT] - Create/insert STRUT plans (use `STRUT_TEMPLATE.md`)
 - [WRITE-SKILL] - Create/update skill folders (use `SKILL_TEMPLATE.md`, read `SKILL_RULES.md`)
@@ -53,7 +53,7 @@ This skill implements:
 
 **Research and Knowledge:**
 - **INFO** (`_INFO_[TOPIC].md`) - Research, analysis, option evaluation. Use when gathering information before making decisions. Read template: `INFO_TEMPLATE.md`, guide: `INFO_GUIDES.md`, rules: `INFO_RULES.md`
-- **REVIEW** (`_REVIEW_[TOPIC].md`) - Structured review of existing documents. Use for `/critique` and `/reconcile` outputs. Read template: `REVIEW_TEMPLATE.md`
+- **REVIEW** (`_REVIEW_[TOPIC].md`) - Structured review of existing documents. Use for `/critique`, `/fact-check`, and `/reconcile` outputs. Read template: `CRITIQUE_REVIEW_TEMPLATE.md` (for `/critique`), `FACT-CHECK_REVIEW_TEMPLATE.md` (for `/fact-check`)
 
 **Planning:**
 - **SPEC** (`_SPEC_[COMPONENT].md`) - Technical specifications. Define WHAT to build and WHY, never HOW (no code, line numbers, or function signatures - those belong in IMPL). Read template: `SPEC_TEMPLATE.md`, rules: `SPEC_RULES.md`

@@ -7,6 +7,10 @@ auto_execution_mode: 1
 
 Verify work against specs, rules, and quality standards.
 
+**Goal**: Validated work with all issues identified and fixed
+
+**Why**: Prevents shipping bugs, spec violations, rule breaks, and factual errors
+
 ## Required Skills
 
 Invoke based on context:
@@ -42,7 +46,7 @@ Invoke based on context:
 
 ## Workflow
 
-1. First find out what the context is (INFO, SPEC, IMPL, Code, TEST, Session, Workflow, Skill, Template, Conversation, Translation Output)
+1. First find out what the context is (Cross-Document, INFO, SPEC, IMPL, Code, TEST, Session, Workflow, Skill, Template, Conversation, Translation Output)
 2. Read GLOBAL-RULES and Verification Labels
 3. Read the relevant Context-Specific section
 4. Create a verification task list
@@ -88,6 +92,13 @@ Apply to ALL document types and contexts:
   - Cross-check against session data files (e.g., project data files, `NOTES.md`) if available - values from those files must not appear in general-purpose documents or ILLUSTRATIVE sections
   - Any match = `[CRITICAL]` finding → fix immediately by replacing with generic placeholder
   - Stranger test: Would someone reading this file learn the user's identity, location, family, or finances? If yes → fix
+- **Minimal fact-check** - Spot-check concrete claims without running full `/fact-check` pipeline:
+  - Scan for: version numbers, URLs, existence claims ("X supports Y"), quantitative assertions (limits, thresholds, counts), product/feature names
+  - Trust hierarchy: observed behavior > source code > official docs > community sources > LLM output
+  - Verify up to 5 highest-risk claims via web search, file reading, or code inspection
+  - Hallucination triage signals (prioritize these): generic phrasing without specifics, stale version numbers, wrong terminology, assumptions stated as facts
+  - Fix incorrect claims immediately. If uncertain, add `[ASSUMED]` label
+  - For thorough fact-checking, run `/fact-check` separately
 
 ## Conceptual verification
 
@@ -127,6 +138,58 @@ Apply these labels to findings, requirements, and decisions in all document type
 5. Verify again against MUST-NOT-FORGET list
 
 # CONTEXT-SPECIFIC
+
+## Cross-Document Verification
+
+Detect by: user provides both a File (derivative) and a Source (authority) in the invocation, e.g. `/verify README.md against core-conventions.md`.
+
+**Goal**: Fix semantic drift between derivative File and authoritative Source. Source is truth, File must align.
+
+### Phase 1: Extract
+
+1. Read Source completely. Extract every key concept as a numbered list: one line per concept with topic + core claim
+2. Read File completely. Extract the same way
+3. Map concepts bidirectionally:
+   - Source concept has matching File concept → paired
+   - Source concept has no File match → gap
+   - File concept has no Source match → addition
+
+### Phase 2: Compare
+
+For each paired concept, extract atomic claims from both sides and compare:
+1. Meaning matches → skip (no action needed)
+2. Meaning diverged → note what Source says vs. what File says
+3. Source is more current/complete → File needs update
+4. File contains detail Source lacks → determine if valid extension or drift
+
+For gaps (Source concepts missing from File):
+- Determine if File should cover this concept given its scope
+- If yes → needs addition
+
+For additions (File concepts absent from Source):
+- Determine if intentional extension or unsourced claim
+- Unsourced claims that imply Source authority → needs removal or rewrite
+
+### Phase 3: Fix Plan
+
+Build a single consolidated fix plan. One numbered list, each item is an actionable edit:
+
+```
+Fix plan for [File] against [Source]:
+1. [section] - Update [topic] to match Source: [what to change]
+2. [section] - Add missing coverage of [topic] from Source
+3. [section] - Remove unsourced claim about [topic]
+4. [section] - Rewrite [topic] to reflect Source wording
+...
+```
+
+Do NOT modify Source. If Source appears outdated, note at end of plan: `Source issues (for user): [description]`
+
+### Phase 4: Execute
+
+1. Apply each fix plan item sequentially
+2. After all fixes applied, re-read both documents at changed locations to confirm alignment
+3. Apply GLOBAL-RULES to the File
 
 ## Deep Research Output (Multi-File Research Set)
 
@@ -305,7 +368,7 @@ Detect by: filename pattern `__MINTO-DRAFT_*.md` (draft) or `_MINTO_*.md` (artic
   - Per candidate: Score, Magnet, One-Argument Test, Question ordering, AMINTON tree, Same Kind check
 - Verify against MINTO-DS-* rules (3 candidates, recommended marked, criteria, inventory)
 - Verify against MINTO-AQ-* rules (magnet, ordering, one-argument test, declarative answers, same kind)
-- Verify against MINTO-ME-* rules (MECE at all levels)
+- Verify against MINTO-ME-* rules (Mutually Exclusive, Collectively Exhaustive (MECE) at all levels)
 
 **Verification checklist for Minto Article (`_MINTO_*`):**
 - Structure matches `MINTO_TEMPLATE.md` (MINTO-AS-08):
@@ -314,7 +377,7 @@ Detect by: filename pattern `__MINTO-DRAFT_*.md` (draft) or `_MINTO_*.md` (artic
   - One section per Q with idea-stating heading (not category label)
   - Bold claim per answer, evidence woven into paragraphs
   - Conclusion: one summary line per Q + restated A
-  - Appendix: full AMINTON tree (A through E-nodes with source Fnn refs)
+  - Appendix: full AMINTON (Argument, Main claim, Insight, Node, Tree, Opposition, Nuance) tree (A through E-nodes with source Fnn refs)
 - Verify against MINTO-TI-* rules (sub-questions, evidence, no orphans, source references)
 - Verify against MINTO-AS-* rules (Doc ID, SCQA Executive Summary, section per Q, appendix, top-down order)
 - Verify against MINTO-CL-* rules (closing present, one line per answer, no new claims)
@@ -410,3 +473,12 @@ Verify before phase transition (when evaluating Transitions):
 - Objective is verified when ALL linked Deliverables are checked
 - Check Objective checkbox only after confirming linked Deliverables
 - If Objective has no links (`←`), require explicit [ACTOR] confirmation
+
+## No Context Match
+
+If document type does not match any context above:
+
+1. Apply GLOBAL-RULES (formatting, privacy, fact-check)
+2. Read @skills:write-documents `APAPALAN_RULES.md` and `MECT_WRITING_RULES.md`
+3. Verify document structure consistency (headings, lists, references)
+4. Run Final Steps

@@ -218,6 +218,7 @@ Patterns in `.gitignore`: `*_gitignore.*` and `*_gitignore/`
 - `/conversation-update` - Update existing conversation tracking file
 - `/critique` - Devil's Advocate review
 - `/deep-research` - Deep research (MEPI or MCPI) with domain-specific patterns
+- `/deploy` - Deploy project to configured hosting platform
 - `/drift-correct` - Close gaps identified by /drift-detect
 - `/drift-detect` - Post-execution drift detection, persist gaps to __DRIFT_ file
 - `/fail` - Record failures to FAILS.md
@@ -252,6 +253,7 @@ Patterns in `.gitignore`: `*_gitignore.*` and `*_gitignore/`
 - `/write-spec` - Create specification from requirements
 - `/write-strut` - Create STRUT plans with proper format
 - `/write-tasks-plan` - Create tasks plan from IMPL/TEST
+- `/write-template` - Create purpose-built document templates
 - `/write-test-plan` - Create test plan from spec
 
 ## STRUT Execution
