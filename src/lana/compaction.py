@@ -3,9 +3,10 @@
 IG-04: the todo state is extracted deterministically and spliced byte-verbatim - the Summarizer NEVER touches it.
 Fail-safe: on any Summarizer failure no truncation happens - warn and continue uncompacted (EC-17).
 """
-import json
+import json, time
 from typing import AsyncIterator, Optional
 from lana.config import AppConfig
+from lana.debuglog import dlog
 from lana.events import CheckpointCreated, ErrorEvent
 from lana.models import Message
 from lana.providers import get_adapter
@@ -77,12 +78,18 @@ async def run_summarizer(agent) -> str:
   role = agent.app.roles["summarizer"]
   adapter = get_adapter(role, agent.app)
   request = Message(role="user", content=f"Summarize this agent conversation into the three required sections.\n\nTranscript:\n{render_transcript(agent.messages)}")
+  dlog("llm", "request", role="summarizer", provider=role.provider, model=role.model_id, msgs=1, tools=0)
+  started_at = time.perf_counter()
   parts = []
   usage = None
   async for delta in adapter.stream_turn(SUMMARIZER_SYSTEM, [], [request], role):
     if delta.kind == "text": parts.append(delta.text)
     elif delta.kind == "usage": usage = delta.usage
-  if usage is not None and agent.cost_fn: agent.cost_fn("summarizer", usage)
+  cost = agent.cost_fn("summarizer", usage) if (usage is not None and agent.cost_fn) else None
+  dlog("llm", "response", dur_ms=int((time.perf_counter() - started_at) * 1000),
+       in_tok=usage.input_tokens if usage else 0, cache_read=usage.cache_read_tokens if usage else 0,
+       cache_write=usage.cache_write_tokens if usage else 0, out_tok=usage.output_tokens if usage else 0,
+       cost_usd=cost, tool_calls=0)
   return "".join(parts)
 
 
@@ -96,6 +103,7 @@ def make_compactor(app: AppConfig):
     try:
       summary_text = await run_summarizer(agent)
     except Exception as error:  # EC-17: fail-safe, no truncation
+      dlog("llm", "error", err=f"summarizer: {error}"[:300])
       yield ErrorEvent(message=f"WARNING: Summarizer call failed ({error}). Continuing uncompacted - next turn may be expensive.")
       return
     try:  # FR-16 CR-04: the whole compact body shares the EC-17 warn-and-continue semantics

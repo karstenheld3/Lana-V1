@@ -206,7 +206,8 @@ class Agent:
           approval_event = await self.resolve_approval(call, args)
           if approval_event is not None: yield self.emit(approval_event)
           if call.status != "error": await self.dispatch_call(call, args)
-        dlog("tool", "end", tool=call.name, dur_ms=int((time.perf_counter() - call_started_at) * 1000), status=call.status, chars=len(call.result or ""))
+        error_field = {"err": (call.result or "")[:300]} if call.status != "ok" else {}  # FR-03: error text on failed calls (IG-05: 300-char cap)
+        dlog("tool", "end", tool=call.name, dur_ms=int((time.perf_counter() - call_started_at) * 1000), status=call.status, chars=len(call.result or ""), **error_field)
         self.messages.append(Message(role="tool", content=call.result or "", tool_call_id=call.id))
         self.current_turn_completed_calls += 1
         calls_this_prompt += 1

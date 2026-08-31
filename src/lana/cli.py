@@ -101,6 +101,7 @@ def build_runtime(args, workspace: Path, interactive: bool):
   roles_banner = " | ".join(f"{name}: {short_model_name(role.model_id)} ({role.effort})" for name, role in app.roles.items())
   scripted_marker = " | SCRIPTED" if scripted else ""
   print(f"Lana {package_version()} | {roles_banner}{scripted_marker}")
+  dlog("app", "roles", roles=roles_banner)  # LANADEBG-FR-05: per runtime build (per ACP session)
   if app.key_sources:
     from lana.config import PROVIDER_DISPLAY
     keys_banner = ", ".join(f"{PROVIDER_DISPLAY.get(provider, provider)} ({source})" for provider, source in sorted(app.key_sources.items()))

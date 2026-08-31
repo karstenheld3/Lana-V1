@@ -101,11 +101,12 @@ The **Viewer** is a subprocess running in its own console window. Reads JSONL li
 - Independent of `--debug` (payload dumps) - both can be active simultaneously
 
 **LANADEBG-FR-02: LLM Domain Coverage**
-- Request start: role name, provider, model, message count, tool count
-- First streamed content delta: time-to-first-token in ms (includes any retry delays - retry lines explain the gap)
+- Request start: role name, provider, model, message count, tool count (generator and summarizer roles)
+- First streamed content delta: time-to-first-token in ms (generator; includes any retry delays - retry lines explain the gap)
 - Response complete: total duration ms, input tokens, cache-read tokens, cache-write tokens, output tokens, cost USD, tool call count
 - Retries: one line per adapter retry notice (error type, attempt, delay)
-- Errors: duration ms plus error text (first 300 chars)
+- Errors: error text (first 300 chars); generator errors include duration ms
+- Websearch side-call: one `sidecall` line with duration ms and result count - provider web-search wrappers surface no usage/tokens, so no response line exists (failures appear as tool `end` errors)
 
 **LANADEBG-FR-03: Tool Domain Coverage**
 - Call start: tool name, one-line argument summary
@@ -121,7 +122,8 @@ The **Viewer** is a subprocess running in its own console window. Reads JSONL li
 - Lifecycle: initialize, session/new, session/load, cancellations, stdin EOF
 
 **LANADEBG-FR-05: App Domain Coverage**
-- Startup: mode (repl, headless, acp), version, roles banner
+- Startup: mode (repl, headless, acp), version
+- Roles banner: one `roles` line when the runtime is built (per ACP session; config is not loaded at startup time)
 - Session created or resumed: session file name
 - Compaction: truncated and kept message counts
 
@@ -136,7 +138,7 @@ The **Viewer** is a subprocess running in its own console window. Reads JSONL li
 - Disabled: one None check per call site (nanoseconds)
 - Enabled: JSON serialize + pipe write + flush, no other work on the caller's thread
 - All values pre-computed by the caller before the log call (durations from monotonic clocks, cost from the existing cost engine)
-- Verification: no measurable turn-duration difference with viewer attached (eval suite timing)
+- Verification: no measurable full-run duration difference with viewer attached [TESTED 2026-08-31: scripted headless runs, 3x each - without 686 ms avg, with 633 ms avg - delta within run-to-run noise]
 
 **LANADEBG-NFR-02: Reliability - viewer independence**
 - Viewer crash or window close: Lana continues; first pipe failure disables logging permanently for the process and prints one stderr warning
@@ -151,7 +153,7 @@ The **Viewer** is a subprocess running in its own console window. Reads JSONL li
 
 **LANADEBG-DD-02:** Module-level singleton, not AppConfig field. Rationale: ACP mode needs the console before any session/AppConfig exists (server starts, sessions come later); adapters and jsonrpc layers have no AppConfig access. Precedent: `_ADAPTER_CACHE` in providers.
 
-**LANADEBG-DD-03:** Viewer is Lana itself re-invoked with a hidden `--debug-viewer` flag. Rationale: works identically from source (`python -m lana`) and PyApp binary (`sys.executable` is the PyApp-managed interpreter, module re-invocation resolves); no second artifact to ship.
+**LANADEBG-DD-03:** Viewer is Lana itself re-invoked with a hidden `--debug-viewer` flag. Rationale: works identically from source (`python -m lana`) and PyApp binary (`sys.executable` is the PyApp-managed interpreter, module re-invocation resolves [ASSUMED - not yet verified with a built binary; verify after next rebuild]); no second artifact to ship.
 
 **LANADEBG-DD-04:** Explicit instrumentation calls, no decorators or event-model changes. Rationale: the needed data (TTFT, wire traffic, retry attempts) does not exist in AgentEvents; decorators cannot see mid-stream timing; explicit calls keep the hot path visible and greppable.
 
@@ -216,10 +218,12 @@ ACP mode additionally
 {"ts":"13:04:31.410","dom":"llm","op":"response","dur_ms":9287,"in_tok":24130,"cache_read":23800,"cache_write":0,"out_tok":512,"cost_usd":0.0214,"tool_calls":2}
 {"ts":"13:04:24.100","dom":"llm","op":"retry","err":"Anthropic APITimeoutError - retrying in 2s (attempt 1/2)..."}
 {"ts":"13:04:31.500","dom":"llm","op":"error","dur_ms":9377,"err":"Provider error: ..."}
+{"ts":"13:05:02.100","dom":"llm","op":"sidecall","role":"websearch","provider":"openai","model":"gpt-4.1-mini","dur_ms":2140,"results":5}
 </llm>
 <tool>
 {"ts":"13:04:31.412","dom":"tool","op":"start","tool":"read_file","args":"e:\\Dev\\Lana-V1\\README.md"}
 {"ts":"13:04:31.430","dom":"tool","op":"end","tool":"read_file","dur_ms":18,"status":"ok","chars":4213}
+{"ts":"13:04:31.480","dom":"tool","op":"end","tool":"read_file","dur_ms":2,"status":"error","chars":54,"err":"File not found: 'e:\\Dev\\Lana-V1\\missing.md'"}
 {"ts":"13:04:35.100","dom":"tool","op":"approval","action":"run_command","dur_ms":8213,"approved":true}
 </tool>
 <acp>
@@ -230,6 +234,7 @@ ACP mode additionally
 </acp>
 <app>
 {"ts":"13:04:19.500","dom":"app","op":"startup","mode":"acp","version":"1.2.0"}
+{"ts":"13:04:20.900","dom":"app","op":"roles","roles":"generator: claude-sonnet-4-5 (medium) | summarizer: gpt-4.1-mini (low) | websearch: gpt-4.1-mini (low)"}
 {"ts":"13:04:21.000","dom":"app","op":"session","file":"2026-08-31_130421_a1b2c3.jsonl","resumed":false}
 {"ts":"13:09:00.000","dom":"app","op":"compaction","truncated":40,"kept":10}
 </app>
@@ -313,6 +318,12 @@ WARNING: debug console pipe broken - debug logging disabled for this session.
 **LANADEBG-EC-08:** Inherited std handles point at the parent (stdin=PIPE side effect) → viewer ignores them: renders to its own console (CONOUT$), spawn detaches stdout/stderr (DD-08)
 
 ## 16. Document History
+
+**[2026-08-31 13:50]**
+- Added: summarizer instrumentation and websearch `sidecall` line (FR-02, drift item 03)
+- Added: error text on failed tool `end` lines (FR-03, drift item 04)
+- Changed: roles banner moved to dedicated `roles` line at runtime build (FR-05, drift item 07)
+- Changed: DD-03 PyApp claim labeled [ASSUMED] pending binary verification (drift item 16)
 
 **[2026-08-31 13:30]**
 - Added: DD-08 and EC-08 - viewer renders via CONOUT$, spawn detaches child stdout/stderr (blank-window bug found in smoke test)

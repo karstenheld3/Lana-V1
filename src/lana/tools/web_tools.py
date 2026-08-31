@@ -5,6 +5,7 @@ Chunk store: in-memory + mirrored to <data_dir>/chunks/<document_id>.json so vie
 """
 import html.parser, json, time, urllib.error, urllib.request, uuid
 from pathlib import Path
+from lana.debuglog import dlog
 from lana.providers import get_adapter
 from lana.tools import ToolContext, ToolError
 
@@ -131,7 +132,9 @@ def execute_search_web(args: dict, context: ToolContext) -> str:
   if role is None: raise ToolError("search_web unavailable: no 'websearch' role configured in lana-config.json.")
   adapter = get_adapter(role, app)
   if not adapter.supports_web_search(): raise ToolError(f"search_web unavailable: provider adapter for '{role.model_id}' has no web search support. Configure a different websearch model (EC-19).")
+  started_at = time.perf_counter()  # LANADEBG-FR-02: sidecall latency; usage is not surfaced by provider web-search wrappers
   results = adapter.run_web_search(args["query"], args.get("domain"), role)
+  dlog("llm", "sidecall", role="websearch", provider=role.provider, model=role.model_id, dur_ms=int((time.perf_counter() - started_at) * 1000), results=len(results))
   return render_search_results(results)
 
 # ----------------------------------------- END: search_web -------------------------------------------------------------------

@@ -84,18 +84,18 @@
     - P4-D1 - P4-D4 checked → P5 [DELIVER]
     - Failures found → fix in P3 or P2, re-verify
 
-[ ] P5 [DELIVER]: Polish, document, commit
+[x] P5 [DELIVER]: Polish, document, commit
 ├─ Objectives:
-│   └─ [ ] Feature complete, documented, committed ← P5-D1, P5-D2, P5-D3
+│   └─ [x] Feature complete, documented, committed ← P5-D1, P5-D2, P5-D3
 ├─ Strategy: Update README and docs, commit with conventional message, tell user to rebuild.
 ├─ [x] P5-S1 [REFINE](viewer formatting confirmed good in live run - colors, alignment, title)
 ├─ [x] P5-S2 [DOCUMENT](README.md: CLI reference line + spec list entry)
-├─ [ ] P5-S3 [COMMIT]("feat: add --debug-console for real-time observability")
-├─ [ ] P5-S4 [NOTIFY](user to rebuild via _build.bat)
+├─ [x] P5-S3 [COMMIT](c0163ab "feat: add --debug-console second console for real-time debug/timing output")
+├─ [x] P5-S4 [NOTIFY](user to rebuild via _build.bat - in final report)
 ├─ Deliverables:
 │   ├─ [x] P5-D1: Viewer output polished
 │   ├─ [x] P5-D2: Documentation updated
-│   └─ [ ] P5-D3: Changes committed
+│   └─ [x] P5-D3: Changes committed (c0163ab; README.md left uncommitted - contains unrelated pre-existing Quick Start rework)
 └─> Transitions:
     - P5-D1 - P5-D3 checked → [END]
 
@@ -118,6 +118,15 @@
 - [DECISION] acp `turn` line consolidates send + turn_updates for session/prompt - less noise, honest semantics (router only creates the task) - APAPALAN
 
 ## Progress Changes
+
+**[2026-08-31 14:00]**
+- /drift-detect + /drift-correct executed: 7 FAIL closed, 2 MISSED recorded (__DRIFT_LANADEBG.md COMPLETE)
+- Corrections: tool end err text (FR-03), summarizer + websearch sidecall instrumentation (FR-02), roles line (FR-05), DD-03 [ASSUMED], NFR-01 measured [TESTED], REPL live test, PYTHON-IM-03 fix
+- Correction note: test total is 293 (earlier "301" was a miscount - the 293 already included the new debuglog tests)
+
+**[2026-08-31 13:38]**
+- P5 complete: committed c0163ab - STRUT reached [END]
+- README.md NOT committed: contains my --debug-console docs plus unrelated pre-existing Quick Start rework - user decides
 
 **[2026-08-31 13:35]**
 - P1-P4 complete, P5 docs done - commit pending

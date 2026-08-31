@@ -79,6 +79,9 @@ def test_viewer_format_detail():
   assert format_detail({"dom": "llm", "op": "response", "dur_ms": 9287, "in_tok": 24130, "cache_read": 23800, "out_tok": 512, "cost_usd": 0.0214, "tool_calls": 2}) == "9287ms in=24130 (cache 23800) out=512 $0.0214 tool_calls=2"
   assert format_detail({"dom": "llm", "op": "response", "dur_ms": 1, "cost_usd": None}).endswith("$? tool_calls=0")  # EC-24: unpriced model
   assert format_detail({"dom": "tool", "op": "end", "tool": "read_file", "dur_ms": 18, "status": "ok", "chars": 4213}) == "read_file 18ms ok 4213 chars"
+  assert format_detail({"dom": "tool", "op": "end", "tool": "read_file", "dur_ms": 2, "status": "error", "chars": 14, "err": "File not found"}) == "read_file 2ms error 14 chars File not found"
+  assert format_detail({"dom": "llm", "op": "sidecall", "role": "websearch", "provider": "openai", "model": "gpt-4.1-mini", "dur_ms": 2140, "results": 5}) == "websearch openai gpt-4.1-mini 2140ms results=5"
+  assert format_detail({"dom": "app", "op": "roles", "roles": "generator: x (medium)"}) == "generator: x (medium)"
   assert format_detail({"dom": "tool", "op": "approval", "action": "run_command", "dur_ms": 8213, "approved": True}) == "run_command 8213ms approved"
   assert format_detail({"dom": "acp", "op": "recv", "method": "session/prompt", "id": 3}) == "session/prompt id=3"
   assert format_detail({"dom": "acp", "op": "turn", "id": 3, "dur_ms": 11500, "stop": "end_turn", "updates": 47}) == "id=3 11500ms end_turn updates=47"
@@ -129,3 +132,4 @@ def test_approval_line_on_denied_command(agent_factory, tmp_path, monkeypatch):
   assert len(approvals) == 1 and approvals[0]["approved"] is False and approvals[0]["action"] == "run_command"
   tool_end = next(entry for entry in parsed_lines(stdin) if entry["op"] == "end")
   assert tool_end["status"] == "error"  # denied call never executed
+  assert tool_end["err"] == "approval denied (non-interactive session)"  # FR-03: error text on failed calls
