@@ -14,9 +14,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from proto_shared import (
-    APPROVAL_PAUSE, COMPACT_DELAY, FAST_TOOL, MockEvent, SLOW_TOOL,
+    COMPACT_DELAY, FAST_TOOL, MockEvent, SLOW_TOOL,
     TEXT_CHAR, THINK_TICK, TURN_GAP,
-    format_duration, play_events, reference_scenario,
+    format_duration, play_events,
 )
 
 # ---------------------------------------------------------------------------
@@ -65,6 +65,14 @@ _SPINNER = ["\u280b", "\u2819", "\u2839", "\u2838", "\u283c", "\u2834", "\u2826"
 _BRK = "\u2502 "
 _BRK_EMPTY = "\u2502"
 
+def _strip_time_unit(entry: str) -> str:
+    """Strip trailing ' secs' or ' sec' from a log entry, keeping just the number."""
+    if entry.endswith(" secs"):
+        return entry[:-5]
+    if entry.endswith(" sec"):
+        return entry[:-4]
+    return entry
+
 _CLR = "\033[K"                  # clear to end of line
 _HIDE_CUR = "\033[?25l"          # hide cursor
 _SHOW_CUR = "\033[?25h"          # show cursor
@@ -84,7 +92,9 @@ class LiveFooterRenderer:
         self._footer_line_count: int = 0  # current rendered line count
         self._start_time: float = 0.0
         self._spinner_idx: int = 0
-        self._activity: str = ""
+        self._activity: str | list[str] = ""  # str or list for multi-line
+        self._current_tool_short: str = ""  # short name (e.g. "running edit...")
+        self._current_tool_sig_single: str = ""  # full single-line sig for log
         self._log: list[str] = []  # chronological activity entries
         self._turn_count: int = 0
         self._tool_count: int = 0
@@ -102,21 +112,53 @@ class LiveFooterRenderer:
         # spinner + space + longest entry + padding
         return max(max_entry + 8, _MIN_BOX_W)
 
-    def _build_footer_lines(self) -> list[str]:
-        """Build the growing box: top, log entries, active line with spinner, bottom."""
+    def _format_tool_signature(self, name: str, args: str) -> list[str]:
+        """Format tool call as running [ name(args) ]... with multi-line overflow."""
+        if not args:
+            return [f"running [ {name}() ]..."]
+        # Parse comma-separated args
+        arg_list = [a.strip().strip("'\"") for a in args.split(",")]
+        single = f"running [ {name}({', '.join(arg_list)}) ]..."
+        if len(single) < self._box_width() - 6:
+            return [single]
+        # Multi-line: tool name on first line, params indented, closing on own line
+        result = [f"running [ {name}("]
+        for i, arg in enumerate(arg_list):
+            suffix = "," if i < len(arg_list) - 1 else ""
+            result.append(f"      {arg}{suffix}")
+        result.append("  ) ]...")
+        return result
+
+    def _build_footer_lines(self, finalized: bool = False) -> list[str]:
+        """Build the activity box.
+
+        finalized=False: growing box with spinner on active line.
+        finalized=True:  static box for permanent scrollback (no spinner).
+        """
         w = self._box_width()
         bdr = "\u2500"
         lines = []
         # Top border
         lines.append(f"{_BRK}\u250c{bdr * (w - 2)}\u2510")
-        # Completed log entries (no spinner)
+        # Completed log entries
         for entry in self._log:
             lines.append(f"{_BRK}\u2502 {entry.ljust(w - 3)}\u2502")
-        # Active line with spinner
-        elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
-        elapsed_str = f" {format_duration(elapsed)}" if elapsed > 0 else ""
-        active = f"{self._spinner_char()} {self._activity}{elapsed_str}"
-        lines.append(f"{_BRK}\u2502 {active.ljust(w - 3)}\u2502")
+        if not finalized:
+            # Active line(s) with spinner on first line
+            elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
+            elapsed_str = f" {format_duration(elapsed)}" if elapsed > 0 else ""
+            if isinstance(self._activity, list):
+                for i, part in enumerate(self._activity):
+                    if i == 0:
+                        active = f"{self._spinner_char()} {part}"
+                    else:
+                        active = f"  {part}"
+                        if i == len(self._activity) - 1:
+                            active = f"  {part.rstrip()}"
+                    lines.append(f"{_BRK}\u2502 {active.ljust(w - 3)}\u2502")
+            else:
+                active = f"{self._spinner_char()} {self._activity}{elapsed_str}"
+                lines.append(f"{_BRK}\u2502 {active.ljust(w - 3)}\u2502")
         # Bottom border
         lines.append(f"{_BRK}\u2514{bdr * (w - 2)}\u2518")
         return lines
@@ -164,23 +206,49 @@ class LiveFooterRenderer:
         self._footer_line_count = 0
 
     def _collapse_footer(self):
-        """Erase the box and emit a single summary line to scrollback."""
-        # Build summary from log
-        summary_parts = []
-        for entry in self._log:
-            summary_parts.append(entry)
-        summary = " \u2192 ".join(summary_parts)
-        self._erase_footer()
-        if summary:
-            _print(f"{_BRK}  {summary}", _DIM)
+        """Finalize the activity box as permanent scrollback.
+
+        Redraws the box in-place without the spinner/active line,
+        leaving only completed log entries inside the box borders.
+        """
+        if not self._footer_active:
+            if self._log:
+                # Footer was never drawn (e.g. paused), draw finalized box fresh
+                final_lines = self._build_footer_lines(finalized=True)
+                for line in final_lines:
+                    sys.stdout.write(f"{_DIM}{_CLR}{line}{_RST}\n")
+                sys.stdout.write(_SHOW_CUR)
+                sys.stdout.flush()
+            self._log.clear()
+            return
+        # Redraw box in-place as finalized (no spinner, no active line)
+        final_lines = self._build_footer_lines(finalized=True)
+        if self._footer_line_count > 0:
+            sys.stdout.write(f"\033[{self._footer_line_count}F")
+        sys.stdout.write(_HIDE_CUR)
+        for line in final_lines:
+            sys.stdout.write(f"{_DIM}{_CLR}{line}{_RST}\n")
+        # Clear leftover lines from the old (larger) box
+        for _ in range(max(0, self._footer_line_count - len(final_lines))):
+            sys.stdout.write(f"{_CLR}\n")
+        if self._footer_line_count > len(final_lines):
+            leftover = self._footer_line_count - len(final_lines)
+            sys.stdout.write(f"\033[{leftover}F")
+        sys.stdout.write(_SHOW_CUR)
+        sys.stdout.flush()
+        self._footer_active = False
+        self._footer_line_count = 0
         self._log.clear()
 
     def _add_log(self, entry: str):
         """Freeze current activity into log, set new activity."""
-        if self._activity and self._activity not in ("working...",):
+        activity = self._activity
+        if isinstance(activity, list):
+            # Multi-line tool signature -> use short name for log
+            activity = self._current_tool_short or "working..."
+        if activity and activity not in ("working...",):
             elapsed = int(time.monotonic() - self._start_time) if self._start_time else 0
-            elapsed_str = f" {format_duration(elapsed)}" if elapsed > 0 else ""
-            self._log.append(f"{self._activity}{elapsed_str}")
+            self._log.append(f"{activity} {format_duration(elapsed)}")
 
     def _start_footer(self, activity: str):
         self._activity = activity
@@ -237,14 +305,35 @@ class LiveFooterRenderer:
                 self._add_log(self._activity)
             self._total_tools += 1
             name = d["name"]
-            self._activity = f"running {name}..."
+            args = d.get("args", "")
+            sig_lines = self._format_tool_signature(name, args)
+            self._current_tool_short = f"running [ {name}(...) ]..."
+            # Always compute single-line signature for finalized log
+            arg_list = [a.strip().strip("'\"")
+                        for a in args.split(",")] if args else []
+            self._current_tool_sig_single = (
+                f"running [ {name}({', '.join(arg_list)}) ]..."
+                if arg_list else f"running [ {name}() ]..."
+            )
+            if len(sig_lines) == 1:
+                self._activity = sig_lines[0]
+            else:
+                self._activity = sig_lines
             self._start_time = time.monotonic()
             self._update_footer() if self._footer_active else self._start_footer(self._activity)
 
         elif t == "tool_call_finished":
             self._tool_count += 1
-            self._add_log(self._activity)
+            status = d.get("status", "ok")
+            if status == "error":
+                # Log with FAIL suffix instead of elapsed time
+                sig = self._current_tool_short or f"running [ {d.get('name', '')}(...) ]..."
+                self._log.append(f"{sig} FAIL")
+            else:
+                self._add_log(self._activity)
             self._activity = "working..."
+            self._current_tool_short = ""
+            self._current_tool_sig_single = ""
             self._start_time = time.monotonic()
             self._update_footer()
 
@@ -285,11 +374,14 @@ class LiveFooterRenderer:
             self._erase_footer()
             action = d.get("action", "")
             detail = d.get("detail", "")
+            answer = d.get("answer", "y")  # y, n, or a
             content = f"{action} {detail}"
             prompt = "Approve? [ y = yes, n = no, a = all ]"
-            answer_line = "Answer: y = yes"
+            answers = {"y": "y = yes", "n": "n = no", "a": "a = all"}
+            answer_text = answers.get(answer, "y = yes")
+            answer_line = f"Answer: {answer_text}"
             box_w = max(len(content), len(prompt), len(answer_line)) + 4
-            label = "[ Action ]"
+            label = "[ Approval ]"
             bdr = "\u2500"
             top = f"\u250c\u2500{label}" + bdr * (box_w - 2 - 1 - len(label)) + "\u2510"
             mid = "\u2502 " + content.ljust(box_w - 3) + "\u2502"
@@ -303,7 +395,6 @@ class LiveFooterRenderer:
             _print(f"{_BRK}{sep}", _BCYAN)
             _print(f"{_BRK}\u2502 Answer: ", _BCYAN, end="")
             time.sleep(1.5)
-            answer_text = "y = yes"
             pad = box_w - 3 - len("Answer: ") - len(answer_text)
             _print(answer_text + " " * max(pad, 0) + "\u2502", _BCYAN)
             _print(f"{_BRK}{bot}", _BCYAN)
@@ -314,11 +405,11 @@ class LiveFooterRenderer:
 
 
 # ---------------------------------------------------------------------------
-# Demo scenarios covering all interaction types
+# Demo scenarios matching SPEC cases 10.5 through 10.14
 # ---------------------------------------------------------------------------
 
 def scenario_pure_text():
-    """Prompt 1: Pure Q&A - no tools, just model text response."""
+    """Case 10.5: Pure Text Q&A (No Tools). Single turn, thinking only."""
     return [
         MockEvent("turn_started", {}),
         MockEvent("thinking_delta", {"text": "recalling config module"}, pre_delay=THINK_TICK),
@@ -334,185 +425,334 @@ def scenario_pure_text():
         }, pre_delay=0.2),
     ]
 
-def scenario_multi_tool():
-    """Prompt 2: Multiple fast tools + slow tool - the original reference scenario."""
-    return reference_scenario()
 
-def scenario_tool_failure():
-    """Prompt 3: Tool failure, WARNING, retry, recovery."""
+def scenario_fast_tools():
+    """Case 10.6: Single Turn with Fast Tools. Quick read + edit."""
     return [
-        # Turn 1: attempt edit, tool fails, retry succeeds
         MockEvent("turn_started", {}),
-        MockEvent("thinking_delta", {"text": "plan refactoring"}, pre_delay=THINK_TICK),
-        MockEvent("thinking_delta", {"text": "steps"}, pre_delay=THINK_TICK),
-        MockEvent("text_delta", {
-            "text": "I'll refactor the database connection pooling.",
-        }, pre_delay=0.3),
+        MockEvent("thinking_delta", {"text": "finding typo"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "on line 5"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "planning fix"}, pre_delay=THINK_TICK),
         MockEvent("tool_call_requested", {
-            "name": "read_file", "args": "'src/db.py'",
+            "name": "read_file", "args": "path",
         }),
         MockEvent("tool_call_finished", {
             "name": "read_file", "status": "ok",
-            "chars": 1520, "display": "1520 chars.",
-            "duration_secs": 0.9,
+            "chars": 320, "display": "320 chars.",
         }, pre_delay=FAST_TOOL),
         MockEvent("tool_call_requested", {
-            "name": "read_file", "args": "'src/db_utils.py'",
-        }),
-        MockEvent("tool_call_finished", {
-            "name": "read_file", "status": "ok",
-            "chars": 890, "display": "890 chars.",
-            "duration_secs": 0.6,
-        }, pre_delay=FAST_TOOL),
-        MockEvent("tool_call_requested", {
-            "name": "edit", "args": "'src/db.py'",
-        }),
-        MockEvent("tool_call_finished", {
-            "name": "edit", "status": "error",
-            "chars": 0, "display": "FAIL",
-            "duration_secs": 0.3,
-        }, pre_delay=FAST_TOOL),
-        # Error breaks through
-        MockEvent("error", {
-            "level": "ERROR",
-            "message": "Edit failed: file is read-only (src/db.py)",
-        }, pre_delay=0.3),
-        MockEvent("error", {
-            "level": "NOTICE",
-            "message": "Retrying with elevated permissions",
-        }, pre_delay=0.5),
-        # Retry succeeds
-        MockEvent("tool_call_requested", {
-            "name": "edit", "args": "'src/db.py'",
+            "name": "edit", "args": "path, old_string, new_string",
         }),
         MockEvent("tool_call_finished", {
             "name": "edit", "status": "ok",
             "chars": 1, "display": "OK.",
-            "duration_secs": 0.4,
-        }, pre_delay=FAST_TOOL),
-        MockEvent("turn_finished", {
-            "input_tokens": 3800, "output_tokens": 210,
-            "cached_tokens": 2900, "cost": 0.005,
-        }, pre_delay=0.3),
-    ]
-
-def scenario_deploy_approval():
-    """Prompt 4: Approval gate + long-running deploy + error mid-operation."""
-    return [
-        # Turn 1: ask for approval, run deploy
-        MockEvent("turn_started", {}),
-        MockEvent("thinking_delta", {"text": "deployment steps"}, pre_delay=THINK_TICK),
+        }, pre_delay=0.1),
         MockEvent("text_delta", {
-            "text": "I'll deploy the current build to staging.",
+            "text": "Fixed the typo on line 5: changed `recieve` to `receive`.",
         }, pre_delay=0.3),
-        MockEvent("approval_required", {
-            "action": "run_command",
-            "detail": "deploy --env staging --tag v1.2.3",
-        }, pre_delay=0.5),
-        MockEvent("tool_call_requested", {
-            "name": "run_command", "args": "'deploy --env staging --tag v1.2.3'",
-        }),
-        MockEvent("tool_call_finished", {
-            "name": "run_command", "status": "ok",
-            "chars": 3420, "display": "3420 chars.",
-            "duration_secs": 18.5,
-        }, pre_delay=SLOW_TOOL + 2.0),
         MockEvent("turn_finished", {
-            "input_tokens": 2100, "output_tokens": 45,
+            "input_tokens": 2100, "output_tokens": 42,
             "cached_tokens": 1800, "cost": 0.002,
-        }, pre_delay=0.3),
-        # Turn 2: report result
-        MockEvent("turn_started", {}, pre_delay=TURN_GAP),
-        MockEvent("thinking_delta", {"text": "check output"}, pre_delay=THINK_TICK),
-        MockEvent("text_delta", {
-            "text": "Deployment complete. Build v1.2.3 is live on staging. "
-                    "Health check passed: 3/3 endpoints responding.",
-        }, pre_delay=0.3),
-        MockEvent("turn_finished", {
-            "input_tokens": 5600, "output_tokens": 38,
-            "cached_tokens": 5200, "cost": 0.002,
         }, pre_delay=0.2),
     ]
 
-def scenario_compaction_heavy():
-    """Prompt 5: Long conversation triggers compaction + multi-turn."""
+
+def scenario_multi_turn_approval():
+    """Case 10.7: Multi-Turn with Tools, Approval, and Compaction."""
     return [
-        # Turn 1: thinking, text
+        # Turn 1: read + edit
         MockEvent("turn_started", {}),
         MockEvent("thinking_delta", {"text": "analyzing"}, pre_delay=THINK_TICK),
-        MockEvent("thinking_delta", {"text": "test coverage"}, pre_delay=THINK_TICK),
-        MockEvent("thinking_delta", {"text": "gaps"}, pre_delay=THINK_TICK),
-        MockEvent("text_delta", {
-            "text": "Looking at the test coverage report for the auth module.",
-        }, pre_delay=0.3),
+        MockEvent("thinking_delta", {"text": "found issue"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "planning fix"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "will read file"}, pre_delay=THINK_TICK),
         MockEvent("tool_call_requested", {
-            "name": "run_command", "args": "'pytest --cov=auth tests/'",
+            "name": "read_file", "args": "path",
         }),
         MockEvent("tool_call_finished", {
-            "name": "run_command", "status": "ok",
-            "chars": 4200, "display": "4200 chars.",
-            "duration_secs": 8.2,
-        }, pre_delay=SLOW_TOOL),
+            "name": "read_file", "status": "ok",
+            "chars": 234, "display": "234 chars.",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {
+            "name": "edit", "args": "path, old_string, new_string",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "edit", "status": "ok",
+            "chars": 1, "display": "OK.",
+        }, pre_delay=0.1),
+        MockEvent("text_delta", {
+            "text": "I'll read parser.py to find the import error.",
+        }, pre_delay=0.2),
         MockEvent("turn_finished", {
-            "input_tokens": 8200, "output_tokens": 156,
-            "cached_tokens": 7500, "cost": 0.008,
-        }, pre_delay=0.3),
-        # Compaction happens between turns
-        MockEvent("checkpoint_created", {
-            "before": 86, "after": 32,
-        }, pre_delay=COMPACT_DELAY),
+            "input_tokens": 4521, "output_tokens": 187,
+            "cost": 0.003, "cached_tokens": 3800,
+        }),
+        # WARNING between turns
         MockEvent("error", {
             "level": "WARNING",
-            "message": "Token budget at 92%, compacted context",
-        }, pre_delay=0.3),
-        MockEvent("error", {
-            "level": "NOTICE",
-            "message": "Resuming after compaction",
-        }, pre_delay=0.2),
-        # Turn 2: analysis result
+            "message": "Token budget exceeded, compacted context",
+        }, pre_delay=0.5),
+        # Turn 2: approval + pytest
         MockEvent("turn_started", {}, pre_delay=TURN_GAP),
-        MockEvent("thinking_delta", {"text": "interpreting"}, pre_delay=THINK_TICK),
-        MockEvent("text_delta", {
-            "text": "Coverage is 67%. The main gaps are in `token_refresh()` "
-                    "and `session_validate()`. I'll write tests for both.",
-        }, pre_delay=0.3),
+        MockEvent("thinking_delta", {"text": "need cleanup"}, pre_delay=THINK_TICK),
+        MockEvent("approval_required", {
+            "action": "run_command",
+            "detail": "rm -rf build/ && make clean",
+            "answer": "y",
+        }, pre_delay=0.5),
         MockEvent("tool_call_requested", {
-            "name": "write_file", "args": "'tests/test_token_refresh.py'",
-        }),
-        MockEvent("tool_call_finished", {
-            "name": "write_file", "status": "ok",
-            "chars": 1, "display": "OK.",
-            "duration_secs": 0.3,
-        }, pre_delay=FAST_TOOL),
-        MockEvent("tool_call_requested", {
-            "name": "write_file", "args": "'tests/test_session_validate.py'",
-        }),
-        MockEvent("tool_call_finished", {
-            "name": "write_file", "status": "ok",
-            "chars": 1, "display": "OK.",
-            "duration_secs": 0.4,
-        }, pre_delay=FAST_TOOL),
-        MockEvent("tool_call_requested", {
-            "name": "run_command", "args": "'pytest --cov=auth tests/'",
+            "name": "run_command", "args": "cmd",
         }),
         MockEvent("tool_call_finished", {
             "name": "run_command", "status": "ok",
-            "chars": 5100, "display": "5100 chars.",
-            "duration_secs": 9.1,
+            "chars": 892, "display": "892 chars.",
         }, pre_delay=SLOW_TOOL),
         MockEvent("turn_finished", {
-            "input_tokens": 9400, "output_tokens": 280,
-            "cached_tokens": 8800, "cost": 0.010,
-        }, pre_delay=0.3),
-        # Turn 3: final summary
+            "input_tokens": 5200, "output_tokens": 94,
+            "cost": 0.004, "cached_tokens": 4800,
+        }),
+        # Turn 3: final answer
         MockEvent("turn_started", {}, pre_delay=TURN_GAP),
-        MockEvent("thinking_delta", {"text": "done"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "confirmed"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "summarizing"}, pre_delay=THINK_TICK),
         MockEvent("text_delta", {
-            "text": "Coverage improved to 89%. All 24 tests pass.",
+            "text": "Fixed. Changed `json_parser` to `parser_core` on "
+                    "line 3. All 12 tests pass.",
+        }),
+        MockEvent("turn_finished", {
+            "input_tokens": 5800, "output_tokens": 42,
+            "cost": 0.002, "cached_tokens": 5400,
+        }),
+    ]
+
+
+def scenario_tool_failure():
+    """Case 10.8: Tool Failure, ERROR, Retry, Recovery."""
+    return [
+        MockEvent("turn_started", {}),
+        MockEvent("thinking_delta", {"text": "plan refactoring"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "steps"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {
+            "name": "read_file", "args": "path",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "read_file", "status": "ok",
+            "chars": 1520, "display": "1520 chars.",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {
+            "name": "read_file", "args": "path",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "read_file", "status": "ok",
+            "chars": 890, "display": "890 chars.",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {
+            "name": "edit", "args": "path, old_string, new_string",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "edit", "status": "error",
+            "chars": 0, "display": "FAIL",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("error", {
+            "level": "ERROR",
+            "message": "Edit failed: file is read-only (src/db.py)",
+        }, pre_delay=0.3),
+        # Turn 2: retry succeeds
+        MockEvent("turn_finished", {
+            "input_tokens": 3800, "output_tokens": 90,
+            "cached_tokens": 2900, "cost": 0.003,
+        }, pre_delay=0.3),
+        MockEvent("turn_started", {}, pre_delay=TURN_GAP),
+        MockEvent("thinking_delta", {"text": "retry"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {
+            "name": "run_command", "args": "cmd",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "run_command", "status": "ok",
+            "chars": 1, "display": "OK.",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {
+            "name": "edit", "args": "path, old_string, new_string",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "edit", "status": "ok",
+            "chars": 1, "display": "OK.",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("text_delta", {
+            "text": "Made the file writable and applied the refactoring. Connection "
+                    "pooling now uses a shared pool with configurable max connections.",
         }, pre_delay=0.3),
         MockEvent("turn_finished", {
-            "input_tokens": 9800, "output_tokens": 22,
-            "cached_tokens": 9400, "cost": 0.003,
+            "input_tokens": 5200, "output_tokens": 210,
+            "cached_tokens": 4500, "cost": 0.004,
+        }, pre_delay=0.3),
+    ]
+
+
+def scenario_approval_denied():
+    """Case 10.9: Approval Denied. User denies dangerous command."""
+    return [
+        MockEvent("turn_started", {}),
+        MockEvent("thinking_delta", {"text": "cleanup plan"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "identifying targets"}, pre_delay=THINK_TICK),
+        MockEvent("approval_required", {
+            "action": "run_command",
+            "detail": "rm -rf /tmp/project_* && rm -rf ~/.cache/lana",
+            "answer": "n",
+        }, pre_delay=0.5),
+        # After denial, agent takes different approach
+        MockEvent("tool_call_requested", {
+            "name": "run_command", "args": "cmd",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "run_command", "status": "ok",
+            "chars": 42, "display": "42 chars.",
+        }, pre_delay=FAST_TOOL),
+        MockEvent("text_delta", {
+            "text": "Understood. I cleaned only the project build artifacts instead.",
+        }, pre_delay=0.3),
+        MockEvent("turn_finished", {
+            "input_tokens": 3200, "output_tokens": 35,
+            "cached_tokens": 2800, "cost": 0.004,
+        }, pre_delay=0.2),
+    ]
+
+
+def scenario_long_running():
+    """Case 10.10: Long-Running Tool. Single tool dominates elapsed."""
+    return [
+        MockEvent("turn_started", {}),
+        MockEvent("thinking_delta", {"text": "preparing"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {
+            "name": "run_command", "args": "cmd",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "run_command", "status": "ok",
+            "chars": 12400, "display": "12400 chars.",
+        }, pre_delay=SLOW_TOOL + 3.0),
+        MockEvent("text_delta", {
+            "text": "All 847 tests passed. No failures, 3 skipped.",
+        }, pre_delay=0.3),
+        MockEvent("turn_finished", {
+            "input_tokens": 4800, "output_tokens": 28,
+            "cached_tokens": 4200, "cost": 0.003,
+        }, pre_delay=0.2),
+    ]
+
+
+def scenario_heavy_compaction():
+    """Case 10.11: Heavy Compaction with Many Tools. Many reads + compaction."""
+    return [
+        # Turn 1: many reads
+        MockEvent("turn_started", {}),
+        MockEvent("thinking_delta", {"text": "analyzing"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "source tree"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "dependencies"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 800}, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 650}, pre_delay=0.2),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 920}, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 400}, pre_delay=0.2),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 1100}, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {"name": "grep_search", "args": "query, path"}),
+        MockEvent("tool_call_finished", {"name": "grep_search", "status": "ok", "chars": 300}, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {"name": "grep_search", "args": "query, path"}),
+        MockEvent("tool_call_finished", {"name": "grep_search", "status": "ok", "chars": 200}, pre_delay=0.2),
+        MockEvent("text_delta", {
+            "text": "I've analyzed the source tree. Here are the key dependencies:",
+        }, pre_delay=0.3),
+        MockEvent("turn_finished", {
+            "input_tokens": 18000, "output_tokens": 320,
+            "cached_tokens": 16000, "cost": 0.015,
+        }, pre_delay=0.3),
+        # Turn 2: more reads
+        MockEvent("turn_started", {}, pre_delay=TURN_GAP),
+        MockEvent("thinking_delta", {"text": "deeper analysis"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "tracing imports"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 500}, pre_delay=0.2),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 600}, pre_delay=0.2),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 700}, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 450}, pre_delay=0.2),
+        MockEvent("turn_finished", {
+            "input_tokens": 22000, "output_tokens": 180,
+            "cached_tokens": 20000, "cost": 0.012,
+        }, pre_delay=0.3),
+        # Compaction
+        MockEvent("error", {
+            "level": "WARNING",
+            "message": "Context 95% full, compacting to preserve conversation",
+        }, pre_delay=COMPACT_DELAY),
+        # Turn 3: final
+        MockEvent("turn_started", {}, pre_delay=TURN_GAP),
+        MockEvent("thinking_delta", {"text": "summarizing"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "graph"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 300}, pre_delay=FAST_TOOL),
+        MockEvent("tool_call_requested", {"name": "read_file", "args": "path"}),
+        MockEvent("tool_call_finished", {"name": "read_file", "status": "ok", "chars": 200}, pre_delay=0.2),
+        MockEvent("text_delta", {
+            "text": "The complete dependency graph shows 4 clusters with 2 circular "
+                    "dependencies between agent.py and tools/__init__.py.",
+        }, pre_delay=0.3),
+        MockEvent("turn_finished", {
+            "input_tokens": 18500, "output_tokens": 95,
+            "cached_tokens": 17000, "cost": 0.014,
+        }, pre_delay=0.2),
+    ]
+
+
+def scenario_provider_retry():
+    """Case 10.12: Provider Retry with WARNING. Rate limit then recovery."""
+    return [
+        MockEvent("turn_started", {}),
+        MockEvent("thinking_delta", {"text": "analyzing"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "caching"}, pre_delay=THINK_TICK),
+        # Rate limit hit
+        MockEvent("error", {
+            "level": "WARNING",
+            "message": "Rate limit exceeded (429), retrying in 8 secs",
+        }, pre_delay=0.3),
+        # Retry after delay (simulated as longer thinking)
+        MockEvent("thinking_delta", {"text": "retrying"}, pre_delay=SLOW_TOOL + 2.0),
+        MockEvent("text_delta", {
+            "text": "The caching strategy uses prompt caching for the system prompt "
+                    "and tool definitions, reducing input tokens by 60-80%.",
+        }, pre_delay=0.3),
+        MockEvent("turn_finished", {
+            "input_tokens": 3200, "output_tokens": 52,
+            "cached_tokens": 2800, "cost": 0.002,
+        }, pre_delay=0.2),
+    ]
+
+
+def scenario_multi_line_params():
+    """Case 10.2 Stage 5: Multi-line params overflow in activity box."""
+    return [
+        MockEvent("turn_started", {}),
+        MockEvent("thinking_delta", {"text": "planning edit"}, pre_delay=THINK_TICK),
+        MockEvent("thinking_delta", {"text": "preparing"}, pre_delay=THINK_TICK),
+        MockEvent("tool_call_requested", {
+            "name": "edit",
+            "args": "file_path, old_string, new_string, explanation, replace_all",
+        }),
+        MockEvent("tool_call_finished", {
+            "name": "edit", "status": "ok",
+            "chars": 1, "display": "OK.",
+        }, pre_delay=FAST_TOOL + 1.0),
+        MockEvent("text_delta", {
+            "text": "Applied the multi-parameter edit successfully.",
+        }, pre_delay=0.3),
+        MockEvent("turn_finished", {
+            "input_tokens": 2800, "output_tokens": 22,
+            "cached_tokens": 2400, "cost": 0.002,
         }, pre_delay=0.2),
     ]
 
@@ -536,27 +776,50 @@ def play_prompt(prompt: str, events: list[MockEvent],
     turns = renderer._turn_count
     tools = renderer._tool_count
     total_elapsed = int(time.monotonic() - renderer._session_start)
-    summary = f"{turns} turn{'s' if turns != 1 else ''} | {tools} tool{'s' if tools != 1 else ''} | ${total_cost:.3f} | {format_duration(total_elapsed)}"
+    tc_label = 'tool call' if tools == 1 else 'tool calls'
+    summary = f"{turns} turn{'s' if turns != 1 else ''} | {tools} {tc_label} | ${total_cost:.3f} | {format_duration(total_elapsed)}"
     _print(f"\u2514\u2500[ {summary} ]", _DIM)
     _print()
 
 
 def main():
-    _print(f"\n{_BOLD}=== Approach C: Live Footer ==={_RST}\n")
+    _print(f"\n{_BOLD}=== Prototype C: Spec LANAUSRX-SP01 Demo ==={_RST}\n")
 
     prompts = [
-        ("what does the config module do?", scenario_pure_text()),
-        ("fix the import error in parser.py", scenario_multi_tool()),
-        ("refactor the database connection pooling", scenario_tool_failure()),
-        ("deploy the current build to staging", scenario_deploy_approval()),
-        ("improve auth module test coverage", scenario_compaction_heavy()),
+        # Case 10.5: Pure text
+        ("what does the config module do?",
+         scenario_pure_text(), 80),
+        # Case 10.6: Fast tools
+        ("read the README and fix the typo on line 5",
+         scenario_fast_tools(), 15),
+        # Case 10.7: Multi-turn + approval + compaction
+        ("fix the import error in parser.py",
+         scenario_multi_turn_approval(), 12),
+        # Case 10.8: Tool failure + ERROR + retry
+        ("refactor the database connection pooling",
+         scenario_tool_failure(), 45),
+        # Case 10.9: Approval denied
+        ("clean up all temporary files",
+         scenario_approval_denied(), 30),
+        # Case 10.10: Long-running tool
+        ("run the full test suite",
+         scenario_long_running(), 55),
+        # Case 10.11: Heavy compaction + many tools
+        ("analyze all source files and create a dependency graph",
+         scenario_heavy_compaction(), 92),
+        # Case 10.12: Provider retry
+        ("explain the caching strategy",
+         scenario_provider_retry(), 40),
+        # Stage 5: Multi-line params overflow
+        ("apply the complex edit to render.py",
+         scenario_multi_line_params(), 25),
     ]
 
-    for i, (prompt, events) in enumerate(prompts):
+    for i, (prompt, events, ctx_pct) in enumerate(prompts):
         if i > 0:
             _print()
             time.sleep(1.0)
-        play_prompt(prompt, events)
+        play_prompt(prompt, events, context_pct=ctx_pct)
 
 
 if __name__ == "__main__":
