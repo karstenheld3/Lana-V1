@@ -200,17 +200,19 @@ def resolve_role(role_name: str, spec: RoleSpec, registry: dict, mapping: dict) 
                       max_input=max_input, max_output=prefix_entry.get("max_output") or 8192, params=params, beta=prefix_entry.get("beta"))
 
 
-def load_lana_config(workspace: Path, config_path: Optional[Path] = None, require_keys: bool = True) -> AppConfig:
+def load_lana_config(workspace: Path, config_path: Optional[Path] = None, require_keys: bool = True, install_root: Optional[Path] = None) -> AppConfig:
   """
   Load and validate the full runtime configuration (fails at startup, never at first API call).
 
-  └── config_path default: <workspace>/config/lana-config.json (override via --config / LANA_CONFIG)
+  └── install_root: base for config, agent_folder, data_dir (DD-25); defaults to workspace
+  └── config_path default: <install_root>/config/lana-config.json (override via --config / LANA_CONFIG)
   └── registry/mapping/pricing/.api-keys.txt are read from the config file's folder
   └── require_keys=False skips API key resolution (scripted adapter mode, FR-14)
   """
+  if install_root is None: install_root = workspace  # dev mode: CWD is both workspace and install root
   created_files: list[str] = []
   if config_path is None:
-    config_path = workspace / "config" / "lana-config.json"
+    config_path = install_root / "config" / "lana-config.json"
     if not Path(config_path).exists():  # FR-16 zero-setup: only the DEFAULT path auto-creates
       create_default_config(Path(config_path))
       created_files.append(str(config_path))
@@ -237,15 +239,18 @@ def load_lana_config(workspace: Path, config_path: Optional[Path] = None, requir
     key_file = config_dir / ".api-keys.txt"
     key_file_entries = parse_key_file(key_file)
     for provider in sorted({role.provider for role in roles.values()}):
-      key_file_rel = '.' + os.sep + str(key_file.relative_to(workspace))
+      try:
+        key_file_rel = '.' + os.sep + str(key_file.relative_to(workspace))
+      except ValueError:  # DD-25: config in install_root, not workspace
+        key_file_rel = str(key_file)
       key, source = resolve_key(provider, key_file_entries, key_file_rel)
       if key is None:
         raise ConfigError(f"No API key for provider '{provider}'.\n  HINT: set env var {ENV_KEY_NAMES[provider]} or add a line '{ENV_KEY_NAMES[provider]}=<key>' to '{key_file}'.")
       keys[provider] = key
       key_sources[provider] = source
-  resolved_data_dir = (Path(workspace) / lana.data_dir).resolve()
+  resolved_data_dir = (install_root / lana.data_dir).resolve()  # DD-25: resolve relative to install_root
   agent_path = Path(lana.agent_folder)
-  resolved_agent_folder = agent_path if agent_path.is_absolute() else (Path(workspace) / agent_path).resolve()
+  resolved_agent_folder = agent_path if agent_path.is_absolute() else (install_root / agent_path).resolve()  # DD-25
   return AppConfig(lana=lana, roles=roles, pricing=pricing, keys=keys, key_sources=key_sources, workspace=Path(workspace), config_dir=config_dir, agent_folder=resolved_agent_folder, data_dir=resolved_data_dir,
                    created_files=created_files)
 

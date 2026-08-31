@@ -137,7 +137,7 @@ A **PromptQueueFile** (`PROMPTS*.md`) is a markdown file carrying an ordered que
 - Before `initialize`: send nothing; reject session methods with a JSON-RPC error. The handshake completes with the `initialize` response - ACP has no `initialized` notification (ACP-IN05 gotchas)
 
 **LANAACPB-FR-03: Session Creation**
-- `session/new` creates a Lana session: workspace = `cwd` param; prompt system, config, and system prompt assembled per LANAAGNT-FR-01..03; `session_started` environment record written as first JSONL line (LANAAGNT-FR-08)
+- `session/new` creates a Lana session: workspace = `cwd` param (for tool operations); config, agent_folder, and data_dir resolve from the install root set on the `lana --acp` process (LANAAGNT-DD-25, not from `cwd`); prompt system and system prompt assembled per LANAAGNT-FR-01..03; `session_started` environment record written as first JSONL line (LANAAGNT-FR-08)
 - Runtime construction runs off the event loop in the default executor (LANAAGNT-IN03 BL-04): message processing (cancel, ping, second request) stays live during config/prompt-system load; applies to `session/load` identically
 - Response carries `sessionId` (= session file stem)
 - `mcpServers` param: ignored with one stderr warning (Lana has no MCP client, LANAAGNT-DD-18); `additionalDirectories`: ignored with stderr warning (single-workspace model, LANAAGNT-SP01 workspace definition)
@@ -373,10 +373,13 @@ multiply(2, 3)  # 6
 - Single asyncio event loop coordinates stdin dispatch, turn execution, and client-bound requests; the blocking stdin readline itself runs in the default executor (Windows has no async console stdin)
 - Windows stdio: UTF-8 encoding enforced on both pipes; line flushing per message (CRLF must not appear inside the JSON payload)
 - The scripted replay adapter (LANAAGNT-FR-14) works unchanged under ACP mode - deterministic offline testing of full ACP exchanges
-- Session files remain in `<workspace>/.lana-data/sessions/`; the `cwd` from `session/new` is the workspace for tool context and git-root detection
+- Session files remain in `<install_root>/.lana-data/sessions/` (DD-25); the `cwd` from `session/new` is the workspace for tool context and git-root detection
 - `available_commands_update` sources the loaded PromptSystem; built-ins (`/help`, `/cost`, `/exit`) are CLI-only and not advertised
 
 ## 13. Document History
+
+**[2026-08-31 18:30]**
+- Changed: FR-03 clarified that workspace = cwd for tools, config/agent/data resolve from install root (LANAAGNT-DD-25); Technical Constraints session file location updated
 
 **[2026-08-30 19:35]**
 - Changed: PromptQueueFile format reworked [user decision] - per-prompt fence length 3..9 backticks (was fixed N >= 5), file MUST start with an opening fence, mandatory `---` separator between prompts, commentary only between `---` and next fence

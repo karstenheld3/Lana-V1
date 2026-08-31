@@ -160,7 +160,9 @@ class AcpServer:
     # Resolve data_dir: load config to get the configured data_dir, then look for session file
     config_override = self.args.config or os.environ.get("LANA_CONFIG") or None
     from lana.config import load_lana_config
-    temp_app = load_lana_config(Path(cwd), Path(config_override) if config_override else None, require_keys=False)
+    from lana.cli import resolve_install_root
+    install_root = resolve_install_root(self.args)
+    temp_app = load_lana_config(Path(cwd), Path(config_override) if config_override else None, require_keys=False, install_root=install_root)
     sessions_dir = temp_app.data_dir / "sessions"
     session_file = sessions_dir / f"{session_id}.jsonl"
     if not session_file.is_file():
@@ -182,10 +184,11 @@ class AcpServer:
   # Shared runtime construction for session/new and session/load; loader output diverted to stderr (IG-01).
   # FR-03 BL-04: runs in the default executor - cancel/EOF processing stays live during the load
   async def build_session_runtime(self, method: str, args, cwd: str):
-    from lana.cli import build_runtime  # lazy: lana.cli is the composition root - importing it at module load would couple the frontends
+    from lana.cli import build_runtime, resolve_install_root  # lazy: lana.cli is the composition root - importing it at module load would couple the frontends
+    install_root = resolve_install_root(args)  # DD-25: infrastructure base from CLI flag, not from ACP cwd
     def build():
       with contextlib.redirect_stdout(sys.stderr):  # redirect inside the callable - it must wrap the executor thread's prints
-        return build_runtime(args, Path(cwd), interactive=False)
+        return build_runtime(args, Path(cwd), interactive=False, install_root=install_root)
     try:
       return await asyncio.get_running_loop().run_in_executor(None, build)
     except (ConfigError, OSError) as error:  # FR-16 CR-01 parity: filesystem failures answer as structured errors

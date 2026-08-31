@@ -58,9 +58,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--debug-console", action="store_true", help="open a second console window with real-time debug/timing output (LANADEBG-SP01)")
   parser.add_argument("--debug-viewer", action="store_true", help=argparse.SUPPRESS)  # internal: run as the debug console viewer (LANADEBG-DD-03)
   parser.add_argument("--show-thinking", action="store_true", help="stream model thinking dim-styled (FR-16)")
+  parser.add_argument("--install-root", metavar="PATH", help="infrastructure base directory for config, prompt library, and data (DD-25; env LANA_INSTALL_ROOT; default: cwd)")
   parser.add_argument("--acp", action="store_true", help="ACP agent mode: JSON-RPC 2.0 over stdio (MVP-2, LANAACPB-SP01)")
   parser.add_argument("--version", action="version", version=f"%(prog)s {package_version()}")  # exits before config load - no zero-setup side effects (LANADIST-IP01-IS-01)
   return parser
+
+
+def resolve_install_root(args) -> Path | None:
+  """DD-25 EC-30: --install-root > env LANA_INSTALL_ROOT > None (config.py defaults to workspace)."""
+  raw = getattr(args, "install_root", None) or os.environ.get("LANA_INSTALL_ROOT") or None
+  return Path(raw).resolve() if raw else None
 
 
 def find_git_root(start: Path) -> Path | None:
@@ -77,10 +84,10 @@ def short_model_name(model_id: str) -> str:
 
 
 # Assemble the whole runtime; returns (app, agent, cost_tracker, prompt_system) or raises ConfigError
-def build_runtime(args, workspace: Path, interactive: bool):
+def build_runtime(args, workspace: Path, interactive: bool, install_root: Path | None = None):
   scripted = bool(scripted_script_path())
   config_override = args.config or os.environ.get("LANA_CONFIG") or None
-  app = load_lana_config(workspace, Path(config_override) if config_override else None, require_keys=not scripted)
+  app = load_lana_config(workspace, Path(config_override) if config_override else None, require_keys=not scripted, install_root=install_root)
   app.scripted = scripted
   app.show_thinking = getattr(args, "show_thinking", False)
   if args.policy: app.lana.execution_policy = args.policy
@@ -309,15 +316,16 @@ def main() -> int:
       print(f"ERROR: invalid prompt file '{args.prompt_file}': {error}.\n  HINT: format rules in docs/PROMPT_FILE_FORMAT.md.", file=sys.stderr)
       return EXIT_CONFIG
   workspace = Path.cwd()
+  install_root = resolve_install_root(args)  # DD-25: infrastructure base
   headless = args.prompt is not None or prompts is not None
   interactive = not headless and sys.stdin.isatty()
   jsonl_headless = headless and args.output_format == "jsonl"
   try:
     if jsonl_headless:  # startup banner/warnings to stderr - stdout stays pure JSONL for machine consumers
       with contextlib.redirect_stdout(sys.stderr):
-        app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive)
+        app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive, install_root)
     else:
-      app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive)
+      app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive, install_root)
   except ConfigError as error:
     print(f"ERROR: {error}", file=sys.stderr)
     return EXIT_CONFIG

@@ -135,6 +135,7 @@ Estimated total: ~3,900 lines source + ~1,800 lines tests [ASSUMED - per-module 
 - **LANAAGNT-IP01-EC-27**: `trajectory_search` with unknown `ID`, ambiguous prefix, `SearchType: "user"`, or no sessions folder -> error naming available session ids / the contract violation (FR-15)
 - **LANAAGNT-IP01-EC-28**: `--resume` on a legacy session file without `session_started` (pre-FR-08 full recall) -> fall back to disk prompt assembly, warn "legacy session file - recorded environment unavailable, system prompt assembled from current prompt system"
 - **LANAAGNT-IP01-EC-29**: `--resume` with a generator provider differing from a recorded thinking payload's provider -> payload dropped from the adapter resend (signatures are provider-bound, SPEC FR-08); rendered thinking text stays in the log
+- **LANAAGNT-IP01-EC-30**: Install root resolution (DD-25): `--install-root <path>` > env `LANA_INSTALL_ROOT` > CWD fallback; config, agent_folder, data_dir resolve relative to install_root, not workspace
 
 ## 3. Implementation Steps
 
@@ -181,15 +182,17 @@ class Message: role, content, tool_calls, thinking, usage
 
 **Location**: `config.py`
 
-**Action**: Add `load_lana_config(workspace)`:
+**Action**: Add `load_lana_config(workspace, install_root)`:
 ```python
-def load_lana_config(workspace) -> LanaConfig: ...
-# 1. Parse config/lana-config.json (pydantic schema per SPEC section 10)
+def load_lana_config(workspace, install_root) -> LanaConfig: ...
+# 0. install_root is the base for config, agent_folder, data_dir (DD-25)
+# 1. Parse install_root/config/lana-config.json (pydantic schema per SPEC section 10)
 # 2. Resolve each role model against model-registry.json: exists + enabled, else ConfigError
 # 3. Resolve provider params via model_id_startswith method + effort_mapping factors
 # 4. Keys: env var first (OPENAI_API_KEY / ANTHROPIC_API_KEY), then config/.api-keys.txt; track source per provider ("env" or ".api-keys.txt") in key_sources dict
 # 5. Load model-pricing.json into cost table (missing model tolerated, EC-24)
 # 6. Boot banner prints "Keys: provider (source), ..." line so user knows where keys come from (FR-01)
+# 7. agent_folder and data_dir resolved relative to install_root (not workspace)
 ```
 
 **Note**: ALL validation at startup (IG-05); ConfigError messages name file, key, and corrective action. Never log key material
@@ -306,7 +309,7 @@ def load_lana_config(workspace) -> LanaConfig: ...
 
 **Location**: `cli.py`, `render.py`
 
-**Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `render.py`: subscribes to events; streams text; tool lines + approval y/n/a prompts (FR-12: `a` sets an approve-all flag for the rest of the session) + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
+**Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`, `--install-root`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `--install-root` (or env `LANA_INSTALL_ROOT`) sets the base directory for config, agent_folder, and data_dir (DD-25); defaults to CWD when unset. `render.py`: subscribes to events; streams text; tool lines + approval y/n/a prompts (FR-12: `a` sets an approve-all flag for the rest of the session) + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
 
 **Note**: `--debug` writes redacted request/response JSON to `.lana-data/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only
 
@@ -480,6 +483,7 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - **LANAAGNT-IP01-TC-04**: Effort translation per provider method (temperature vs reasoning_effort vs thinking factors)
 - **LANAAGNT-IP01-TC-05**: Missing pricing entry (EC-24) -> cost `?`, no crash
 - **LANAAGNT-IP01-TC-06**: Malformed lana-config.json -> error with line context
+- **LANAAGNT-IP01-TC-68**: Install root separation (EC-30): config + agent_folder + data_dir resolve relative to install_root, not workspace; workspace used only for tool operations
 
 ### Category 2: Prompt System Loading (6 tests)
 
@@ -602,6 +606,10 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-08-31 18:30]**
+- Added: EC-30 install root resolution (DD-25), TC-68 install root separation test
+- Changed: IS-03 load_lana_config takes install_root parameter, IS-15 CLI adds --install-root flag and LANA_INSTALL_ROOT env
 
 **[2026-08-31 01:27]**
 - Changed: IS-15 approve-all scope from turn-scoped to session-scoped (FR-12: `a` persists for the entire session)

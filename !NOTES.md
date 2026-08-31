@@ -62,6 +62,13 @@
 - API keys: env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) take priority over `.api-keys.txt` (FR-01)
 - `knowledge/` tracked (reference docs for agent implementation); large JSON files accepted (e.g. `sdk_methods.json`)
 
+## UX Design System (from user, 2026-08-31)
+
+- **Design system reference**: `specs/UXDesign/_INFO_DELPHIOS_DESIGN_SYSTEM.md [DLPHS-IN10]`
+- **Brand reference**: `specs/UXDesign/_INFO_DELPHIOS_BRAND.md [DLPHS-IN07]`
+- **CRITICAL**: The design system's internal name MUST NEVER appear in shipped code, binaries, UI output, config files, commit messages, or any artifact that reaches end users. Reference it internally as "the design system" or by Doc ID only.
+- **CLI applicability**: The design system targets web apps and presentations. For CLI/terminal output, apply the brand PRINCIPLES (not visual tokens): frugal language, zero overhead, calm and precise, status for any operation >300ms, no interruption patterns, no noise.
+
 ## Design Constraints (from user, 2026-08-30)
 
 6. `.lana/` is the [AGENT_FOLDER] - identical structure to `.devin/` (or `.windsurf/`). Contains ONLY: `rules/`, `workflows/`, `skills/`. No session data, no logs, no runtime artifacts.

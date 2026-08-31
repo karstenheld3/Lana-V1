@@ -90,3 +90,20 @@ def test_missing_generator_role_rejected(tmp_path, clean_key_env):
   write_config_dir(tmp_path, lana_overrides={"roles": {"summarizer": {"model_id": "gpt-4.1-mini", "effort": "low"}}})
   with pytest.raises(ConfigError) as error: load_lana_config(tmp_path)
   assert "generator" in str(error.value)
+
+
+# TC-68: install_root separation (EC-30, DD-25) - config, agent_folder, data_dir resolve relative
+# to install_root; workspace is separate (used for tool operations only)
+def test_tc68_install_root_separation(tmp_path, clean_key_env):
+  install_dir = tmp_path / "install"
+  workspace_dir = tmp_path / "workspace"
+  workspace_dir.mkdir()
+  write_config_dir(install_dir)  # config lives in install_root, NOT workspace
+  app = load_lana_config(workspace_dir, install_root=install_dir)
+  # agent_folder and data_dir resolve relative to install_root
+  assert app.agent_folder == (install_dir / ".lana").resolve()
+  assert app.data_dir == (install_dir / ".lana-data").resolve()
+  # workspace stays as passed (for tool operations)
+  assert app.workspace == workspace_dir
+  # config_dir is inside install_root
+  assert app.config_dir == install_dir / "config"
