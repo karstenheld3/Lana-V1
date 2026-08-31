@@ -119,6 +119,12 @@
 
 ## Progress Changes
 
+**[2026-08-31 14:30]**
+- Performance analysis + brainstorm: _INFO_LOGGING_IMPROVEMENT_IDEAS.md [LANADEBG-IN01] created
+- Benchmark [TESTED]: sync dlog 13.6 us/line; CRITICAL finding: pipe blocks after 23 lines when viewer stalls - Lana freeze hazard
+- 5 ideas proposed (queue+writer thread, raw ts, deferred json, binary pipe, viewer analytics), 4 rejected with rationale
+- Decision pending: adopt Ideas 3.1-3.4 (requires SPEC update)
+
 **[2026-08-31 14:15]**
 - /improve vs logging rules (all 5 rule files re-read) driven by user questions on compaction visibility and exact timing
 - Compaction now fully observable: compaction_start (projected/threshold trigger), compaction report (+checkpoint_chars), compaction_failed (silent-continue path)
