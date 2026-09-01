@@ -84,7 +84,7 @@ The rules reference Cascade tool names (`read_file`, `run_command`, `todo_list`,
 
 **Workspace definition:** the workspace is the current working directory at `lana` launch. All `[workspace]` paths, the file-write safety boundary (LANAAGNT-FR-12), and `<user_information>` derive from it.
 
-**Install root definition:** the install root is the base directory for Lana's own infrastructure: config files, prompt library (`agent_folder`), and runtime data (`data_dir`). Resolution: `--install-root` flag (or env `LANA_INSTALL_ROOT`) if set, otherwise falls back to the workspace. When running as a packaged binary, the launcher sets `--install-root` to the binary's directory so config/agent/data stay next to the EXE regardless of CWD (DD-25).
+**App directory definition:** the app directory is the base directory for Lana's own infrastructure: config files, prompt library (`agent_folder`), and runtime data (`data_dir`). Resolution: `--app-dir` flag > env `LANA_APP_DIR` > PyApp exe parent (auto-detected via `PYAPP` env var when built with `PYAPP_PASS_LOCATION=1`) > workspace (CWD fallback for dev mode). When running as a packaged binary, the auto-detection ensures config/agent/data stay next to the EXE regardless of CWD (DD-25).
 
 **Tool demand evidence** (full-text scan of all 397 IPPS files, 2026-08-29): `read_url_content` 17 refs / 5 files and `search_web` 14 refs / 4 files - concentrated in the deep-research skill (24 files, flagship capability) and `/research`; `find_by_name` 5, `read_file` 4, `run_command` 4, `command_status` 3, `grep_search` 2 (all in MVP-1); `trajectory_search` 3 refs in `/remove` only; `mcp1_*` 3 refs in browser skills; all other Cascade tools 0 refs.
 
@@ -96,7 +96,7 @@ The rules reference Cascade tool names (`read_file`, `run_command`, `todo_list`,
 
 A **PromptSystem** represents one folder containing agent configuration content.
 
-**Storage:** configurable via `agent_folder` in config (relative path resolved against the install root, absolute used as-is)
+**Storage:** configurable via `agent_folder` in config (relative path resolved against the app directory, absolute used as-is)
 **Key properties:**
 - `rules` - list of RuleFile, loaded from `rules/*.md`
 - `workflows` - list of WorkflowFile, loaded from `workflows/*.md`
@@ -178,13 +178,13 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 ## 4. Functional Requirements
 
 **LANAAGNT-FR-01: Configuration Loading**
-- Read `config/lana-config.json` from the install root (not the workspace); validate `model_id` values against `model-registry.json` (`enabled: true` required)
+- Read `config/lana-config.json` from the app directory (not the workspace); validate `model_id` values against `model-registry.json` (`enabled: true` required)
 - Resolve API keys: environment variables `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` first, then `config/.api-keys.txt` (OQ-41); report key source per provider at boot in the format `Keys: Provider (Environment variable: VAR)` or `Keys: Provider (.\config\.api-keys.txt: VAR)` so the user knows where keys come from
 - Translate per-role `effort` via `model-parameter-mapping.json` effort mapping to provider parameters
 - Fail at startup with a self-contained error naming the missing key/model - never at first API call
 
 **LANAAGNT-FR-02: Prompt System Loading**
-- Load the folder specified by `agent_folder` (relative path resolved against the install root, absolute used as-is)
+- Load the folder specified by `agent_folder` (relative path resolved against the app directory, absolute used as-is)
 - Parse YAML frontmatter of rules, workflows, SKILL.md files; tolerate missing frontmatter
 - Rules: inject only `trigger: always_on` or missing trigger; truncate per block at `rule_block_max_chars` with a `<truncated N chars>` marker
 - Report loaded counts at startup: N rules, N workflows, N skills
@@ -300,7 +300,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Scoring is lexical term overlap, not embedding-based [ASSUMED - adequate for session-scale text; revisit if relevance quality disappoints]
 
 **LANAAGNT-FR-16: Zero-Setup Startup and Runtime Resilience** (hardening per `_INFO_ROBUSTNESS_HAZARDS.md [LANAAGNT-IN03]`)
-- Zero-setup: at startup Lana auto-creates every missing artifact it can create safely - the runtime data directory (`data_dir` with `sessions/`), the agent folder scaffold (`agent_folder` with `rules/`, `workflows/`, `skills/`), and a default `config/lana-config.json` (DD-02 default roles) - all relative to the install root - and prints one line per created artifact; no init command, no manual setup steps (DD-23)
+- Zero-setup: at startup Lana auto-creates every missing artifact it can create safely - the runtime data directory (`data_dir` with `sessions/`), the agent folder scaffold (`agent_folder` with `rules/`, `workflows/`, `skills/`), and a default `config/lana-config.json` (DD-02 default roles) - all relative to the app directory - and prints one line per created artifact; no init command, no manual setup steps (DD-23)
 - Auto-created config applies only to the DEFAULT config path; an explicit `--config`/`LANA_CONFIG` override that does not exist stays a ConfigError (an explicit path is a user statement, not a gap)
 - Model data files (`model-registry.json`, `model-parameter-mapping.json`, `model-pricing.json`) are shipped data: when missing, startup fails with the existing self-contained ConfigError (bundled-default distribution deferred)
 - Empty prompt system (0 rules, 0 workflows, 0 skills): print a one-line notice that Lana runs without prompt system content
@@ -363,7 +363,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-11:** Tool names, descriptions, and schemas verbatim from Cascade (OQ-30). Rationale: IPPS rules and workflows reference exact tool names and embedded behavioral constraints; verbatim copy transfers proven prompt engineering and keeps the prompt system portable between Cascade and Lana.
 
-**LANAAGNT-DD-12:** Single prompt system folder configurable via `agent_folder`, Cascade folder layout (`rules/`, `workflows/`, `skills/`) (OQ-21). Rationale: one agent has one prompt system folder, matching the Cascade architecture; pointing `agent_folder` at any folder with the standard layout requires zero content changes. Relative path resolves against the install root (DD-25); absolute path used as-is.
+**LANAAGNT-DD-12:** Single prompt system folder configurable via `agent_folder`, Cascade folder layout (`rules/`, `workflows/`, `skills/`) (OQ-21). Rationale: one agent has one prompt system folder, matching the Cascade architecture; pointing `agent_folder` at any folder with the standard layout requires zero content changes. Relative path resolves against the app directory (DD-25); absolute path used as-is.
 
 **LANAAGNT-DD-13:** Agent-side slash command expansion (OQ-22). Rationale: one code path that also serves ACP in MVP-2, where slash commands arrive as plain prompt text.
 
@@ -389,7 +389,7 @@ Each decision resolves the referenced open question from `_INFO_OPEN_DESIGN_QUES
 
 **LANAAGNT-DD-24:** Severity-prefixed notices over the existing `error` event: messages starting `WARNING:` render yellow, `NOTICE:` render dim (prefix stripped), all others red with `ERROR:` prefix; the AgentEvent enum stays at 11 types. Rationale: retry notices (FR-16) and the pre-compaction line need non-error rendering; a 12th event type would touch the JSONL schema, resume projection, and the ACP translator for a pure presentation concern - the EC-17 `WARNING:` prefix convention already exists, this formalizes it.
 
-**LANAAGNT-DD-25:** Install root separates infrastructure base from workspace (bootstrapping bug 2026-08-31). Rationale: when Lana runs as a packaged binary (`dist/lana.exe`) the CWD is the user's project, not the binary's directory; config, prompt library, and runtime data must resolve relative to the EXE location, not the user's CWD. Resolution hierarchy: `--install-root <path>` CLI flag > env `LANA_INSTALL_ROOT` > workspace (CWD fallback for dev mode). The workspace stays CWD for tool operations (file reading/editing, command execution, git root detection, `<user_information>`). In ACP mode, the install root comes from the CLI flag on the `lana --acp` process; the ACP `session/new` `cwd` param sets only the workspace.
+**LANAAGNT-DD-25:** App directory separates infrastructure base from workspace (bootstrapping bug 2026-08-31). Rationale: when Lana runs as a packaged binary (`dist/lana.exe`) the CWD is the user's project, not the binary's directory; config, prompt library, and runtime data must resolve relative to the EXE location, not the user's CWD. Resolution hierarchy: `--app-dir <path>` CLI flag > env `LANA_APP_DIR` > PyApp exe parent (auto-detected: PyApp sets the `PYAPP` env var to the outer binary's absolute path when built with `PYAPP_PASS_LOCATION=1`, `resolve_app_dir()` reads it) > workspace (CWD fallback for dev mode). The workspace stays CWD for tool operations (file reading/editing, command execution, git root detection, `<user_information>`). In ACP mode, the app directory is auto-detected from the `PYAPP` env var; the ACP `session/new` `cwd` param sets only the workspace.
 
 ## 7. Implementation Guarantees
 
@@ -446,8 +446,8 @@ User types "/prime"
     "summarizer": { "model_id": "gpt-4.1-mini", "effort": "low" },
     "websearch":  { "model_id": "gpt-4.1-mini", "effort": "low" }
   },
-  "agent_folder": ".lana",          // resolved relative to install root (DD-25)
-  "data_dir": ".lana-data",            // resolved relative to install root (DD-25)
+  "agent_folder": ".lana",          // resolved relative to app directory (DD-25)
+  "data_dir": ".lana-data",            // resolved relative to app directory (DD-25)
   "rule_block_max_chars": 6000,
   "max_tool_calls_per_prompt": 25,
   "auto_continue": false,
@@ -486,7 +486,7 @@ DO NOT ACKNOWLEDGE THIS CHECKPOINT MESSAGE.
 
 ## 11. User Actions
 
-- **Start**: `lana` (workspace = cwd) | `lana --install-root [path]` (infrastructure base, DD-25) | `lana --resume [session-file]` | `lana --debug` | `lana --policy manual|auto|turbo` | `lana --config [path]`
+- **Start**: `lana` (workspace = cwd) | `lana --app-dir [path]` (infrastructure base, DD-25) | `lana --resume [session-file]` | `lana --debug` | `lana --policy manual|auto|turbo` | `lana --config [path]`
 - **Headless**: `lana -p "<prompt>"` | `--output-format text|jsonl` - single prompt, exit code signals outcome (LANAAGNT-FR-14)
 - **Chat**: free text sends a user message; `/name` invokes a workflow
 - **Built-ins**: `/help` (workflows + built-ins), `/cost` (session usage), `/exit`
@@ -542,14 +542,22 @@ Running workflow 'prime'...
 
 ## 14. Document History
 
+**[2026-09-01 20:25]**
+- Changed: DD-25 `--install-root` renamed to `--app-dir`, `LANA_INSTALL_ROOT` to `LANA_APP_DIR`, "install root" to "app directory" throughout
+- Changed: DD-25 resolution hierarchy updated: added PyApp auto-detection (`PYAPP` env var with `PYAPP_PASS_LOCATION=1`) as third tier, removing the need for explicit `--app-dir` in packaged binaries
+- Changed: FR-01, FR-02, FR-16, DD-12 references updated from "install root" to "app directory"
+- Changed: User Actions `--install-root` to `--app-dir`
+- Changed: LanaConfig comments updated
+- Synced from code: `cli.py` `resolve_app_dir()`, `config.py` `app_dir` parameter, `_build.ps1` `PYAPP_PASS_LOCATION=1`
+
 **[2026-09-01 15:30]**
 - Changed: FR-03 `<user_information>` includes agent_folder path (LANALOGS-PR-0001)
 - Changed: FR-04 default `max_tool_calls_per_prompt` raised from 25 to 40 (LANALOGS-PR-0006)
 - Added: FR-10 path-not-found hints for `read_file` and `list_dir` (LANALOGS-PR-0002)
 
 **[2026-08-31 18:30]**
-- Added: DD-25 install root concept - separates infrastructure base (config, agent_folder, data_dir) from workspace (CWD); resolution: --install-root > LANA_INSTALL_ROOT > CWD fallback
-- Changed: FR-01 config resolved from install root, FR-02 agent_folder resolved from install root, FR-16 zero-setup relative to install root, DD-12 agent_folder resolution updated, PromptSystem storage updated, LanaConfig comments, User Actions --install-root flag
+- Added: DD-25 install root concept (now "app directory") - separates infrastructure base (config, agent_folder, data_dir) from workspace (CWD); resolution: --app-dir > LANA_APP_DIR > PYAPP auto-detect > CWD fallback
+- Changed: FR-01 config resolved from app directory, FR-02 agent_folder resolved from app directory, FR-16 zero-setup relative to app directory, DD-12 agent_folder resolution updated, PromptSystem storage updated, LanaConfig comments, User Actions --app-dir flag
 
 **[2026-08-31 01:27]**
 - Changed: FR-12 approve-all scope from turn-scoped to session-scoped (`a` persists for the entire session, not just the current turn)
