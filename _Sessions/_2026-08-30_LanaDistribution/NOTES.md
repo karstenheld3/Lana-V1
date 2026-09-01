@@ -47,6 +47,8 @@ see deploy.md workflow
 - Code signing mandatory for Windows distribution (~100-200 EUR/year) [VERIFIED]
 - No cross-compilation: CI matrix builds per platform [VERIFIED]
 - Lana deps are packaging-friendly: only pydantic-core is compiled (Rust .pyd) [VERIFIED]
+- **[2026-09-01]** PyApp `PYAPP` env var is `"1"` by default, NOT the exe path. Must set `PYAPP_PASS_LOCATION=1` at build time to get the outer binary's absolute path at runtime. Without it, `sys.executable` inside PyApp points to the cached Python interpreter, not the outer exe. This caused data directory pollution in workspace CWD. Fixed via DD-11. SPEC and IMPL moved to `specs/`.
+- **[2026-09-01]** `--install-root` renamed to `--app-dir` (CLI, env var `LANA_APP_DIR`, all internal references). Boot path debug log added to `build_runtime()` for diagnosing resolution issues.
 
 ## Topic Registry
 

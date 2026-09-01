@@ -55,6 +55,7 @@ Behavioral rules for agent execution patterns.
 - Small cycles: implement → test → fix → green → next
 - Question introduced complexity: Is this in the prompt/spec? Avoid scope creep
 - No lazy conclusions: Don't state what you can't prove. Verify before asserting
+- Build artifact verification: NEVER claim "exe not rebuilt" or "binary is stale" without first comparing timestamps (`Get-Item <exe> | select LastWriteTime` vs `Get-Item <source> | select LastWriteTime`). If artifact is newer than source, the problem is in the code logic, not the build. Applies to any compiled/packaged output (exe, wheel, bundle, container image)
 - Date verification: When dealing with dates, weekdays, or predicting weekdays, ALWAYS verify today's date and weekday via web search. Never rely on training data or internal clock assumptions
 - Reduce concepts: Fewer moving parts = fewer failure modes. Merge overlapping concepts
 - Avoid contradictions, flawed logic, circular definitions. If it doesn't make sense, stop and fix or re-think

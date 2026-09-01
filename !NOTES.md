@@ -44,6 +44,13 @@
 - **NEVER run `_build.bat` or `_build.ps1` from an agent session.** The user builds manually via the batch file.
 - After code changes that affect the exe, tell the user to rebuild — do not build yourself
 
+## Python Environment
+
+- **ALWAYS use `.venv`**: `.venv\Scripts\python.exe` for ALL Python operations (pytest, pip install, scripts). NEVER use bare `python` or `python -m pip` - that hits the global install and pollutes it.
+- **Tests**: `.venv\Scripts\python.exe -m pytest tests/ -n 4 -x -q --tb=short` (parallel via pytest-xdist, ~20s instead of ~100s)
+- **pip install**: `.venv\Scripts\python.exe -m pip install <package>`
+- Global Python at `C:\Users\User\AppData\Local\Programs\Python\Python312\` is for other projects - do not touch it from this workspace
+
 ## ACP Registry (Devin Desktop)
 
 - **Windows registry path bug**: Devin Desktop reads `%APPDATA%\Code\User\acp\registry.json` on Windows regardless of channel (stable/next). The `.windsurf-next\acp\registry.json` path is IGNORED. Always edit the `%APPDATA%\Code\User\` copy.
