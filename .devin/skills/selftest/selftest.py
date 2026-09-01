@@ -116,7 +116,7 @@ def run_prompt_system(ctx: Context) -> None:
   bad_workflows = [f.name for f in sorted((agent / "workflows").glob("*.md")) if not f.read_text(encoding="utf-8").lstrip().startswith("---")] if (agent / "workflows").is_dir() else []
   record(ctx, "03", "workflow_frontmatter", "pass" if not bad_workflows else "fail", 0.0, f"missing frontmatter: {', '.join(bad_workflows)}" if bad_workflows else None)
   print(f"  workflows: {'all have frontmatter...OK' if not bad_workflows else 'FAIL - no frontmatter: ' + ', '.join(bad_workflows)}")
-  missing_skill_md = [d.name for d in sorted((agent / "skills").iterdir()) if d.is_dir() and not (d / "SKILL.md").exists()] if (agent / "skills").is_dir() else []
+  missing_skill_md = [d.name for d in sorted((agent / "skills").iterdir()) if d.is_dir() and d.name != "__pycache__" and not (d / "SKILL.md").exists()] if (agent / "skills").is_dir() else []
   record(ctx, "03", "skill_md", "pass" if not missing_skill_md else "fail", 0.0, f"folders without SKILL.md: {', '.join(missing_skill_md)}" if missing_skill_md else None)
   print(f"  skills: {'all have SKILL.md...OK' if not missing_skill_md else 'FAIL - no SKILL.md: ' + ', '.join(missing_skill_md)}")
 

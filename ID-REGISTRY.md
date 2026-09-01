@@ -12,6 +12,12 @@ Topics MUST be 7-14 uppercase chars and unique.
 - `LANADEBG` - Lana Debug Console (second console window for real-time debug/logging output)
 - `LANAUSRX` - Lana User Status/Progress Experience (CLI + ACP dead-air elimination)
 - `LANALOGS` - Lana Log Analysis and ACP Session Review
+- `LANACORE` - Lana Agent Core (turn loop, session, compaction, safety)
+- `LANAPRCF` - Lana Prompt and Configuration
+- `LANAPRVD` - Lana Provider Adapters
+- `LANATOOL` - Lana Tool System
+- `LANACLI` - Lana CLI Frontend
+- `LANASTST` - Lana Selftest (resolves LANATEST Doc ID collision with Eval Suite)
 
 ## External Topic References
 

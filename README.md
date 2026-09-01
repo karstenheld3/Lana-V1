@@ -164,6 +164,16 @@ Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (
 
 ## Specifications
 
-- [`_SPEC_LANA_MVP-1.md`](specs/_SPEC_LANA_MVP-1.md) [LANAAGNT-SP01] -- CLI agent specification
-- [`_SPEC_LANA_MVP-2_ACP.md`](specs/_SPEC_LANA_MVP-2_ACP.md) [LANAACPB-SP01] -- ACP protocol specification
-- [`_SPEC_LANADIST.md`](_Sessions/_2026-08-30_LanaDistribution/_SPEC_LANADIST.md) [LANADIST-SP01] -- distribution pipeline specification
+11 component-aligned spec triplets (SPEC + IMPL + TEST each) in `specs/`:
+
+- **01-ProductOverview** [LANAAGNT] -- product vision, domain model, NFRs, architectural constraints
+- **02-AgentCore** [LANACORE] -- turn loop, session persistence, compaction, command safety
+- **03-PromptAndConfig** [LANAPRCF] -- configuration loading, prompt system, system prompt assembly
+- **04-Providers** [LANAPRVD] -- OpenAI and Anthropic adapter layer
+- **05-Tools** [LANATOOL] -- tool set, edit enforcement, web research, trajectory search
+- **06-CLI** [LANACLI] -- CLI frontend, headless mode, prompt queue, cost tracking, zero-setup
+- **07-ACP** [LANAACPB] -- ACP v1 protocol frontend for IDE integration
+- **08-DebugConsole** [LANADEBG] -- pipe-connected debug viewer with LLM/tool/ACP instrumentation
+- **09-Distribution** [LANADIST] -- single-binary ship pipeline (PyApp + bundled prompt system)
+- **10-EvalSuite** [LANATEST] -- three-tier evaluation suite (structure, process, content quality)
+- **11-Selftest** [LANASTST] -- `/selftest` workflow for environment and model health checks

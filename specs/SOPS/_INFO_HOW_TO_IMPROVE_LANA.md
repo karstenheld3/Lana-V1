@@ -5,7 +5,7 @@
 **Timeline**: Created 2026-09-01
 
 **Depends on:**
-- `specs/_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]` for eval suite structure (tiers, tests, run records)
+- `specs/_SPEC_LANA_10-EvalSuite.md [LANATEST-SP01]` for eval suite structure (tiers, tests, run records)
 - `T01_BRNDSSNL_SessionLoadPersonalBrand_2026-09-01/_INFO_LANALOGS-BRNDSSNL_01.md [LANALOGS-BRNDSSNL-IN01]` for finding classification examples
 
 ## Summary
@@ -379,7 +379,7 @@ Batch 2 (prompt): PR-0005, PR-0007
 
 ## Sources
 
-- `LANALOGS-IN01-SC-EVALSPEC-SP01`: `_Sessions/_2026-08-30_LanaEvalSuite/_SPEC_LANA_EVAL_SUITE.md` - Three-tier eval design, scripted drives, immutable run records [VERIFIED]
+- `LANALOGS-IN01-SC-EVALSPEC-SP01`: `specs/_SPEC_LANA_10-EvalSuite.md` - Three-tier eval design, scripted drives, immutable run records [VERIFIED]
 - `LANALOGS-IN01-SC-T01-IN01`: `T01_BRNDSSNL_SessionLoadPersonalBrand_2026-09-01/_INFO_LANALOGS-BRNDSSNL_01.md` - 8 findings, all Category CHANGE, evidence format [VERIFIED]
 - `LANALOGS-IN01-SC-RUNNER-PY`: `evals/suite/runner/run_evals.py` - `--scripted` and `--skip-judge` flags enable $0 Tier A verification [VERIFIED]
 

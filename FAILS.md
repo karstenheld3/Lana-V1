@@ -5,6 +5,14 @@ ID format: `GLOB-FL-[NNNN]`
 
 ## Failures
 
+- **GLOB-FL-0006** [MEDIUM] 2026-09-01: Agent chose LANACLIT topic ID containing inappropriate substring
+  - **What**: When creating the target spec structure in `_INFO_HOW_TO_HANDLE_LANA_SPECS.md` and `_PROMPTS_MigrateSpecsToTarget.md`, agent chose `LANACLIT` (8 chars) over `LANACLI` (7 chars) for the CLI topic ID. Rationale was "consistency with other 8-char topics." The name contains the substring "clit" - inappropriate in professional documentation. The extra T adds zero semantic signal.
+  - **Why it slipped**: 1) Agent optimized for uniform character count (all topics 8 chars) instead of evaluating the actual word formed. 2) No profanity/substring check on generated identifiers. 3) The `_INFO_LANASPEC_01.md` analysis already noted "LANACLI (7 chars, valid)" as the primary choice - agent overrode it without good reason.
+  - **APAPALAN violation**: AP-NM-05 (use standard terms) - the extra T serves no disambiguation purpose. AP-BR-02 (sacrifice for brevity) - shorter form is clearer.
+  - **MECT violation**: Signal over Noise - the T in LANACLIT carries zero information. Same concept, one extra character, negative connotation. MECT: "every token must carry meaning."
+  - **Lesson**: When generating identifiers, read the full string as a word. Check for unintended substrings, especially in professional/public-facing documents. Prefer the shorter valid form when the longer form adds no signal. "Consistency in character count" is not a valid reason to override clarity.
+  - **Fix**: Replace LANACLIT with LANACLI in all affected files.
+
 - **GLOB-FL-0005** [HIGH] 2026-09-01: Agent assumed "exe not rebuilt" twice without checking timestamps (repeat of GLOB-FL-0004)
   - **What**: When source changes did not take effect in the running binary, agent stated "the exe hasn't been rebuilt yet" without comparing file timestamps. This happened twice in the same session despite GLOB-FL-0004 explicitly documenting this exact failure pattern and its lesson.
   - **Why it slipped**: 1) Agent treated "source change not visible in output" as sufficient evidence for "not rebuilt", skipping the 10-second timestamp check. 2) GLOB-FL-0004 was read during `/prime` but its lesson was not applied when the same situation arose. 3) The actual root cause (PyApp `sys.executable` is the cached Python, not the outer binary) was masked by the lazy assumption.

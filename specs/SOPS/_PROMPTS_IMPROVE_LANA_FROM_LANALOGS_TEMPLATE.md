@@ -21,8 +21,8 @@ SHARED PLACEHOLDERS:
 - [TEST_NAME]: eval test name, e.g., T04_SessionLoad
 - [TEST_PATH]: eval test path, e.g., evals/suite/02_WorkflowsSkills/T04_SessionLoad
 - [TIER]: A-scripted (source changes) or A-live (prompt changes)
-- [SPEC_FILE]: path to SPEC file, e.g., specs/_SPEC_LANA_MVP-1.md
-- [IMPL_FILE]: path to IMPL file, e.g., specs/_IMPL_LANA_MVP-1.md
+- [SPEC_FILE]: path to SPEC file, e.g., specs/_SPEC_LANA_02-AgentCore.md
+- [IMPL_FILE]: path to IMPL file, e.g., specs/_IMPL_LANA_02-AgentCore.md
 - [SESSION_PROBLEMS]: path to session PROBLEMS.md
 
 FINDINGS LIST (fill 1-5 entries, delete unused rows):
@@ -306,8 +306,8 @@ With these shared placeholders resolved:
 - [TEST_NAME] = T04_SessionLoad
 - [TEST_PATH] = evals/suite/02_WorkflowsSkills/T04_SessionLoad
 - [TIER] = A-live
-- [SPEC_FILE] = specs/_SPEC_LANA_MVP-1.md
-- [IMPL_FILE] = specs/_IMPL_LANA_MVP-1.md
+- [SPEC_FILE] = specs/_SPEC_LANA_02-AgentCore.md
+- [IMPL_FILE] = specs/_IMPL_LANA_02-AgentCore.md
 - [SESSION_PROBLEMS] = _PrivateSessions_gitignore/_2026-09-01_LanaLogAnalysis/T01_.../PROBLEMS.md
 
 Findings list:
