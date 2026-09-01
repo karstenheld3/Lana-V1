@@ -161,6 +161,7 @@ New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
 & $VenvPy -m pip show build *> $null
 if ($LASTEXITCODE -ne 0) { & $VenvPy -m pip install build --quiet }  # EC-04
 $wheelDir = Join-Path $BuildDir 'wheel'
+if (Test-Path $wheelDir) { Remove-Item $wheelDir -Recurse -Force }  # LANADIST-FL-0002: stale wheels from other versions cause wrong pip refresh
 & $VenvPy -m build --wheel --outdir $wheelDir $RootDir *> (Join-Path $BuildDir 'wheel-build.log')
 if ($LASTEXITCODE -ne 0) { Get-Content (Join-Path $BuildDir 'wheel-build.log') | Select-Object -Last 20 | Write-Host; Fail 'wheel build failed (EC-05).' }
 $wheel = Get-ChildItem $wheelDir -Filter "lana-$Version-*.whl" | Select-Object -First 1
@@ -195,13 +196,14 @@ if (Test-Path $oldExe) {  # IG-01: report before replacement (EC-07)
   Write-Host "  Replacing existing $ExeName (pre-flight renamed to _old.exe)."
 }
 Copy-Item $pyappExe $Script:Artifact -Force
-# Refresh lana package in PyApp cache so same-version rebuilds pick up new bundled content (LANADIST-FL-0001)
+# Refresh lana package in ALL PyApp cache versions so same-version rebuilds pick up new code (LANADIST-FL-0001, LANADIST-FL-0002)
 $pyappCache = Join-Path $env:LOCALAPPDATA 'pyapp\data\lana'
-$cachedPip = Get-ChildItem $pyappCache -Recurse -Filter 'pip.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'Scripts' } | Select-Object -First 1
-if ($cachedPip) {
+$cachedPips = Get-ChildItem $pyappCache -Recurse -Filter 'pip.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'Scripts' }
+foreach ($cachedPip in $cachedPips) {
   & $cachedPip.FullName install --force-reinstall --no-deps $wheel.FullName *> (Join-Path $BuildDir 'pip-refresh.log')
   if ($LASTEXITCODE -ne 0) { Get-Content (Join-Path $BuildDir 'pip-refresh.log') | Select-Object -Last 10 | Write-Host; Fail 'pip refresh of lana in PyApp cache failed.' }
-  Write-Host '  Refreshed lana package in PyApp cache.'
+  $versionDir = ($cachedPip.FullName -split '\\' | Where-Object { $_ -match '^\d+\.\d+' }) -join ''
+  Write-Host "  Refreshed lana package in PyApp cache ($versionDir)."
 }
 $smokeJob = Start-Job -ScriptBlock { param($exe) & $exe --version 2>&1 } -ArgumentList $Script:Artifact
 if (-not (Wait-Job $smokeJob -Timeout $SMOKE_TIMEOUT_SECONDS)) { Stop-Job $smokeJob; Remove-Job $smokeJob -Force; Fail "smoke test timed out after $SMOKE_TIMEOUT_SECONDS s (EC-11)." }
