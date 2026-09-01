@@ -196,15 +196,20 @@ if (Test-Path $oldExe) {  # IG-01: report before replacement (EC-07)
   Write-Host "  Replacing existing $ExeName (pre-flight renamed to _old.exe)."
 }
 Copy-Item $pyappExe $Script:Artifact -Force
-# Evict PyApp cache so the smoke test forces a clean extraction from the embedded wheel (single source of truth).
-# Replaces the fragile pip-refresh workaround (LANADIST-FL-0001, LANADIST-FL-0002) that had to find the right
-# pip.exe among N stale version directories. Deletion is simple, correct, and has no external dependencies.
-# The smoke test timeout already accounts for first-run extraction time (EC-11).
+# Refresh lana package in ALL PyApp cache versions so same-version rebuilds pick up new code.
+# PyApp caches by {hash}\{version} - multiple version dirs may exist from past builds.
+# Full cache eviction was rejected (20k files = full Python re-extraction per build).
+# Instead: pip-refresh every version's cache with the wheel we just built (LANADIST-FL-0001, LANADIST-FL-0002).
 $pyappCache = Join-Path $env:LOCALAPPDATA 'pyapp\data\lana'
-if (Test-Path $pyappCache) {
-  Remove-Item $pyappCache -Recurse -Force
-  Write-Host '  Evicted PyApp cache (clean extraction on smoke test).'
+$cachedPips = Get-ChildItem $pyappCache -Recurse -Filter 'pip.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'Scripts' }
+$refreshCount = 0
+foreach ($cachedPip in $cachedPips) {
+  & $cachedPip.FullName install --force-reinstall --no-deps $wheel.FullName *> (Join-Path $BuildDir 'pip-refresh.log')
+  if ($LASTEXITCODE -ne 0) { Get-Content (Join-Path $BuildDir 'pip-refresh.log') | Select-Object -Last 10 | Write-Host; Fail 'pip refresh of lana in PyApp cache failed.' }
+  $refreshCount++
 }
+if ($refreshCount -gt 0) { Write-Host "  Refreshed lana package in $refreshCount PyApp cache(s)." }
+else { Write-Host '  No PyApp cache found (first build - smoke test will create it).' }
 $smokeJob = Start-Job -ScriptBlock { param($exe) & $exe --version 2>&1 } -ArgumentList $Script:Artifact
 if (-not (Wait-Job $smokeJob -Timeout $SMOKE_TIMEOUT_SECONDS)) { Stop-Job $smokeJob; Remove-Job $smokeJob -Force; Fail "smoke test timed out after $SMOKE_TIMEOUT_SECONDS s (EC-11)." }
 $smokeOutput = (Receive-Job $smokeJob) -join "`n"
