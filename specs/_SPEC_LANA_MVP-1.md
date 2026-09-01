@@ -190,7 +190,8 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Report loaded counts at startup: N rules, N workflows, N skills
 
 **LANAAGNT-FR-03: System Prompt Assembly**
-- Fixed section order (cache-stable, OQ-13): identity preamble, `<communication_style>`, `<tool_calling>`, `<making_code_changes>`, `<task_management>`, `<running_commands>`, `<debugging>`, `<calling_external_apis>`, `<workflows>` (name + description list), `<user_rules>` (MEMORY blocks with highest-precedence preamble), `<capability_notice>`, `<user_information>` (OS, workspace path, git root)
+- Fixed section order (cache-stable, OQ-13): identity preamble, `<communication_style>`, `<tool_calling>`, `<making_code_changes>`, `<task_management>`, `<running_commands>`, `<debugging>`, `<calling_external_apis>`, `<workflows>` (name + description list), `<user_rules>` (MEMORY blocks with highest-precedence preamble), `<capability_notice>`, `<user_information>` (OS, workspace path, git root, agent folder path)
+- `<user_information>` includes the resolved agent folder path so the Generator never guesses the agent folder name (LANALOGS-PR-0001)
 - Identity: "You are Lana, ..." adapted from the Cascade preamble; IDE-specific sections (`<ide_metadata>`, `<mcp_servers>`, browser/deployment references) omitted (OQ-38)
 - All behavioral sections adapted: every reference to a tool not in LANAAGNT-FR-10 removed (e.g., the Cascade `<tool_calling>` code_search steering rule) (RV01 RF-04)
 - `<capability_notice>` section (after `<user_rules>`): lists tools that prompt system content may reference but which are unavailable in MVP-1, with fallbacks (`grep_search` replaces `code_search`; state inability for MCP/browser/deployment tools) (RV01 RF-04; `trajectory_search` removed from the notice 2026-08-30 - now available per FR-15)
@@ -200,7 +201,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 
 **LANAAGNT-FR-04: Agent Turn Loop**
 - One user message starts a loop: Generator call, execute requested ToolCalls sequentially (OQ-08), append results, repeat until the Generator responds without tool calls
-- Hard limit `max_tool_calls_per_prompt` (default 25) per user message; on reaching it, pause and ask the user to continue unless `auto_continue: true` (OQ-07; RV01 RF-09)
+- Hard limit `max_tool_calls_per_prompt` (default 40) per user message; on reaching it, pause and ask the user to continue unless `auto_continue: true` (OQ-07; RV01 RF-09; raised from 25 per LANALOGS-PR-0006)
 - Every tool result is capped at `tool_result_max_chars` (default 50000), tail-truncated with a `<truncated N chars>` marker before entering conversation state (RV01 RF-03)
 - Streaming: assistant text and thinking rendered incrementally as AgentEvents (OQ-09)
 - Cancellation: Ctrl+C aborts the in-flight API call; completed ToolCalls of the aborted turn remain in conversation state, closed with a synthetic note "turn cancelled after N tool calls"; only the incomplete API response is discarded (RV01 RF-06)
@@ -255,6 +256,7 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Interaction: `ask_user_question`
 - Names, descriptions, parameter names, and JSON Schemas verbatim from the Cascade reference documented in `HowWindsurfCascadeWorks.md` chapters 8-9 (OQ-27, OQ-30); OS/shell placeholders in `run_command` filled per host
 - `read_file` refuses image files with an explanatory error - visual presentation is unavailable in a CLI; the capability notice states this limitation (synced from implementation 2026-08-30)
+- `read_file` and `list_dir` path-not-found errors include a hint showing the closest existing parent directory and up to 5 similarly-named siblings, guiding the Generator toward the correct path without broad searches (LANALOGS-PR-0002)
 - Dropped from Cascade's 27 with rationale recorded in LANAAGNT-DD-10
 
 **LANAAGNT-FR-11: Edit Enforcement Gates**
@@ -539,6 +541,11 @@ Running workflow 'prime'...
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 14. Document History
+
+**[2026-09-01 15:30]**
+- Changed: FR-03 `<user_information>` includes agent_folder path (LANALOGS-PR-0001)
+- Changed: FR-04 default `max_tool_calls_per_prompt` raised from 25 to 40 (LANALOGS-PR-0006)
+- Added: FR-10 path-not-found hints for `read_file` and `list_dir` (LANALOGS-PR-0002)
 
 **[2026-08-31 18:30]**
 - Added: DD-25 install root concept - separates infrastructure base (config, agent_folder, data_dir) from workspace (CWD); resolution: --install-root > LANA_INSTALL_ROOT > CWD fallback

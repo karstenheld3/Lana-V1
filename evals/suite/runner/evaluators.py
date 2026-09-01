@@ -78,7 +78,12 @@ def assert_tool_called(events, spec) -> tuple[bool, str]:
   if spec.get("args_regex"):
     calls = [event for event in calls if re.search(spec["args_regex"], json.dumps(event.get("args", {}), ensure_ascii=False))]
   minimum = spec.get("min", 1)
-  return len(calls) >= minimum, f"{len(calls)} {'call' if len(calls) == 1 else 'calls'} of '{target}' (need >= {minimum})"
+  maximum = spec.get("max")
+  count = len(calls)
+  if maximum is not None:
+    ok = minimum <= count <= maximum
+    return ok, f"{count} {'call' if count == 1 else 'calls'} of '{target}' (need {minimum}..{maximum})"
+  return count >= minimum, f"{count} {'call' if count == 1 else 'calls'} of '{target}' (need >= {minimum})"
 
 
 def assert_forbidden_tool(events, spec) -> tuple[bool, str]:
@@ -100,7 +105,42 @@ def assert_read_before_edit(events, spec) -> tuple[bool, str]:
   return True, "every edit preceded by a read or create"
 
 
-ASSERTS = {"tool_called": assert_tool_called, "forbidden_tool": assert_forbidden_tool, "read_before_edit": assert_read_before_edit}
+def assert_forbidden_tool_args(events, spec) -> tuple[bool, str]:
+  target = spec["tool"]
+  match_tools = EDIT_TOOLS if target in EDIT_TOOLS else {target}
+  matching = [event for event in tool_events(events) if event.get("tool") in match_tools
+              and re.search(spec["args_regex"], json.dumps(event.get("args", {}), ensure_ascii=False))]
+  return not matching, ("never called with forbidden args" if not matching
+    else f"'{target}' called {len(matching)} {'time' if len(matching) == 1 else 'times'} matching '{spec['args_regex']}'")
+
+
+def assert_tool_call_count(events, spec) -> tuple[bool, str]:
+  count = len(tool_events(events))
+  minimum = spec.get("min", 0)
+  maximum = spec.get("max")
+  if maximum is not None:
+    ok = minimum <= count <= maximum
+    return ok, f"{count} total tool {'call' if count == 1 else 'calls'} (need {minimum}..{maximum})"
+  return count >= minimum, f"{count} total tool {'call' if count == 1 else 'calls'} (need >= {minimum})"
+
+
+def finished_events(events: list[dict]) -> list[dict]:
+  return [event for event in events if event.get("type") == "tool_call_finished"]
+
+
+def assert_tool_call_errors(events, spec) -> tuple[bool, str]:
+  error_events = [event for event in finished_events(events) if event.get("status") == "error"]
+  if spec.get("result_regex"):
+    error_events = [event for event in error_events if re.search(spec["result_regex"], event.get("result", ""))]
+  count = len(error_events)
+  maximum = spec.get("max", 0)
+  minimum = spec.get("min", 0)
+  ok = minimum <= count <= maximum
+  return ok, f"{count} tool error{'s' if count != 1 else ''} (need {minimum}..{maximum})"
+
+
+ASSERTS = {"tool_called": assert_tool_called, "forbidden_tool": assert_forbidden_tool, "read_before_edit": assert_read_before_edit,
+           "forbidden_tool_args": assert_forbidden_tool_args, "tool_call_count": assert_tool_call_count, "tool_call_errors": assert_tool_call_errors}
 
 
 def evaluate_process(workspace: Path, checks: dict) -> dict:

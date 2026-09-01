@@ -6,6 +6,26 @@ from lana.tools import ToolContext, ToolError
 MAX_LINE_CHARS = 2000
 FIND_RESULT_CAP = 50
 GREP_LINE_CAP = 200
+PATH_HINT_SIBLINGS = 5
+
+
+def path_not_found_hint(target: Path) -> str:
+  """Build a hint showing the closest existing parent and up to N sibling matches (LANALOGS-PR-0002)."""
+  parent = target.parent
+  while parent != parent.parent and not parent.exists(): parent = parent.parent
+  if not parent.exists(): return ""
+  missing_name = target.name.lower()
+  missing_stem = target.stem.lower().rstrip("0123456789").rstrip("_- ")
+  siblings = []
+  try:
+    siblings = sorted(item.name for item in parent.iterdir()
+                      if missing_name in item.name.lower() or (missing_stem and missing_stem in item.name.lower()))[:PATH_HINT_SIBLINGS]
+  except OSError:
+    pass
+  hint = f"\n  HINT: closest existing parent is '{parent}'."
+  if siblings: hint += f" Similar entries: {', '.join(siblings)}"
+  return hint
+
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".tiff", ".ico", ".heic", ".heif")
 # rg/fd parity: both tool descriptions promise gitignore-style skipping; this fixed set covers the dominant
 # noise directories without a gitignore parser dependency (DD-17 closed list) - documented approximation
@@ -28,7 +48,7 @@ def normalize(path: str | Path) -> str:
 
 def execute_read_file(args: dict, context: ToolContext) -> str:
   path = Path(args["file_path"])
-  if not path.exists(): raise ToolError(f"File not found: '{path}'")
+  if not path.exists(): raise ToolError(f"File not found: '{path}'{path_not_found_hint(path)}")
   if path.is_dir(): raise ToolError(f"'{path}' is a directory - use list_dir")
   if path.suffix.lower() in IMAGE_EXTENSIONS and path.suffix.lower() != ".svg": raise ToolError(f"'{path.name}' is an image - visual presentation is not available in this CLI environment")
   try:
@@ -54,7 +74,7 @@ def execute_read_file(args: dict, context: ToolContext) -> str:
 
 def execute_list_dir(args: dict, context: ToolContext) -> str:
   base = Path(args["DirectoryPath"])
-  if not base.is_dir(): raise ToolError(f"Directory not found: '{base}'")
+  if not base.is_dir(): raise ToolError(f"Directory not found: '{base}'{path_not_found_hint(base)}")
   entries = []
   for item in sorted(base.iterdir(), key=lambda candidate: (candidate.is_file(), candidate.name.lower())):
     if item.is_dir():

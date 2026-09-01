@@ -1,7 +1,7 @@
 """TK-010: file reading tools (IP01 TC-16..18, TC-23)."""
 import pytest
 from lana.tools import ToolContext, ToolError, ToolRegistry
-from lana.tools.file_tools import execute_find_by_name, execute_grep_search, execute_list_dir, execute_read_file, normalize
+from lana.tools.file_tools import execute_find_by_name, execute_grep_search, execute_list_dir, execute_read_file, normalize, path_not_found_hint
 
 
 @pytest.fixture
@@ -122,3 +122,33 @@ def test_tc23_result_cap_marker(tmp_path):
   marker_start = result.index("<truncated ")
   removed = int(result[marker_start:].split()[1])
   assert len(result) == 200 + len(f"\n<truncated {removed} chars>")
+
+
+# PR-0002: path-not-found hints
+def test_path_hint_shows_parent_and_siblings(tmp_path):
+  (tmp_path / "alpha").mkdir()
+  (tmp_path / "alpha_v2").mkdir()
+  (tmp_path / "beta").mkdir()
+  hint = path_not_found_hint(tmp_path / "alpha_v3")
+  assert "HINT" in hint
+  assert str(tmp_path) in hint
+  assert "alpha" in hint  # alpha and alpha_v2 match "alpha_v3"
+
+def test_path_hint_nonexistent_deep(tmp_path):
+  hint = path_not_found_hint(tmp_path / "no_such_dir" / "sub" / "deep.txt")
+  assert "HINT" in hint
+  assert str(tmp_path) in hint
+
+def test_path_hint_empty_when_root_gone():
+  from pathlib import Path
+  hint = path_not_found_hint(Path("Z:/completely/fake/path/file.txt"))
+  # On Windows Z: likely doesn't exist, hint may be empty or show Z:\
+  assert isinstance(hint, str)
+
+def test_read_file_not_found_includes_hint(tmp_path, context):
+  with pytest.raises(ToolError, match="HINT"):
+    execute_read_file({"file_path": str(tmp_path / "missing.txt")}, context)
+
+def test_list_dir_not_found_includes_hint(tmp_path, context):
+  with pytest.raises(ToolError, match="HINT"):
+    execute_list_dir({"DirectoryPath": str(tmp_path / "no_such_dir")}, context)

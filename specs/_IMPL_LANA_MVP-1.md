@@ -378,6 +378,28 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 
 **Note**: Fingerprint hash over sorted (path, content) pairs - deterministic across machines [ASSUMED - mtime excluded to survive copies/checkouts]. Legacy files without `session_started` follow EC-28. The recorded tool definitions are the resume authority - a tool added after recording is absent from resumed Generator calls until a new session (IG-01 byte-identity extends to the tool block)
 
+### Phase K: Session Load Improvements (LANALOGS-PR-0001..0007, added 2026-09-01)
+
+### LANAAGNT-IP01-IS-25: Session load quality improvements (LANAAGNT-FR-03, FR-04, FR-10)
+
+**Location**: `prompt.py`, `cli.py`, `config.py`, `tools/file_tools.py`, `.lana/workflows/session-load.md`, `.lana/workflows/prime.md`
+
+**Action**:
+```python
+# prompt.py: build_user_information includes agent_folder path from workspace_info (PR-0001, FR-03)
+# cli.py: workspace_info dict gains "agent_folder": str(app.agent_folder) (PR-0001)
+# config.py: max_tool_calls_per_prompt default 25 -> 40 (PR-0006, FR-04)
+# file_tools.py: path_not_found_hint() on read_file/list_dir ToolError (PR-0002, FR-10)
+#   - walks parent chain to closest existing dir, fuzzy-matches siblings by stem
+# session-load.md Step 1: path decomposition strategy (PR-0003)
+# session-load.md Step 2: /prime targets session's parent workspace (PR-0004)
+# session-load.md Step 3: root-level docs only (PR-0007)
+# prime.md Step 3: large file limits - FAILS.md first 50, ID-REGISTRY.md first 30 (PR-0005)
+```
+
+**Edge cases**:
+- **LANAAGNT-IP01-EC-31**: `path_not_found_hint` on deeply nested nonexistent paths - parent walk stops at drive root, returns hint with closest existing ancestor
+
 ### Phase I: Hardening
 
 ### LANAAGNT-IP01-IS-19: NFR verification fixtures
@@ -582,6 +604,14 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - **LANAAGNT-IP01-TC-66**: Thinking payload round trip - scripted turn yields a thinking payload -> `turn_finished.thinking_payloads` in JSONL; resume reprojects it into Message.thinking on provider match; provider mismatch drops it from the resend while the event stays in the log (EC-29)
 - **LANAAGNT-IP01-TC-67**: Legacy session file without `session_started` (EC-28) -> resume succeeds via disk assembly, legacy warning printed, conversation projection unchanged
 
+### Category 14: Session Load Improvements (5 tests, added 2026-09-01)
+
+- **LANAAGNT-IP01-TC-69**: `path_not_found_hint` shows closest existing parent and fuzzy-matched siblings when target missing (EC-31)
+- **LANAAGNT-IP01-TC-70**: `path_not_found_hint` on deeply nested nonexistent paths returns hint with drive root ancestor
+- **LANAAGNT-IP01-TC-71**: `read_file` not-found error message includes HINT with parent path
+- **LANAAGNT-IP01-TC-72**: `list_dir` not-found error message includes HINT with parent path
+- **LANAAGNT-IP01-TC-73**: `path_not_found_hint` returns empty string when even root doesn't exist (e.g. Z:\ drive)
+
 ## 6. Verification Checklist
 
 ### Prerequisites
@@ -606,6 +636,10 @@ Resuming session '.lana-data/sessions/2026-08-30_025545_54286c.jsonl'...
 - [x] **LANAAGNT-IP01-VC-15**: `/verify` run on implementation against this plan; `/sync` SPEC if implementation deviated
 
 ## 7. Document History
+
+**[2026-09-01 15:14]**
+- Added: Phase K session load improvements (IS-25, EC-31) per LANALOGS-PR-0001..0007
+- Added: Category 14 test cases TC-69..73 for path_not_found_hint
 
 **[2026-08-31 18:30]**
 - Added: EC-30 install root resolution (DD-25), TC-68 install root separation test

@@ -113,6 +113,7 @@ def build_user_information(workspace_info: dict) -> str:
   lines = ["<user_information>", f"The USER's OS is {workspace_info.get('os', 'windows')}."]
   lines.append(f"The workspace root path is {workspace_info.get('workspace', '')}.")
   if workspace_info.get("git_root"): lines.append(f"The git repository root is {workspace_info['git_root']}.")
+  if workspace_info.get("agent_folder"): lines.append(f"The agent folder (prompt system) path is {workspace_info['agent_folder']}. Use this path for workflows, rules, and skills - never guess the agent folder name.")
   lines.append("</user_information>")
   return "\n".join(lines)
 

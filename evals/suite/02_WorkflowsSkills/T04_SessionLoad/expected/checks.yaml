@@ -1,0 +1,42 @@
+checks:
+  # PR-0001: Agent reads workflow from .lana/, never .devin/
+  - id: no_devin_reads
+    action: "Agent never reads from .devin/ folder"
+    severity: CRITICAL
+    assert: {type: forbidden_tool_args, tool: read_file, args_regex: "\\.devin/"}
+
+  # PR-0001: Workflow actually read from correct agent folder
+  - id: session_load_workflow_read
+    action: "Agent read session-load.md workflow"
+    severity: CRITICAL
+    assert: {type: tool_called, tool: read_file, min: 1, args_regex: "session-load\\.md"}
+
+  # PR-0002: No tool call errors (file not found, etc.)
+  - id: no_tool_errors
+    action: "Zero tool calls finished with error status"
+    severity: HIGH
+    assert: {type: tool_call_errors, max: 0}
+
+  # PR-0003, PR-0006: Efficient session - bounded tool calls
+  - id: efficient_session
+    action: "Session completes within 20 tool calls"
+    severity: HIGH
+    assert: {type: tool_call_count, max: 20}
+
+  # PR-0005: FAILS.md not read excessively (at most once, ideally with offset)
+  - id: limited_fails_reads
+    action: "FAILS.md read at most once"
+    severity: MEDIUM
+    assert: {type: tool_called, tool: read_file, min: 0, max: 1, args_regex: "FAILS\\.md"}
+
+  # Session docs read
+  - id: session_notes_read
+    action: "Agent read session NOTES.md"
+    severity: HIGH
+    assert: {type: tool_called, tool: read_file, min: 1, args_regex: "SampleProject.*NOTES\\.md"}
+
+  # Read before edit discipline
+  - id: read_before_edit
+    action: "No edit on a file the agent never read or created"
+    severity: CRITICAL
+    assert: {type: read_before_edit}

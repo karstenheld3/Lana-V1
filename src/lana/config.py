@@ -41,7 +41,7 @@ class LanaConfig(BaseModel):
   agent_folder: str = ".lana"
   data_dir: str = ".lana-data"
   rule_block_max_chars: int = 6000
-  max_tool_calls_per_prompt: int = 25
+  max_tool_calls_per_prompt: int = 40
   auto_continue: bool = False
   tool_result_max_chars: int = 50000
   compaction_threshold_fraction: float = 0.6

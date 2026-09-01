@@ -49,7 +49,7 @@ DEFAULT_LANA_CONFIG = {
   },
   "agent_folder": ".lana",
   "rule_block_max_chars": 6000,
-  "max_tool_calls_per_prompt": 25,
+  "max_tool_calls_per_prompt": 40,
   "auto_continue": False,
   "tool_result_max_chars": 50000,
   "compaction_threshold_fraction": 0.6,

@@ -130,7 +130,7 @@ def build_runtime(args, workspace: Path, interactive: bool, install_root: Path |
     print(f"  WARNING: policy '{app.lana.execution_policy}' auto-executes commands - prompt-injection risk.")
     print("  HINT: use this policy only in trusted workspaces; switch back with --policy manual.")
   git_root = find_git_root(workspace)
-  workspace_info = {"os": platform.system().lower(), "workspace": str(workspace), "git_root": str(git_root) if git_root else ""}
+  workspace_info = {"os": platform.system().lower(), "workspace": str(workspace), "git_root": str(git_root) if git_root else "", "agent_folder": str(app.agent_folder)}
   system_prompt = build_system_prompt(prompt_system, workspace_info)
   registry = ToolRegistry(os_name=workspace_info["os"], shell="pwsh", skills=prompt_system.skills)
   for name, executor in EXECUTORS.items(): registry.register(name, executor)
