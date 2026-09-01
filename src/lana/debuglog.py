@@ -17,8 +17,9 @@ def now_ts() -> str:
 
 
 class DebugLogWriter:
-  def __init__(self, viewer):
+  def __init__(self, viewer, log_file=None):
     self.viewer = viewer  # None = POSIX stderr fallback (DD-07, EC-03)
+    self.log_file = log_file  # None = no file logging
     self.dead = False
 
   def write(self, line: str) -> None:
@@ -32,12 +33,28 @@ class DebugLogWriter:
     except OSError:  # EC-01: viewer window closed - disable permanently, warn once, never raise (IG-02)
       self.dead = True
       print("WARNING: debug console pipe broken - debug logging disabled for this session.", file=sys.stderr)
+    if self.log_file is not None:
+      try:
+        self.log_file.write(line + "\n")
+        self.log_file.flush()
+      except (OSError, ValueError):
+        self.log_file = None
+        print("WARNING: debug log file write failed - file logging disabled.", file=sys.stderr)
 
 
-def enable() -> None:
+def enable(log_dir: str | None = None) -> None:
   """Spawn the viewer window and activate dlog(); called once at startup (FR-01)."""
   global _writer
   if _writer is not None: return
+  log_file = None
+  if log_dir:
+    log_path = os.path.join(log_dir, f"lana-debug-{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jsonl")
+    try:
+      os.makedirs(log_dir, exist_ok=True)
+      log_file = open(log_path, "w", encoding="utf-8")
+      print(f"Debug log file: {log_path}", file=sys.stderr)
+    except (OSError, ValueError) as error:
+      print(f"WARNING: cannot create debug log file ({error}) - continuing without it.", file=sys.stderr)
   if os.name == "nt":
     try:  # DD-03: Lana re-invoked as the viewer - works from source and PyApp binary alike.
       # stdout/stderr -> DEVNULL: the child would otherwise inherit the PARENT's streams (STARTF_USESTDHANDLES)
@@ -49,10 +66,10 @@ def enable() -> None:
       print(f"WARNING: cannot open debug console ({error}) - continuing without it.", file=sys.stderr)
       return
     print(f"Debug console opened (PID {viewer.pid}).", file=sys.stderr)
-    _writer = DebugLogWriter(viewer)
+    _writer = DebugLogWriter(viewer, log_file)
   else:  # DD-07: viewer window is Windows-only; POSIX gets the same lines on stderr
     print("NOTICE: debug console window is Windows-only - debug lines go to stderr.", file=sys.stderr)
-    _writer = DebugLogWriter(None)
+    _writer = DebugLogWriter(None, log_file)
 
 
 def dlog(dom: str, op: str, **fields) -> None:

@@ -17,6 +17,7 @@
 - `knowledge\` - documentation of stuff used by agent to implement and maintain product
 - `docs\` - product documentation
 - `specs\` - internal specifications and plans
+- `specs\SOPS\` - workflow-related SOPs (standard operating procedures for improving, testing, releasing Lana)
 
 ## Key Inputs
 
@@ -48,6 +49,13 @@
 - **Windows registry path bug**: Devin Desktop reads `%APPDATA%\Code\User\acp\registry.json` on Windows regardless of channel (stable/next). The `.windsurf-next\acp\registry.json` path is IGNORED. Always edit the `%APPDATA%\Code\User\` copy.
 - Two files exist: `C:\Users\User\.windsurf-next\acp\registry.json` (unused) and `C:\Users\User\AppData\Roaming\Code\User\acp\registry.json` (actual). Keep both in sync or only edit the real one.
 - After editing, run "Reload ACP Connections" from Command Palette or restart Devin Desktop.
+- **NEVER wrap the exe in a .bat for ACP registry entries.** The registry `cmd` MUST point directly to the exe. Bat wrappers break the debug console visibility (`CREATE_NEW_CONSOLE` only works from a direct exe spawn, not from a bat-launched child process). Add features via CLI args to the exe instead (e.g., `--log-dir`).
+
+## IPPS Upstream (Integrated Prompt & Process System)
+
+- `e:\Dev\IPPS\DevSystemV4.3` - canonical source (rules, workflows, skills without agent-folder wrapper)
+- `e:\Dev\IPPS\.devin` - `.devin/` mirror of DevSystemV4.3
+- Sync direction: Lana-V1 changes → IPPS (both locations) when rules/workflows/skills are improved here
 
 ## Source Control Approach
 
@@ -58,7 +66,7 @@
 - `_Sessions/` tracked in git (session notes, specs, plans, bugfix backups are versioned history)
 - `_Sessions/.../backup/*.py` files are intentional pre-fix source snapshots (not redundant with git history)
 - `config/.api-keys.txt` gitignored (secrets); all other config files tracked
-- `evals/runs/` gitignored (test run output); `evals/suite/` tracked (test definitions, fixtures, drive scripts)
+- `evals/runs_gitignore/` gitignored via `*_gitignore/` convention (test run output); `evals/suite/` tracked (test definitions, fixtures, drive scripts)
 - API keys: env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) take priority over `.api-keys.txt` (FR-01)
 - `knowledge/` tracked (reference docs for agent implementation); large JSON files accepted (e.g. `sdk_methods.json`)
 

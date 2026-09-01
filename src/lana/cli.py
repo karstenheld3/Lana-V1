@@ -56,6 +56,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--policy", choices=["manual", "auto", "turbo"], help="execution policy override")
   parser.add_argument("--debug", action="store_true", help="write redacted request/response JSON to .lana-data/logs/")
   parser.add_argument("--debug-console", action="store_true", help="open a second console window with real-time debug/timing output (LANADEBG-SP01)")
+  parser.add_argument("--log-dir", metavar="DIR", help="write timestamped debug JSONL log files to DIR (auto-creates dir and filename)")
   parser.add_argument("--debug-viewer", action="store_true", help=argparse.SUPPRESS)  # internal: run as the debug console viewer (LANADEBG-DD-03)
   parser.add_argument("--show-thinking", action="store_true", help="stream model thinking dim-styled (FR-16)")
   parser.add_argument("--install-root", metavar="PATH", help="infrastructure base directory for config, prompt library, and data (DD-25; env LANA_INSTALL_ROOT; default: cwd)")
@@ -291,8 +292,8 @@ def main() -> int:
   if args.debug_viewer:  # internal viewer mode: render the debug stream from stdin (LANADEBG-DD-03, EC-07)
     from lana.debug_viewer import run_viewer
     return run_viewer()
-  if args.debug_console:
-    enable_debug_console()  # before any instrumented operation (LANADEBG-FR-01)
+  if args.debug_console or args.log_dir:
+    enable_debug_console(log_dir=args.log_dir)  # before any instrumented operation (LANADEBG-FR-01)
     dlog("app", "startup", mode="acp" if args.acp else ("headless" if (args.prompt is not None or args.prompt_file) else "repl"), version=package_version())
   if args.acp:
     if args.prompt is not None or args.resume or args.prompt_file:  # DD-09: one process serves either the CLI or ACP, never both

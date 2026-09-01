@@ -37,6 +37,97 @@ def parsed_lines(stdin: FakeStdin) -> list[dict]:
   return [json.loads(line) for line in stdin.lines]
 
 
+# FR-07: DebugLogWriter writes to both viewer pipe and log file simultaneously
+def test_dual_output_viewer_and_file(monkeypatch):
+  stdin = FakeStdin()
+  log_buf = io.StringIO()
+  writer = DebugLogWriter(FakeViewer(stdin), log_file=log_buf)
+  monkeypatch.setattr(debuglog, "_writer", writer)
+  dlog("app", "startup", mode="test")
+  assert len(stdin.lines) == 1
+  log_buf.seek(0)
+  file_lines = log_buf.read().strip().split("\n")
+  assert len(file_lines) == 1
+  assert json.loads(file_lines[0])["op"] == "startup"
+
+
+# FR-07: log file only (no viewer) - lines go to file and stderr fallback
+def test_log_file_without_viewer(monkeypatch, capsys):
+  log_buf = io.StringIO()
+  writer = DebugLogWriter(None, log_file=log_buf)
+  monkeypatch.setattr(debuglog, "_writer", writer)
+  dlog("tool", "start", tool="read_file")
+  log_buf.seek(0)
+  entry = json.loads(log_buf.read().strip())
+  assert entry["tool"] == "read_file"
+  assert "read_file" in capsys.readouterr().err  # stderr fallback also fires
+
+
+# EC-10: log file write failure disables file logging, viewer continues
+def test_file_failure_disables_file_only(monkeypatch, capsys):
+  stdin = FakeStdin()
+  log_buf = io.StringIO()
+  log_buf.close()  # force OSError on write
+  writer = DebugLogWriter(FakeViewer(stdin), log_file=log_buf)
+  monkeypatch.setattr(debuglog, "_writer", writer)
+  dlog("app", "test")
+  assert len(stdin.lines) == 1  # viewer still works
+  assert writer.log_file is None  # file logging disabled
+  assert "file write failed" in capsys.readouterr().err
+  dlog("app", "test2")  # no second warning
+  assert len(stdin.lines) == 2  # viewer keeps working
+
+
+# EC-11: viewer pipe breaks but log file keeps working
+def test_viewer_failure_file_continues(monkeypatch, capsys):
+  stdin = FakeStdin(fail=True)
+  log_buf = io.StringIO()
+  writer = DebugLogWriter(FakeViewer(stdin), log_file=log_buf)
+  monkeypatch.setattr(debuglog, "_writer", writer)
+  dlog("app", "test")
+  assert writer.dead is True  # viewer disabled
+  log_buf.seek(0)
+  assert json.loads(log_buf.read().strip())["op"] == "test"  # file got the line
+  assert "pipe broken" in capsys.readouterr().err
+
+
+# FR-07: enable(log_dir=) creates directory and timestamped .jsonl file
+def test_enable_log_dir_creates_file(tmp_path, monkeypatch):
+  monkeypatch.setattr(debuglog, "_writer", None)
+  log_dir = str(tmp_path / "logs")
+  # Patch Popen to avoid spawning a real viewer (on Windows) or set non-nt for stderr fallback
+  monkeypatch.setattr("os.name", "posix")
+  debuglog.enable(log_dir=log_dir)
+  assert debuglog.enabled()
+  writer = debuglog._writer
+  assert writer.log_file is not None
+  assert (tmp_path / "logs").is_dir()
+  import glob
+  jsonl_files = glob.glob(str(tmp_path / "logs" / "lana-debug-*.jsonl"))
+  assert len(jsonl_files) == 1
+  # Write a line and verify it lands in the file
+  dlog("app", "test_file")
+  writer.log_file.flush()
+  with open(jsonl_files[0], encoding="utf-8") as f:
+    content = f.read().strip()
+  assert json.loads(content)["op"] == "test_file"
+  # Cleanup singleton
+  monkeypatch.setattr(debuglog, "_writer", None)
+
+
+# EC-09: unwritable log_dir - enable succeeds without file, viewer works
+def test_enable_unwritable_log_dir(tmp_path, monkeypatch, capsys):
+  monkeypatch.setattr(debuglog, "_writer", None)
+  monkeypatch.setattr("os.name", "posix")
+  # Use an invalid path that can't be created
+  bad_dir = str(tmp_path / "logs" / "\0invalid")
+  debuglog.enable(log_dir=bad_dir)
+  assert debuglog.enabled()  # writer still created (stderr fallback)
+  assert debuglog._writer.log_file is None  # file logging failed gracefully
+  assert "cannot create debug log file" in capsys.readouterr().err
+  monkeypatch.setattr(debuglog, "_writer", None)
+
+
 # IG-04: flag absent -> dlog is a no-op behind one None check, enabled() False
 def test_dlog_disabled_is_noop(monkeypatch):
   monkeypatch.setattr(debuglog, "_writer", None)
