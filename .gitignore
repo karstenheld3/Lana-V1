@@ -13,7 +13,6 @@ src/lana/bundled/config/
 *_gitignore.*
 *_gitignore/
 config/.api-keys.txt
-evals/runs/
 *.bak
 *.orig
 *.swp

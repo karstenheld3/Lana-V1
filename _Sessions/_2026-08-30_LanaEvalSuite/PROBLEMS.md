@@ -42,6 +42,12 @@
 
 ## Resolved
 
+**LANATEST-PR-0008: Eval suite leaves artifacts on disk outside runs_gitignore**
+- **History**: Added 2026-09-01, Resolved 2026-09-01
+- **Description**: Running Lana with eval prompts (e.g. 02-T01 WriteSpec) from outside the runner (e.g. from `dist/`) left `_SPEC_WORDCOUNT.md`, `.lana/`, `.lana-data/`, `config/` in the CWD. The runner's eval workdirs (inside `runs_gitignore/`) also leaked the real repo path via `find_git_root` walking up past the workdir to `E:\Dev\Lana-V1\.git`, exposing the repo path in the system prompt.
+- **Resolution**: 1) `.git` sentinel directory created in each eval workdir by `copy_scaffold` (prevents `find_git_root` from walking past the sandbox); 2) `detect_workspace_escape` post-test check scans tool call events for paths outside the workdir and marks the test as error if found; 3) Cleaned `dist/` artifacts.
+- **Prevention**: The `.git` sentinel ensures the LLM never learns the real repo path. The escape detector catches any future leak as a test error.
+
 **LANATEST-PR-0007: Test environment broken after workspace folder rename**
 - **History**: Added 2026-08-30 20:05, Resolved 2026-08-30 20:05
 - **Description**: 1) The venv's editable install pointed at the old folder (`__editable__.lana-0.1.0.pth` → `E:\Dev\Lana-V1\src`) → `ModuleNotFoundError: lana`. 2) `src/lana/bundled/` was empty (cleaned by `_build.ps1` step 8) → 5 pre-existing failures in test_distribution.py/test_hardening.py.

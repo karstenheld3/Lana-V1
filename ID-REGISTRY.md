@@ -11,6 +11,7 @@ Topics MUST be 7-14 uppercase chars and unique.
 - `LANATEST` - Lana External Test Suite (prompt-based agent evaluation with golden reference outputs)
 - `LANADEBG` - Lana Debug Console (second console window for real-time debug/logging output)
 - `LANAUSRX` - Lana User Status/Progress Experience (CLI + ACP dead-air elimination)
+- `LANALOGS` - Lana Log Analysis and ACP Session Review
 
 ## External Topic References
 

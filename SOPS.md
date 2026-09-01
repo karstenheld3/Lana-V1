@@ -32,6 +32,7 @@
 - [SOP 6: Full Release](#sop-6-full-release)
 - [SOP 7: Register Lana as ACP Agent](#sop-7-register-lana-as-acp-agent)
 - [Common Verification Commands](#common-verification-commands)
+- [Domain-Specific SOPs](#domain-specific-sops)
 
 ## SOP 1: Version Bump
 
@@ -313,4 +314,11 @@ Select-String -Path (Get-ChildItem "[WORKSPACE]\src" -Recurse -File) -Pattern 'A
 Get-ChildItem -Path "[WORKSPACE]\src","[WORKSPACE]\tests" -Recurse -Directory -Filter "__pycache__"
 # Cleanup: pipe to Remove-Item -Recurse -Force
 ```
+
+## Domain-Specific SOPs
+
+Procedures for specific domains live in `specs/SOPS/`. These are separate from workspace SOPs above because they address cross-session processes rather than build/release mechanics.
+
+- **`_INFO_HOW_TO_IMPROVE_LANA.md`** `[LANALOGS-IN01]` - Evidence-Driven Improvement Pipeline: batched OBSERVE-EXTEND-MEASURE-CHANGE-VERIFY-GATE-COMMIT cycle with check-level attribution and tiered verification
+- **`_PROMPTS_IMPROVE_LANA_FROM_LANALOGS_TEMPLATE.md`** - Prompt sequence template enforcing the pipeline above. One copy per batch of findings (1-5), produces atomic commits with per-finding attribution
 

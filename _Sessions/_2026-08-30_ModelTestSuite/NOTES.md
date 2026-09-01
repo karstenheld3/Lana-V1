@@ -81,6 +81,10 @@ These test ONE model per provider with ONE method each. They do NOT:
 
 - (none yet)
 
+## Housekeeping
+
+- `_SPEC_SELFTEST.md`, `_IMPL_SELFTEST.md`, `_TEST_SELFTEST.md` moved to `specs/` (2026-09-01) - central specs folder per workspace convention
+
 ## Significant Prompts Log
 
 - (none yet)

@@ -6,7 +6,7 @@
 **Timeline**: Created 2026-08-30
 **Target file(s)**:
 - `evals/suite/` (test definitions, runner, evaluators)
-- `evals/runs/` (immutable run records)
+- `evals/runs_gitignore/` (immutable run records)
 
 **Depends on:**
 - `specs/_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]` for headless CLI mode and session event flushing
@@ -126,7 +126,7 @@ A **GoldenReference** is the output folder produced by Cascade + IPPS executing 
 
 A **Run** executes a scope (one test, one bucket, or all) and produces one immutable run folder.
 
-**Storage:** `evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/` (example: `2026-08-30_21-15-03_Lana-1.1.0_claude-sonnet-4-5-20250929_medium`)
+**Storage:** `evals/runs_gitignore/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/` (example: `2026-08-30_21-15-03_Lana-1.1.0_claude-sonnet-4-5-20250929_medium`)
 
 **Run folder contents:**
 - `log.txt` - Full runner console output (tee'd with eager flush for live monitoring)
@@ -172,7 +172,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - On step failure (crash, timeout, non-zero exit), remaining queue entries are abandoned and the test is scored with recorded evidence
 
 **LANATEST-FR-05: Run Recording**
-- Every run creates `evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/` containing log.txt, REPORT.md, results.json, and one TestRunRecord per executed test
+- Every run creates `evals/runs_gitignore/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/` containing log.txt, REPORT.md, results.json, and one TestRunRecord per executed test
 - TestKey includes full test folder name (e.g. `01-T01_CreateFile`) for self-documenting run folders
 - TestRunRecord captures prompt queue (`PROMPTS.md`), final workspace, queue stdout events, stderr, and session event log (`session.jsonl`)
 - Run folders are immutable: the runner never modifies an existing run folder
@@ -186,6 +186,13 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - ProcessEvaluator audits session event logs against `checks.yaml`: tool calls made, execution order, evidence of required actions (file read before edit, verification executed, sources actually fetched)
 - Every check yields pass/fail plus the matched or missing evidence reference
 - Tier 2 score = weighted by severity: CRITICAL fail caps the tier score at 0.5
+- Assert types available in `checks.yaml`:
+  - `tool_called` - a specific tool was called at least `min` times (default 1); optional `max` to cap the count. Optional `args_regex` to filter on serialized arguments. `edit` and `multi_edit` are grouped as equivalent edit operations
+  - `forbidden_tool` - a specific tool was never called during the session
+  - `forbidden_tool_args` - a specific tool was never called with arguments matching `args_regex`. Unlike `forbidden_tool`, the tool itself is allowed; only the tool+args combination is forbidden
+  - `read_before_edit` - every `edit`/`multi_edit` call was preceded by a `read_file` or `write_to_file` on the same path
+  - `tool_call_count` - total tool calls across ALL tools fall within `min`..`max` range. Counts `tool_call_requested` events. Useful for efficiency bounds (e.g., session completes in <= 15 calls)
+  - `tool_call_errors` - tool calls that finished with `status: "error"` (from `tool_call_finished` events) fall within bounds. Default assertion: zero errors (`max: 0`). Optional `result_regex` to match only errors whose result text matches a pattern (e.g., `"not found|No such file"`)
 
 **LANATEST-FR-08: Tier 3 - Content Quality Evaluation**
 - QualityEvaluator builds a structured judge input with three sections: `# PROMPTS` (the task), `# REFERENCE OUTPUT` (golden files with folder tree, optional), `# AGENT OUTPUT` (output files with folder tree). File contents use adaptive backtick fences (one more backtick than the longest run inside). Sections separated by `---` lines.
@@ -272,7 +279,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 
 **LANATEST-IG-02:** A TestRunRecord contains everything needed to re-score all tiers without re-running the agent.
 
-**LANATEST-IG-03:** Suite and runs folders are strictly separated: the runner writes only under `evals/runs/` and temp working directories, never under `evals/suite/`.
+**LANATEST-IG-03:** Suite and runs folders are strictly separated: the runner writes only under `evals/runs_gitignore/` and temp working directories, never under `evals/suite/`.
 
 **LANATEST-IG-04:** A test with missing golden reference or missing mandatory expectation files is reported as INVALID, not as failed or passed.
 
@@ -289,7 +296,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 ```
 User runs suite with scope
 ├─> Discover tests matching scope in evals/suite/
-├─> Create run folder evals/runs/[timestamp]_[Agent]-[Version]/
+├─> Create run folder evals/runs_gitignore/[timestamp]_[Agent]-[Version]/
 ├─> Per test:
 │   ├─> Copy workspace/ scaffold to fresh working directory
 │   ├─> Execute headless Lana with PROMPTS.md queue in working directory
@@ -327,14 +334,28 @@ file_rules:
 checks:
   - id: read_before_edit
     action: "Agent read target file before editing it"
-    evidence: "tool_call read on path precedes tool_call edit on same path"
-    failure_indicator: "edit event without prior read event for path"
     severity: CRITICAL
+    assert: {type: read_before_edit}
   - id: web_search_executed
     action: "Agent executed at least 3 web searches"
-    evidence: "3+ tool_call events of type web_search"
-    failure_indicator: "fewer than 3 web_search events"
     severity: HIGH
+    assert: {type: tool_called, tool: search_web, min: 3}
+  - id: no_wrong_agent_folder
+    action: "Agent never read from .devin/ when prompt system is .lana/"
+    severity: CRITICAL
+    assert: {type: forbidden_tool_args, tool: read_file, args_regex: "\\.devin/"}
+  - id: efficient_session
+    action: "Session completes within 15 tool calls"
+    severity: HIGH
+    assert: {type: tool_call_count, max: 15}
+  - id: no_tool_errors
+    action: "Zero tool calls finished with error status"
+    severity: HIGH
+    assert: {type: tool_call_errors, max: 0}
+  - id: limited_large_reads
+    action: "FAILS.md read at most once"
+    severity: MEDIUM
+    assert: {type: tool_called, tool: read_file, min: 0, max: 1, args_regex: "FAILS\\.md"}
 ```
 
 **PROMPTS.md (PromptQueueFile) example (full format: `docs/PROMPT_FILE_FORMAT.md`):**
@@ -386,7 +407,7 @@ Running scope '01_Basics' (5 tests)...
     Step [ 2 / 3 ] FAILED: timeout after 300s.
     Tier 1: 0.50 (4/8 checks) | Tier 2: 0.67 (2/3 checks)
     FAIL: step timeout, manifest violations: missing '_INFO_RESULT.md'.
-Run recorded: evals/runs/2026-08-30_19-00_01_Basics
+Run recorded: evals/runs_gitignore/2026-08-30_19-00_01_Basics
 RESULT: 4 passed, 1 failed, 0 invalid.
 ```
 
@@ -400,9 +421,14 @@ RESULT: 4 passed, 1 failed, 0 invalid.
 - Existing `tests/harness.py` patterns (spawn, JSONL parse, session tail, secret-leak assertion) constrain runner design as prior art
 - Lana zero-setup: a MISSING `.lana/` folder is auto-filled with the bundled prompt library; an existing (even empty) folder stays untouched - Bucket 1 scaffolds therefore ship the empty folder [VERIFIED: cli.py]
 - `ask_user_question` in headless mode returns the non-interactive fallback ("no answer") without blocking [VERIFIED: interact_tools.py] - test prompts must not depend on interactive answers
-- Session JSONL tool events carry full arguments (`tool_call_requested`: tool + args; `tool_call_finished`: status + result) - Tier 2 path-level and count-level checks are evaluable [VERIFIED: events.py]
+- Session JSONL tool events carry full arguments (`tool_call_requested`: tool + args; `tool_call_finished`: id + status [`ok`|`error`|`cancelled`] + result text + result_chars) - Tier 2 path-level, count-level, and error-level checks are evaluable [VERIFIED: events.py ToolCallRequested, ToolCallFinished]
 
 ## 13. Document History
+
+**[2026-09-01 15:10]**
+- Added: FR-07 - 4 new assert types for ProcessEvaluator: `tool_call_count` (total call bounds), `tool_call_errors` (error status from `tool_call_finished`), `forbidden_tool_args` (tool+args combo), `tool_called` `max` parameter. Driven by LANALOGS-IN01 gap analysis (8 T01 findings, only 1 coverable by existing asserts)
+- Changed: checks.yaml example updated to match implemented assert format and include new assert type examples
+- Changed: Technical constraint updated with `tool_call_finished` status enum from events.py
 
 **[2026-08-30 23:55]**
 - Changed: FR-05 - run folder naming now includes generator model_id and effort; TestKey includes full test name (e.g. `01-T01_CreateFile`)

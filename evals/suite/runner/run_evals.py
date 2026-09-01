@@ -17,7 +17,7 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 RUNNER_DIR = Path(__file__).resolve().parent
 SUITE_DIR = RUNNER_DIR.parent
 REPO_DIR = SUITE_DIR.parent.parent
-RUNS_DIR = REPO_DIR / "evals" / "runs"
+RUNS_DIR = REPO_DIR / "evals" / "runs_gitignore"
 
 
 class TeeWriter:
@@ -91,6 +91,7 @@ def validate_test(test_dir: Path, strict_golden: bool) -> str | None:
 
 def copy_scaffold(test_dir: Path, workdir: Path) -> str | None:
   shutil.copytree(test_dir / "workspace", workdir)
+  (workdir / ".git").mkdir(exist_ok=True)  # sentinel: prevent find_git_root from leaking the real repo path (EC-08)
   scaffold_file = test_dir / "scaffold.json"
   if scaffold_file.exists():  # DC-04: copy CURRENT IPPS content from the repo .lana/
     for relative in json.loads(scaffold_file.read_text(encoding="utf-8")).get("copy_lana", []):
@@ -127,6 +128,33 @@ def run_lana(test_dir: Path, workdir: Path, record_dir: Path, metadata: dict, co
   if session_files:
     shutil.copy2(session_files[-1], record_dir / "session.jsonl")  # latest (only one expected per clean run)
   return {"exit_code": exit_code, "timed_out": timed_out}
+
+
+def detect_workspace_escape(record_dir: Path, workdir: Path) -> list[str]:
+  """Scan tool_call_requested events for file paths targeting locations outside the eval workdir (EC-08)."""
+  events_path = record_dir / "events.jsonl"
+  if not events_path.exists(): return []
+  workdir_resolved = workdir.resolve()
+  path_keys = ("file_path", "TargetFile", "SearchDirectory", "SearchPath", "Cwd", "ProjectPath")
+  escaped = []
+  for line in events_path.read_text(encoding="utf-8").splitlines():
+    if not line.strip(): continue
+    try:
+      event = json.loads(line)
+    except json.JSONDecodeError:
+      continue
+    if event.get("type") != "tool_call_requested": continue
+    tool_name = event.get("tool", "")
+    for key in path_keys:
+      value = event.get("args", {}).get(key)
+      if not value or not isinstance(value, str): continue
+      try:
+        target = Path(value).resolve()
+      except (OSError, ValueError):
+        continue
+      if target != workdir_resolved and not str(target).startswith(str(workdir_resolved) + os.sep):
+        escaped.append(f"{tool_name}({key}={value})")
+  return escaped
 
 
 def extract_lana_cost(record_dir: Path) -> dict:
@@ -251,6 +279,10 @@ def run_test(test_dir: Path, run_dir: Path, config: dict, pricing: dict, args) -
             and run_info["exit_code"] == 0)
   if run_info["exit_code"] != 0: result["notes"].append(f"lana exit code {run_info['exit_code']}" + (" (timeout)" if run_info["timed_out"] else "") + " (EC-01/EC-02)")
   result["status"] = "pass" if passed else "fail"
+  escaped = detect_workspace_escape(record_dir, workdir)
+  if escaped:
+    result["status"] = "error"
+    result["notes"].append(f"WORKSPACE ESCAPE: agent wrote outside eval sandbox: {'; '.join(escaped[:5])} (EC-08)")
   leak = scan_secret_leak(record_dir, Path(config["keys_file"]))
   if leak:
     result["status"], result["notes"] = "error", result["notes"] + [leak]

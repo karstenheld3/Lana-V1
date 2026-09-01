@@ -79,7 +79,9 @@ A **DebugLog** is the process-wide writer that owns the viewer subprocess and it
 - `viewer` - spawned subprocess handle (new console window)
 - `dead` - set on first pipe failure; all subsequent calls become no-ops
 
-**Lifecycle:** enabled once at startup when `--debug-console` present; lives for the process lifetime; never re-spawned.
+**Lifecycle:** enabled once at startup when `--debug-console` or `--log-dir` present; lives for the process lifetime; never re-spawned.
+
+**Optional log file:** when `--log-dir` is given, every JSONL line is also written to a timestamped file (`lana-debug-YYYY-MM-DD_HH-MM-SS.jsonl`) in the specified directory. File write failures disable file logging independently of the viewer pipe.
 
 ### DebugLine
 
@@ -99,6 +101,14 @@ The **Viewer** is a subprocess running in its own console window. Reads JSONL li
 - `--debug-console` opens the viewer window at startup, before any instrumented operation
 - Works in interactive REPL, headless (`-p`, `--prompt-file`), and ACP (`--acp`) modes
 - Independent of `--debug` (payload dumps) - both can be active simultaneously
+
+**LANADEBG-FR-07: Log File Output**
+- `--log-dir DIR` writes every debug JSONL line to a timestamped file in DIR
+- File naming: `lana-debug-YYYY-MM-DD_HH-MM-SS.jsonl`
+- Directory auto-created if it does not exist
+- Can be used with or without `--debug-console`: with both, lines go to viewer AND file; with `--log-dir` alone, lines go to file only (stderr fallback on non-Windows)
+- File write failure disables file logging with one stderr warning; viewer pipe unaffected
+- ACP registry entry for `lana-debug` passes `--log-dir E:/Dev/Lana-V1/dist/logs`
 
 **LANADEBG-FR-02: LLM Domain Coverage**
 - Request start: role name, provider, model, message count, tool count (generator and summarizer roles)
@@ -249,7 +259,9 @@ ACP mode additionally
 ## 11. User Actions
 
 - **Start with debug console**: `lana --debug-console` (any mode) - second window opens before the first prompt
-- **Close viewer window**: Lana continues unaffected; debug logging silently stops for the rest of the process
+- **Start with log file**: `lana --debug-console --log-dir ./logs` - viewer window AND timestamped JSONL file
+- **Log file only** (no viewer): `lana --log-dir ./logs` - debug lines go to file and stderr (non-Windows) or file and viewer (Windows)
+- **Close viewer window**: Lana continues unaffected; debug logging silently stops for the rest of the process (file logging continues if active)
 - **Exit Lana**: viewer shows connection-closed notice and waits for a keypress
 
 ## 12. UX Design
@@ -322,8 +334,17 @@ WARNING: debug console pipe broken - debug logging disabled for this session.
 **LANADEBG-EC-06:** Non-JSON line reaches the viewer (defensive) → rendered raw, dim, never crashes the viewer
 **LANADEBG-EC-07:** `--debug-viewer` invoked directly by a user → behaves as viewer (reads stdin), harmless
 **LANADEBG-EC-08:** Inherited std handles point at the parent (stdin=PIPE side effect) → viewer ignores them: renders to its own console (CONOUT$), spawn detaches stdout/stderr (DD-08)
+**LANADEBG-EC-09:** `--log-dir` with unwritable path → stderr warning at startup, Lana starts without file logging, viewer unaffected
+**LANADEBG-EC-10:** Log file write fails mid-session (disk full, permissions) → file logging disabled with one stderr warning, viewer pipe unaffected
+**LANADEBG-EC-11:** Viewer pipe breaks but log file still open → viewer logging stops, file logging continues independently
 
 ## 16. Document History
+
+**[2026-09-01 19:10]**
+- Added: FR-07 (--log-dir file output), EC-09/EC-10/EC-11 (file failure modes)
+- Changed: DebugLog lifecycle includes --log-dir activation path
+- Changed: User Actions expanded with log file and log-only modes
+- Synced from code: `debuglog.py` enable(log_dir=), DebugLogWriter dual-output, `cli.py` --log-dir arg
 
 **[2026-08-31 14:10]**
 - Changed: ts field carries the full date (LOG-AP-01, session-JSONL correlation); viewer displays time only

@@ -29,7 +29,7 @@
 - The agent under test never sees `expected/`, `golden/`, `TEST.md` (LANATEST-IG-01): only `workspace/` content is copied to the working directory
 - No API keys in run records (LANATEST-NFR-03): Lana config stays OUTSIDE the test workspace via `LANA_CONFIG`
 - Tier 3 judge = @skills:llm-evaluation `call-llm.py` (user decision 2026-08-30) - no custom LLM client
-- Runner writes only under `evals/runs/` (LANATEST-IG-03)
+- Runner writes only under `evals/runs_gitignore/` (LANATEST-IG-03)
 
 ## Table of Contents
 
@@ -77,7 +77,7 @@ evals/suite/
 │   └── T01_WriteSpec/             # scaffold.json copies write-spec workflow + write-documents skill
 └── 03_AdvancedCapabilities/
     └── T01_TranscribeLocal/       # local HTML fixture, Tier 3 rubric
-evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/
+evals/runs_gitignore/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]_[ModelId]_[Effort]/
 ├── log.txt | REPORT.md | results.json
 └── [TestKey]/{PROMPTS.md, workspace/, events.jsonl, stderr.txt, session.jsonl, judge/}
      TestKey = 01-T01_CreateFile (bucket prefix + full test folder name)
@@ -256,7 +256,7 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 - [x] **LANATEST-IP01-VC-01**: P1-P4 implemented, all STRUT deliverables checked
 - [x] **LANATEST-IP01-VC-02**: Offline drive TC-01 (PASS, Tier 1/2 = 1.00) + TC-02 (FAIL, Tier 1 = 0.00, Tier 2 = 0.50 CRITICAL cap, checks named) + TC-03 (immutable `-1` suffix folder) + TC-04 (leak scan: clean -> None, planted synthetic key -> CRITICAL)
 - [x] **LANATEST-IP01-VC-03**: No key material in either run record (EC-06 scan ran on both drives)
-- [x] **LANATEST-IP01-VC-04**: `/verify` run - IMPL structure (header, MNF, TOC, STRUT template compliance), REPORT.md + results.json inspected on both drive records, privacy scan (fixtures generic: fictional Acme Widgets), IG-03 (runner writes only under `evals/runs/`)
+- [x] **LANATEST-IP01-VC-04**: `/verify` run - IMPL structure (header, MNF, TOC, STRUT template compliance), REPORT.md + results.json inspected on both drive records, privacy scan (fixtures generic: fictional Acme Widgets), IG-03 (runner writes only under `evals/runs_gitignore/`)
 
 ## 9. Document History
 
@@ -295,7 +295,7 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 **[2026-08-30 20:35]**
 - Changed: STRUT P1-P5 executed and checked; VC-01..03 checked
 - Added: drive scripts persisted at `evals/suite/runner/drive-scripts/t01_pass.jsonl` and `t01_fail.jsonl` (reusable offline drives, DC-07)
-- Runs recorded: `evals/runs/2026-08-30_19-43_01-T01` (PASS) and `..._01-T01-1` (sabotage FAIL)
+- Runs recorded: `evals/runs_gitignore/2026-08-30_19-43_01-T01` (PASS) and `..._01-T01-1` (sabotage FAIL)
 
 **[2026-08-30 20:20]**
 - Initial implementation plan created: MVP vertical slice (runner + Tier 1-3 + 4 tests), judge via @skills:llm-evaluation per user decision, STRUT plan P1-P5

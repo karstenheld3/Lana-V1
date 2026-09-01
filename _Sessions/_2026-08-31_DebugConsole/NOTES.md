@@ -155,6 +155,10 @@ Agent recommended Option A; user chose **Option B** (LANADEBG-DD-01). Rationale:
 
 - **LANADEBG-BG-0001**: Anthropic 400 after cancellation - orphaned `tool_use` without `tool_result`
 
+## Housekeeping
+
+- `_SPEC_LANADEBG.md` moved to `specs/_SPEC_LANADEBG.md` (2026-09-01) - central specs folder per workspace convention
+
 ## Significant Prompts Log
 
 [2026-08-31 13:03] User clarified the real goal and requirements for the debug console

@@ -57,8 +57,9 @@ That means the entire test suite must be designed so that we can produce the ref
 
 ## Key Decisions
 
-- **[2026-08-30]** Alternative B chosen: three-tier GRUC-mirrored evaluation (Tier 1 STRUCTURE manifest checks, Tier 2 PROCESS audit over session event logs, Tier 3 QUALITY LLM-judge with golden-anchored rubric). Spec: `_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]`
-- **[2026-08-30]** Suite location `evals/suite/`, run records `evals/runs/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]/`
+- **[2026-08-30]** Alternative B chosen: three-tier GRUC-mirrored evaluation (Tier 1 STRUCTURE manifest checks, Tier 2 PROCESS audit over session event logs, Tier 3 QUALITY LLM-judge with golden-anchored rubric). Spec: `specs/_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]`
+- **[2026-09-01]** SPEC and IMPL moved from session folder to `specs/` (canonical location). SPEC extended: FR-07 gains 4 new assert types (`tool_call_count`, `tool_call_errors`, `forbidden_tool_args`, `tool_called` max). Driven by LANALOGS-IN01 gap analysis.
+- **[2026-08-30]** Suite location `evals/suite/`, run records `evals/runs_gitignore/[YYYY-MM-DD]_[HH-MM-SS]_[Agent]-[Version]/`
 - **[2026-08-30]** Bucket folders: `01_Basics`, `02_WorkflowsSkills`, `03_AdvancedCapabilities`
 - **[2026-08-30]** Golden output = rubric anchor + manifest distillation source, never diff target (CSRCMP-IN10 evidence)
 - **[2026-08-30]** Bucket 3 variance-band scoring (multiple golden runs) deferred (LANATEST-DD-09)
@@ -111,8 +112,15 @@ That means the entire test suite must be designed so that we can produce the ref
 
 - (none yet)
 
+## Deliverables
+
+- `specs/_SPEC_LANA_EVAL_SUITE.md [LANATEST-SP01]` - moved from session 2026-09-01
+- `specs/_IMPL_LANA_EVAL_SUITE.md [LANATEST-IP01]` - moved from session 2026-09-01
+- `evals/suite/` - implemented runner, evaluators, 9 tests across 3 buckets
+- `evals/runs_gitignore/` - run records (gitignored)
+
 ## Current Phase
 
-**Phase**: EXPLORE
-**Workflow**: (pending assessment)
-**Assessment**: (pending)
+**Phase**: IMPLEMENT (suite operational, spec being extended)
+**Workflow**: BUILD
+**Assessment**: Runner + evaluators + 9 tests implemented. SPEC extended with 4 new assert types for improvement pipeline support (2026-09-01).
