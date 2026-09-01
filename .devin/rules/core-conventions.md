@@ -18,7 +18,7 @@ Universal formatting and writing conventions for all documents.
 - Arrow symbol `→` must have spaces around it: `A → B` not `A→B`
 - Never use `▼` (U+25BC); use `v` instead
 - Try to fit single statements/decisions/objects on a single line
-- Format workflow references as inline code: `/verify`, `/go`, `/build`
+- Format workflow references as inline code: `/verify`, `/go`, `/implement`
 - Inline enumerations use `N)` format, not `(N)`: `1) first, 2) second, 3) third`
 - URLs must always include the scheme (`https://` or `http://`). Never write bare domains: `msn.com` → `https://msn.com`
 

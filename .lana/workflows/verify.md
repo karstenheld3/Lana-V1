@@ -1,6 +1,6 @@
 ---
 description: Verify work against specs and rules
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Verify Workflow
@@ -46,7 +46,7 @@ Invoke based on context:
 
 ## Workflow
 
-1. First find out what the context is (Cross-Document, INFO, SPEC, IMPL, Code, TEST, Session, Workflow, Skill, Template, Conversation, Translation Output)
+1. First find out what the context is (Cross-Document, INFO, SPEC, IMPL, Code, TEST, Session, Workflow, Skill, Template, Prompts, Conversation, Translation Output)
 2. Read GLOBAL-RULES and Verification Labels
 3. Read the relevant Context-Specific section
 4. Create a verification task list
@@ -353,6 +353,18 @@ Detect by: filename pattern `*_TEMPLATE.md` in skill or workflow folder, or `__T
 - No redundancy with companion `*_RULES.md` or `*_GUIDES.md` files
 - Verify against @skills:write-documents `APAPALAN_RULES.md` (precision, brevity, naming)
 - Verify against @skills:write-documents `MECT_WRITING_RULES.md` (voice, word choice, terminology)
+
+## Prompts Files
+
+Detect by: filename pattern `_PROMPTS_*.md` or file starts with a fenced code block (opening fence as first non-empty line) and contains `---` separators between fenced blocks.
+
+**Read**: @skills:write-documents `PROMPTS_RULES.md` (all PRMT-*), `PROMPTS_GUIDES.md`
+
+- Verify against all PRMT-* rules in `PROMPTS_RULES.md` (Format, Structure, Sequence, Content categories)
+- Verify fence depth per prompt: outer fence exceeds deepest inner fence (PRMT-FT-02)
+- Verify no model-intended content outside fences (PRMT-FT-06)
+- Verify `---` separator between every pair of consecutive prompts (PRMT-FT-03)
+- Verify against @skills:write-documents `APAPALAN_RULES.md` (precision, brevity)
 
 ## Minto Documents
 

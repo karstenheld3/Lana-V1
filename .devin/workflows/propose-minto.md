@@ -1,6 +1,6 @@
 ---
 description: Generate MINTO-structured argument candidates for a Minto Pyramid article
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Propose Minto Workflow

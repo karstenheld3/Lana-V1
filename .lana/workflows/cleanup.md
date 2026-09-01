@@ -1,6 +1,6 @@
 ---
 description: Delete temporary files and artifacts left by workflows and skills
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Cleanup Workflow

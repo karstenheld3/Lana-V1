@@ -1,6 +1,6 @@
 ---
 description: Develop a full Minto Pyramid article from a MINTO draft
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Write Minto Workflow
@@ -22,6 +22,7 @@ Develop a selected argument into a complete Minto Pyramid article with drill-dow
 
 ## MUST-NOT-FORGET
 
+- **NEVER modify tracking documents** (PROGRESS.md, PROBLEMS.md, NOTES.md, FAILS.md). Write-* workflows create NEW files only. Tracking docs are session state, not agent operation artifacts.
 - Pre-Write Privacy Gate (`agent-behavior.md`): General-purpose documents → all content generic. ILLUSTRATIVE content in any file → examples generic. Assess context BEFORE writing.
 - Every E-node must reference a source finding from the inventory (IG-01)
 - No orphan nodes: every Q has A, every A in drill-down has S, every S has E (IG-02)

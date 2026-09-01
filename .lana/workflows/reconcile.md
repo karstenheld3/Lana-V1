@@ -1,6 +1,6 @@
 ---
 description: Pragmatic review of critique and fact-check findings with actionable improvements
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 <DevSystem EmojisAllowed=true />
 

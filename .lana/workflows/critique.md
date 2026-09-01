@@ -1,6 +1,6 @@
 ---
 description: Find flawed assumptions, logic errors, and hidden risks (not rule violations)
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Devil's Advocate
@@ -47,7 +47,7 @@ Invoke based on context:
 
 ## Workflow
 
-1. Determine context (Code, Document, Template, Workflow, Skill, Research Output, Translation, Session Tracking, Conversation, Logs)
+1. Determine context (Code, Document, Template, Prompts, Workflow, Skill, Research Output, Translation, Session Tracking, Conversation, Logs)
 2. Read `FAILS.md` first (if exists) - learn from past mistakes
 3. Read Global Rules
 4. Read relevant Context-Specific section
@@ -204,6 +204,15 @@ When called without specific document, review the entire conversation:
 - What happens if the highest-risk task fails? Is there a recovery path?
 - Are "Done when" criteria actually verifiable, or subjective ("works correctly")?
 - Can the critical path shift if one task takes 2x longer?
+
+**For Prompts files** (`_PROMPTS_*.md`):
+- Does each prompt have a clear, verifiable done criterion, or is success subjective?
+- Could the model misinterpret the objective and still "pass" the verification criteria?
+- Does state flow between prompts: does each dependent prompt explicitly reference what the prior prompt produced?
+- What happens if an earlier prompt fails or produces unexpected output - does the next prompt detect or cascade the failure?
+- Are constraints specific enough to prevent unwanted model behavior, or vague ("be careful")?
+- Could fence depth cause parsing errors (inner code blocks matching or exceeding outer fence)?
+- Would a fresh agent with no prior context execute these prompts correctly on first attempt?
 
 **For Template documents** (`*_TEMPLATE.md` or `__TEMPLATE_*`):
 

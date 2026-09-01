@@ -1,6 +1,6 @@
 ---
 description: Structured research with verification labels and source retention
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Research Workflow

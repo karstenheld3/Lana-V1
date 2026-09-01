@@ -1,6 +1,6 @@
 ---
 description: Verify factual claims in documents against external reality
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Fact-Check Workflow
@@ -23,7 +23,7 @@ Verify factual claims in documents by extracting sources, facts, and conclusions
 
 ## MUST-NOT-FORGET
 
-- NEVER modify the original document - produce `[filename]_REVIEW.md` only
+- **NEVER modify the original document, code, or any file other than the review output** - produce `[filename]_REVIEW.md` only. This workflow is a JUDGE, not a fixer. Corrections happen in `/implement` after `/reconcile` approval. If you feel the urge to fix something, write it as a finding instead.
 - Consensus is not evidence - multiple sources agreeing adds zero value unless they independently observed the actual system
 - Documentation is secondary, not primary - the shipped product (running API, source code, test output) is the primary source
 - Trust hierarchy: observed behavior > source code > official docs > community sources > LLM output

@@ -1,6 +1,6 @@
 ---
 description: Finalize a development session, sync findings, and prepare for archive
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Finalize Session Workflow

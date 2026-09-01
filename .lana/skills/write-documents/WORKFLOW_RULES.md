@@ -312,13 +312,13 @@ If all conditions are met, proceed. Otherwise, continue working.
 
 **GOOD:**
 ```markdown
-## Gate Check: IMPLEMENT→REFINE
+## Gate Check: IMPLEMENT→COMPLETE
 
 - [ ] All steps from IMPL plan implemented
 - [ ] Tests pass
 - [ ] No TODO/FIXME left unaddressed
 
-Pass: Run `/refine` | Fail: Continue implementing
+Pass: Run `/verify` | Fail: Continue implementing
 ```
 
 ## Stuck Detection
@@ -456,6 +456,7 @@ Run VCRIV pipeline for quality.
 ```markdown
 Check MUST-NOT-FORGET (MNF) items before completing.
 Run Verify-Critique-Reconcile-Implement-Verify (VCRIV) pipeline for quality.
+Run Fact-check-Reconcile-Implement-Verify (FACRIV) pipeline for factual verification.
 ```
 
 ## Scope Boundary

@@ -1,6 +1,6 @@
 ---
 description: Find and fix contradictions, inconsistencies, and improvement opportunities
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Improve Workflow
@@ -309,6 +309,27 @@ Detection: determine context from file naming and content, then apply matching s
 2. **Filling Walkthrough** - Mentally fill in the template as the target audience. At each section: do I know what to put here? Is the expected depth clear? Would another agent produce a comparable result?
 3. **Conditional Calibration** - For each mandatory section: should it be conditional (empty in >50% of instances)? For each conditional section: is the criteria specific enough that two agents would make the same include/exclude decision?
 
+## Prompts Files
+
+**Lens**: Instruction Clarity Analyst - evaluate whether an agent executing these prompts blind would produce the intended output.
+
+**Phase 1 reads**: `PROMPTS_RULES.md`, `PROMPTS_GUIDES.md`, `PROMPTS_TEMPLATE.md` (@skills:write-documents)
+
+**Phase 1 research**: Evaluate prompt quality against the 4-part structure (Objective, Context, Constraints, Verification). Check if objectives are specific enough for headless execution without human correction.
+
+**Specialized issues** (in addition to GLOBAL):
+- Objectives that rely on implicit context not available in headless mode
+- Verification criteria that require human judgment ("looks correct")
+- Missing state handoff between dependent prompts
+- Fence depth errors (inner code blocks matching or exceeding outer fence)
+- Prompts exceeding instruction density limit (lost-in-the-middle risk)
+
+**Adversarial Collaborator techniques** (execute in order, skip if not applicable):
+
+1. **Blind Execution Walkthrough** - Execute each prompt as an agent with no prior context except stated input. At each step: is the objective unambiguous? Are constraints sufficient to prevent unwanted behavior? Is verification machine-checkable?
+2. **State Flow Trace** - Map what each prompt produces and what the next prompt needs. Flag gaps where a prompt references prior output that was never explicitly produced.
+3. **Failure Cascade Analysis** - For each prompt, assume it produces wrong output. Does the next prompt detect the error or cascade it silently?
+
 ## Research Output (INFO Documents)
 
 **Lens**: Evidence-Finding Collaborator (Kahneman) - improve through constructive challenge backed by new evidence. Not fault-finding; evidence-finding.
@@ -436,6 +457,7 @@ Detection: determine context from file naming and content, then apply matching s
    - Workflow folder `.md` files → Workflow
    - Skill folder files → Skill
    - `*_TEMPLATE.md` or `__TEMPLATE_*` → Template
+   - `_PROMPTS_*` or first non-empty line is opening fence with `---` separators → Prompts Files
    - Solution approaches in tracking docs → Problem Solving
    - No match → No Context Match
 3. **Re-read dependencies**:

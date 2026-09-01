@@ -1,6 +1,6 @@
 ---
 description: Remove session content, conversation content, or specific files with preview
-auto_execution_mode: 1
+auto_execution_mode: 3
 ---
 
 # Remove Workflow
