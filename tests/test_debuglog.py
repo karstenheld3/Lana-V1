@@ -128,6 +128,27 @@ def test_enable_unwritable_log_dir(tmp_path, monkeypatch, capsys):
   monkeypatch.setattr(debuglog, "_writer", None)
 
 
+# EC-02 + FR-07: viewer spawn fails on Windows but log file still works (not leaked)
+def test_viewer_spawn_failure_preserves_file_logging(tmp_path, monkeypatch, capsys):
+  monkeypatch.setattr(debuglog, "_writer", None)
+  log_dir = str(tmp_path / "logs")
+  monkeypatch.setattr("os.name", "nt")
+  monkeypatch.setattr("subprocess.Popen", lambda *a, **kw: (_ for _ in ()).throw(OSError("spawn failed")))
+  debuglog.enable(log_dir=log_dir)
+  assert debuglog.enabled()  # writer created despite viewer failure
+  assert debuglog._writer.viewer is None  # stderr fallback
+  assert debuglog._writer.log_file is not None  # file logging preserved
+  dlog("app", "test")
+  debuglog._writer.log_file.flush()
+  import glob
+  jsonl_files = glob.glob(str(tmp_path / "logs" / "lana-debug-*.jsonl"))
+  assert len(jsonl_files) == 1
+  with open(jsonl_files[0], encoding="utf-8") as f:
+    assert json.loads(f.read().strip())["op"] == "test"
+  assert "cannot open debug console" in capsys.readouterr().err
+  monkeypatch.setattr(debuglog, "_writer", None)
+
+
 # IG-04: flag absent -> dlog is a no-op behind one None check, enabled() False
 def test_dlog_disabled_is_noop(monkeypatch):
   monkeypatch.setattr(debuglog, "_writer", None)

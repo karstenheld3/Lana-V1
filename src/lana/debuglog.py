@@ -64,6 +64,7 @@ def enable(log_dir: str | None = None) -> None:
                                 text=True, encoding="utf-8", creationflags=subprocess.CREATE_NEW_CONSOLE)
     except OSError as error:  # EC-02: spawn failure - Lana starts normally without the console
       print(f"WARNING: cannot open debug console ({error}) - continuing without it.", file=sys.stderr)
+      _writer = DebugLogWriter(None, log_file)  # EC-02 + FR-07: viewer failed but file logging still works
       return
     print(f"Debug console opened (PID {viewer.pid}).", file=sys.stderr)
     _writer = DebugLogWriter(viewer, log_file)
