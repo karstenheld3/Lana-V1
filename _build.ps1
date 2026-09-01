@@ -181,6 +181,7 @@ $env:PYAPP_PROJECT_VERSION    = $Version
 $env:PYAPP_PROJECT_PATH       = $wheel.FullName
 $env:PYAPP_PYTHON_VERSION     = $PYTHON_TARGET
 $env:PYAPP_DISTRIBUTION_EMBED = '1'
+$env:PYAPP_PASS_LOCATION      = '1'      # PYAPP env var = outer exe path at runtime (not just "1"), used by resolve_app_dir()
 $env:PYAPP_EXEC_MODULE        = 'lana'   # python -m lana -> __main__.py -> sys.exit(main()) - exit codes propagate
 $pyappRoot = Join-Path $BuildDir 'pyapp'
 cargo install pyapp --version $PYAPP_VERSION --force --root $pyappRoot *> (Join-Path $BuildDir 'cargo-build.log')

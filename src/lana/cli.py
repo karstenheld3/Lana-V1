@@ -59,16 +59,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument("--log-dir", metavar="DIR", help="write timestamped debug JSONL log files to DIR (auto-creates dir and filename)")
   parser.add_argument("--debug-viewer", action="store_true", help=argparse.SUPPRESS)  # internal: run as the debug console viewer (LANADEBG-DD-03)
   parser.add_argument("--show-thinking", action="store_true", help="stream model thinking dim-styled (FR-16)")
-  parser.add_argument("--install-root", metavar="PATH", help="infrastructure base directory for config, prompt library, and data (DD-25; env LANA_INSTALL_ROOT; default: cwd)")
+  parser.add_argument("--app-dir", metavar="PATH", help="base directory for config, prompt library, and data (DD-25; env LANA_APP_DIR; default: exe parent or cwd)")
   parser.add_argument("--acp", action="store_true", help="ACP agent mode: JSON-RPC 2.0 over stdio (MVP-2, LANAACPB-SP01)")
   parser.add_argument("--version", action="version", version=f"%(prog)s {package_version()}")  # exits before config load - no zero-setup side effects (LANADIST-IP01-IS-01)
   return parser
 
 
-def resolve_install_root(args) -> Path | None:
-  """DD-25 EC-30: --install-root > env LANA_INSTALL_ROOT > None (config.py defaults to workspace)."""
-  raw = getattr(args, "install_root", None) or os.environ.get("LANA_INSTALL_ROOT") or None
-  return Path(raw).resolve() if raw else None
+def resolve_app_dir(args) -> Path | None:
+  """DD-25 EC-30: --app-dir > env LANA_APP_DIR > PYAPP exe parent (if packaged) > None (config.py defaults to workspace)."""
+  raw = getattr(args, "app_dir", None) or os.environ.get("LANA_APP_DIR") or None
+  if raw: return Path(raw).resolve()
+  pyapp = os.environ.get("PYAPP", "")  # PyApp runtime: PYAPP_PASS_LOCATION=1 -> exe path; default -> "1"
+  if pyapp and pyapp != "1" and Path(pyapp).is_file(): return Path(pyapp).parent.resolve()
+  if pyapp == "1":  # packaged but built without PYAPP_PASS_LOCATION - cannot auto-detect, require explicit flag
+    print("WARNING: PYAPP detected but exe path unavailable (rebuild with PYAPP_PASS_LOCATION=1). Pass --app-dir to set data location.", file=sys.stderr)
+  return None  # dev mode (python -m lana): fall back to workspace
 
 
 def find_git_root(start: Path) -> Path | None:
@@ -85,10 +90,12 @@ def short_model_name(model_id: str) -> str:
 
 
 # Assemble the whole runtime; returns (app, agent, cost_tracker, prompt_system) or raises ConfigError
-def build_runtime(args, workspace: Path, interactive: bool, install_root: Path | None = None):
+def build_runtime(args, workspace: Path, interactive: bool, app_dir: Path | None = None):
   scripted = bool(scripted_script_path())
   config_override = args.config or os.environ.get("LANA_CONFIG") or None
-  app = load_lana_config(workspace, Path(config_override) if config_override else None, require_keys=not scripted, install_root=install_root)
+  app = load_lana_config(workspace, Path(config_override) if config_override else None, require_keys=not scripted, app_dir=app_dir)
+  dlog("app", "paths", workspace=str(workspace), app_dir=str(app_dir), data_dir=str(app.data_dir), agent_folder=str(app.agent_folder),
+       config_dir=str(app.config_dir), pyapp=os.environ.get("PYAPP", ""))
   app.scripted = scripted
   app.show_thinking = getattr(args, "show_thinking", False)
   if args.policy: app.lana.execution_policy = args.policy
@@ -317,16 +324,16 @@ def main() -> int:
       print(f"ERROR: invalid prompt file '{args.prompt_file}': {error}.\n  HINT: format rules in docs/PROMPT_FILE_FORMAT.md.", file=sys.stderr)
       return EXIT_CONFIG
   workspace = Path.cwd()
-  install_root = resolve_install_root(args)  # DD-25: infrastructure base
+  app_dir = resolve_app_dir(args)  # DD-25: infrastructure base
   headless = args.prompt is not None or prompts is not None
   interactive = not headless and sys.stdin.isatty()
   jsonl_headless = headless and args.output_format == "jsonl"
   try:
     if jsonl_headless:  # startup banner/warnings to stderr - stdout stays pure JSONL for machine consumers
       with contextlib.redirect_stdout(sys.stderr):
-        app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive, install_root)
+        app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive, app_dir)
     else:
-      app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive, install_root)
+      app, agent, cost_tracker, prompt_system = build_runtime(args, workspace, interactive, app_dir)
   except ConfigError as error:
     print(f"ERROR: {error}", file=sys.stderr)
     return EXIT_CONFIG

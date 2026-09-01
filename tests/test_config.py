@@ -92,18 +92,18 @@ def test_missing_generator_role_rejected(tmp_path, clean_key_env):
   assert "generator" in str(error.value)
 
 
-# TC-68: install_root separation (EC-30, DD-25) - config, agent_folder, data_dir resolve relative
-# to install_root; workspace is separate (used for tool operations only)
+# TC-68: app_dir separation (EC-30, DD-25) - config, agent_folder, data_dir resolve relative
+# to app_dir; workspace is separate (used for tool operations only)
 def test_tc68_install_root_separation(tmp_path, clean_key_env):
   install_dir = tmp_path / "install"
   workspace_dir = tmp_path / "workspace"
   workspace_dir.mkdir()
-  write_config_dir(install_dir)  # config lives in install_root, NOT workspace
-  app = load_lana_config(workspace_dir, install_root=install_dir)
-  # agent_folder and data_dir resolve relative to install_root
+  write_config_dir(install_dir)  # config lives in app_dir, NOT workspace
+  app = load_lana_config(workspace_dir, app_dir=install_dir)
+  # agent_folder and data_dir resolve relative to app_dir
   assert app.agent_folder == (install_dir / ".lana").resolve()
   assert app.data_dir == (install_dir / ".lana-data").resolve()
   # workspace stays as passed (for tool operations)
   assert app.workspace == workspace_dir
-  # config_dir is inside install_root
+  # config_dir is inside app_dir
   assert app.config_dir == install_dir / "config"
