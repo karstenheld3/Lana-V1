@@ -82,13 +82,18 @@ if "%CARGO_FOUND%"=="0" (
 )
 
 REM --- Now run dependency installer (venv + pip install) ---
-echo.
-echo [INFO] Running _InstallAndCompileDependencies.bat...
-call "%~dp0_InstallAndCompileDependencies.bat" /noPause
-if errorlevel 1 (
-  echo [ERROR] Dependency installation failed.
-  if /i not "%NO_PAUSE%"=="/noPause" pause
-  exit /b 1
+REM Skip when called from _InstallAndCompileDependencies.bat (/skipDeps) to avoid circular call
+set SKIP_DEPS=0
+if /i "%~2"=="/skipDeps" set SKIP_DEPS=1
+if "%SKIP_DEPS%"=="0" (
+  echo.
+  echo [INFO] Running _InstallAndCompileDependencies.bat...
+  call "%~dp0_InstallAndCompileDependencies.bat" /noPause
+  if errorlevel 1 (
+    echo [ERROR] Dependency installation failed.
+    if /i not "%NO_PAUSE%"=="/noPause" pause
+    exit /b 1
+  )
 )
 
 echo.

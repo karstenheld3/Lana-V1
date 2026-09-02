@@ -28,9 +28,11 @@ if exist "%VENV_PY%" (
     if not errorlevel 1 set PY_CMD=python
   )
   if not defined PY_CMD (
-    echo [ERROR] Python not found. Run _InstallBuildTools.bat first.
-    if /i not "%~1"=="/noPause" pause
-    exit /b 1
+    echo [INFO] Python not found - running _InstallBuildTools.bat...
+    call "%~dp0_InstallBuildTools.bat" /noPause /skipDeps
+    if errorlevel 1 exit /b 1
+    set PY_CMD=py -3.12
+    if not defined PY_CMD set PY_CMD=python
   )
   %PY_CMD% -m venv "%VENV_DIR%" 2>nul
   if errorlevel 1 (
