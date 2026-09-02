@@ -28,7 +28,7 @@ if exist "%VENV_PY%" (
     if not errorlevel 1 set PY_CMD=python
   )
   if not defined PY_CMD (
-    echo [ERROR] Neither 'py' launcher nor 'python' found. Install Python 3.12+ from https://www.python.org/downloads/windows/
+    echo [ERROR] Python not found. Run _InstallBuildTools.bat first.
     if /i not "%~1"=="/noPause" pause
     exit /b 1
   )
