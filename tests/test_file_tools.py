@@ -1,5 +1,6 @@
 """TK-010: file reading tools (IP01 TC-16..18, TC-23)."""
 import pytest
+from pathlib import Path
 from lana.tools import ToolContext, ToolError, ToolRegistry
 from lana.tools.file_tools import execute_find_by_name, execute_grep_search, execute_list_dir, execute_read_file, normalize, path_not_found_hint
 
@@ -152,3 +153,117 @@ def test_read_file_not_found_includes_hint(tmp_path, context):
 def test_list_dir_not_found_includes_hint(tmp_path, context):
   with pytest.raises(ToolError, match="HINT"):
     execute_list_dir({"DirectoryPath": str(tmp_path / "no_such_dir")}, context)
+
+
+# ripgrep integration: run the same search tests with rg when .lana-tools/rg.exe is available
+from lana.tools.file_tools import _find_rg, execute_search
+
+@pytest.fixture
+def rg_context(tmp_path):
+  """Context with tools_dir pointing to workspace .lana-tools (skipped if rg not present)."""
+  workspace_tools = Path(__file__).resolve().parent.parent / ".lana-tools"
+  ctx = ToolContext(workspace=tmp_path, tool_result_max_chars=50000, tools_dir=workspace_tools)
+  if _find_rg(ctx) is None: pytest.skip("rg not available in .lana-tools/")
+  return ctx
+
+
+def test_rg_grep_search(tmp_path, rg_context):
+  (tmp_path / "one.py").write_text("def alpha():\n  return 1\n", encoding="utf-8")
+  (tmp_path / "two.md").write_text("alpha beta\nalpha gamma\n", encoding="utf-8")
+  by_regex = execute_grep_search({"SearchPath": str(tmp_path), "Query": r"def \w+"}, rg_context)
+  assert "one.py" in by_regex
+  per_line = execute_grep_search({"SearchPath": str(tmp_path), "Query": "alpha", "MatchPerLine": True}, rg_context)
+  assert "alpha" in per_line
+  assert "No matches" in execute_grep_search({"SearchPath": str(tmp_path), "Query": "zzz_nothing"}, rg_context)
+
+
+def test_rg_find_by_name(tmp_path, rg_context):
+  (tmp_path / "keep.py").write_text("x", encoding="utf-8")
+  (tmp_path / "skip.md").write_text("x", encoding="utf-8")
+  (tmp_path / "nested").mkdir()
+  (tmp_path / "nested" / "deep.py").write_text("x", encoding="utf-8")
+  result = execute_find_by_name({"SearchDirectory": str(tmp_path), "Pattern": "*.py"}, rg_context)
+  assert "keep.py" in result and "skip.md" not in result and "deep.py" in result
+
+
+def test_rg_find_cap(tmp_path, rg_context):
+  for index in range(60): (tmp_path / f"file_{index:03d}.txt").write_text("x", encoding="utf-8")
+  result = execute_find_by_name({"SearchDirectory": str(tmp_path), "Pattern": "*.txt"}, rg_context)
+  assert "<capped at 50 results>" in result
+
+
+# unified search tool tests (feature flag: unified_file_search_tool)
+
+def test_unified_search_content_python(tmp_path, context):
+  (tmp_path / "a.py").write_text("def hello():\n  return 1\n", encoding="utf-8")
+  (tmp_path / "b.md").write_text("hello world\nhello again\n", encoding="utf-8")
+  result = execute_search({"Query": "hello", "SearchPath": str(tmp_path)}, context)
+  assert "a.py" in result and "b.md" in result
+  per_line = execute_search({"Query": "hello", "SearchPath": str(tmp_path), "MatchPerLine": True}, context)
+  assert "hello" in per_line
+  assert "No matches" in execute_search({"Query": "zzz_nothing", "SearchPath": str(tmp_path)}, context)
+
+def test_unified_search_name_python(tmp_path, context):
+  (tmp_path / "keep.py").write_text("x", encoding="utf-8")
+  (tmp_path / "skip.md").write_text("x", encoding="utf-8")
+  sub = tmp_path / "subdir"
+  sub.mkdir()
+  (sub / "deep.py").write_text("x", encoding="utf-8")
+  files = execute_search({"Query": "*.py", "SearchPath": str(tmp_path), "Mode": "name", "Type": "file"}, context)
+  assert "keep.py" in files and "skip.md" not in files and "deep.py" in files
+  dirs = execute_search({"Query": "sub*", "SearchPath": str(tmp_path), "Mode": "name", "Type": "directory"}, context)
+  assert "subdir" in dirs
+
+def test_unified_search_skips_ignored(tmp_path, context):
+  ignored = tmp_path / "node_modules"
+  ignored.mkdir()
+  (ignored / "pkg.js").write_text("x", encoding="utf-8")
+  (tmp_path / "app.js").write_text("x", encoding="utf-8")
+  result = execute_search({"Query": "*.js", "SearchPath": str(tmp_path), "Mode": "name"}, context)
+  assert "app.js" in result and "pkg.js" not in result
+
+def test_unified_search_empty_query_rejected(tmp_path, context):
+  with pytest.raises(ToolError, match="Query is empty"):
+    execute_search({"Query": "", "SearchPath": str(tmp_path)}, context)
+  with pytest.raises(ToolError, match="Query is empty"):
+    execute_search({"Query": "   ", "SearchPath": str(tmp_path)}, context)
+
+def test_unified_search_bad_regex_suggests_fixed_strings(tmp_path, context):
+  (tmp_path / "a.txt").write_text("hello", encoding="utf-8")
+  with pytest.raises(ToolError, match="FixedStrings=true"):
+    execute_search({"Query": "[invalid(regex", "SearchPath": str(tmp_path)}, context)
+
+def test_unified_search_name_on_file_suggests_content(tmp_path, context):
+  f = tmp_path / "a.txt"
+  f.write_text("hello", encoding="utf-8")
+  with pytest.raises(ToolError, match="Mode='content'"):
+    execute_search({"Query": "*.txt", "SearchPath": str(f), "Mode": "name"}, context)
+
+def test_unified_search_content_rg(tmp_path, rg_context):
+  (tmp_path / "one.py").write_text("def alpha():\n  return 1\n", encoding="utf-8")
+  (tmp_path / "two.md").write_text("alpha beta\nalpha gamma\n", encoding="utf-8")
+  result = execute_search({"Query": "alpha", "SearchPath": str(tmp_path)}, rg_context)
+  assert "one.py" in result and "two.md" in result
+  per_line = execute_search({"Query": "alpha", "SearchPath": str(tmp_path), "MatchPerLine": True}, rg_context)
+  assert "alpha" in per_line
+
+def test_unified_search_name_rg(tmp_path, rg_context):
+  (tmp_path / "keep.py").write_text("x", encoding="utf-8")
+  (tmp_path / "skip.md").write_text("x", encoding="utf-8")
+  sub = tmp_path / "mydir"
+  sub.mkdir()
+  (sub / "deep.py").write_text("x", encoding="utf-8")
+  files = execute_search({"Query": "*.py", "SearchPath": str(tmp_path), "Mode": "name", "Type": "file"}, rg_context)
+  assert "keep.py" in files and "skip.md" not in files and "deep.py" in files
+  dirs = execute_search({"Query": "my*", "SearchPath": str(tmp_path), "Mode": "name", "Type": "directory"}, rg_context)
+  assert "mydir" in dirs
+
+def test_unified_search_name_finds_underscore_dirs(tmp_path, rg_context):
+  """Regression: directories starting with _ must be found even when gitignored (SSNLVRFY-PR-0001)."""
+  session_dir = tmp_path / "_Sessions"
+  session_dir.mkdir()
+  (session_dir / "NOTES.md").write_text("x", encoding="utf-8")
+  (tmp_path / ".gitignore").write_text("_Sessions/\n", encoding="utf-8")
+  (tmp_path / ".git").mkdir()
+  result = execute_search({"Query": "_*", "SearchPath": str(tmp_path), "Mode": "name", "Type": "directory"}, rg_context)
+  assert "_Sessions" in result

@@ -51,7 +51,7 @@ def expand_slash_command(user_input: str, prompt_system: PromptSystem) -> tuple[
     prefixed = [candidate for candidate in names if candidate.startswith(name)]
     suggestions = (prefixed + [item for item in difflib.get_close_matches(name, names, n=3) if item not in prefixed])[:3]
     raise UnknownWorkflowError(name, suggestions)
-  content = (f"<user_request>\n{stripped}\n</user_request>\n<workflows>\n@[/{workflow.name}] is a [Workflow]:\n<workflow>\n"
+  content = (f"{stripped}\n<workflows>\n@[/{workflow.name}] is a [Workflow]:\n<workflow>\n"
              f"The user mentioned the ({workflow.name}) workflow. Here are its contents:\n{workflow.content}\n</workflow>\n</workflows>")
   return content, workflow.name
 
@@ -87,7 +87,7 @@ class Agent:
   def build_user_message(self, content: str) -> Message:
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     metadata = f"<user_metadata>\ndate: {now}\ncwd: {self.tool_context.workspace}\n</user_metadata>"
-    return Message(role="user", content=f"{content}\n\n{metadata}")
+    return Message(role="user", content=f"<user_request>\n{content}\n</user_request>\n\n{metadata}")
 
   # Approval gate (FR-12/13): returns (needs_approval, action, detail)
   def approval_needed(self, call: ToolCall, args: dict) -> tuple[bool, str, str]:

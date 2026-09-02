@@ -178,7 +178,7 @@ An **Evaluator** scores one tier from a TestRunRecord: StructureEvaluator (Tier 
 - Run folders are immutable: the runner never modifies an existing run folder
 
 **LANATEST-FR-06: Tier 1 - Structural Evaluation**
-- StructureEvaluator checks the final workspace against `manifest.yaml`: file presence (globs), forbidden files, required sections, format patterns, minimum counts
+- StructureEvaluator checks the final workspace against `manifest.yaml`: file presence (globs), forbidden files, required sections, format patterns, forbidden content strings
 - Every check yields pass/fail with the violated expectation named
 - Tier 1 score = passed checks / total checks
 
@@ -325,8 +325,8 @@ file_rules:
     patterns:
       - name: doc_id
         regex: "\\*\\*Doc ID\\*\\*: [A-Z]{2,14}-IN[0-9]{2}"
-    min_count:
-      "## Summary": 1
+    forbid_content:
+      - "TODO"
 ```
 
 **checks.yaml (Tier 2) example:**
@@ -424,6 +424,11 @@ RESULT: 4 passed, 1 failed, 0 invalid.
 - Session JSONL tool events carry full arguments (`tool_call_requested`: tool + args; `tool_call_finished`: id + status [`ok`|`error`|`cancelled`] + result text + result_chars) - Tier 2 path-level, count-level, and error-level checks are evaluable [VERIFIED: events.py ToolCallRequested, ToolCallFinished]
 
 ## 13. Document History
+
+**[2026-09-01 23:30]**
+- Fixed: FR-06 `minimum counts` -> `forbidden content strings` (manifest `forbid_content` is implemented in evaluators.py and used in 4 test manifests; `min_count` was never implemented)
+- Fixed: Section 10 manifest example `min_count` -> `forbid_content` (matches code and actual test manifests)
+- Source: `/fact-check` + `/sync` against `evals/suite/runner/evaluators.py`
 
 **[2026-09-01 15:10]**
 - Added: FR-07 - 4 new assert types for ProcessEvaluator: `tool_call_count` (total call bounds), `tool_call_errors` (error status from `tool_call_finished`), `forbidden_tool_args` (tool+args combo), `tool_called` `max` parameter. Driven by LANALOGS-IN01 gap analysis (8 T01 findings, only 1 coverable by existing asserts)

@@ -153,7 +153,20 @@ if ($keyLeaks) {
 $configCount = (Get-ChildItem $bundleConfig -File).Count
 $agentFiles = Get-ChildItem $bundleAgent -Recurse -File
 $agentSizeMb = [Math]::Round(($agentFiles | Measure-Object -Property Length -Sum).Sum / 1MB, 1)
-Write-Host "  $configCount config files, $($agentFiles.Count) agent files ($agentSizeMb MB). Key-leak scan OK."
+# External tools: rg.exe -> rg.bin (renamed to avoid AV triggers in wheel/zip chain)
+$bundleTools = Join-Path $BundleDir 'tools'
+if (Test-Path $bundleTools) { Remove-Item $bundleTools -Recurse -Force }
+New-Item -ItemType Directory -Path $bundleTools -Force | Out-Null
+$rgSource = Join-Path $RootDir '.lana-tools\rg.exe'
+$toolsLabel = 'no tools'
+if (Test-Path $rgSource) {
+  Copy-Item $rgSource (Join-Path $bundleTools 'rg.bin') -Force
+  $rgSizeMb = [Math]::Round((Get-Item $rgSource).Length / 1MB, 1)
+  $toolsLabel = "rg $rgSizeMb MB"
+} else {
+  Write-Host '  NOTICE: .lana-tools\rg.exe not found - binary will ship without ripgrep.'
+}
+Write-Host "  $configCount config files, $($agentFiles.Count) agent files ($agentSizeMb MB), tools ($toolsLabel). Key-leak scan OK."
 
 # ---------------------------------------------------------------------------- [ 3 / 8 ] wheel
 Step 'Building wheel...'
@@ -241,9 +254,11 @@ Write-Host '  SHA256SUMS.txt written. OK.'
 Step 'Cleaning build artifacts...'
 if (Test-Path $bundleAgent) { Remove-Item $bundleAgent -Recurse -Force }
 if (Test-Path $bundleConfig) { Remove-Item $bundleConfig -Recurse -Force }
+if (Test-Path $bundleTools) { Remove-Item $bundleTools -Recurse -Force }
 New-Item -ItemType Directory -Path $bundleAgent -Force | Out-Null
 New-Item -ItemType Directory -Path $bundleConfig -Force | Out-Null
-Write-Host '  src/lana/bundled/agent/ and config/ cleaned (build-time only, not tracked in git).'
+New-Item -ItemType Directory -Path $bundleTools -Force | Out-Null
+Write-Host '  src/lana/bundled/ agent, config, tools cleaned (build-time only, not tracked in git).'
 
 if (Test-Path $oldExe) {
   try {

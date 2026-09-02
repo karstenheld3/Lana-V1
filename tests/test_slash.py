@@ -12,8 +12,8 @@ def prompt_system(fake_system):
 def test_workflow_expansion_cascade_format(prompt_system):
   content, name = expand_slash_command("/prime", prompt_system)
   assert name == "prime"
-  assert content.startswith("<user_request>\n/prime\n</user_request>")
-  assert "<workflows>" in content and "@[/prime] is a [Workflow]:" in content
+  assert content.startswith("/prime\n<workflows>")
+  assert "@[/prime] is a [Workflow]:" in content
   assert "Step 1: read notes." in content  # full workflow body injected
   assert content.rstrip().endswith("</workflows>")
 

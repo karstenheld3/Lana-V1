@@ -10,6 +10,7 @@ dist/
 .lana-data/
 src/lana/bundled/agent/
 src/lana/bundled/config/
+src/lana/bundled/tools/
 *_gitignore.*
 *_gitignore/
 config/.api-keys.txt

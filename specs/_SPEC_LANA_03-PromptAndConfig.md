@@ -47,9 +47,23 @@
 - System prompt content is byte-identical across all turns of a session (prompt cache prefix)
 - The assembled system prompt is recorded byte-verbatim in the session JSONL `session_started` event (LANAAGNT-FR-08) - the JSONL, not the prompt system folder, is the authority for what the Generator received
 
+**LANAAGNT-FR-17: System Prompt Cascade Parity** [LANASYSP-SP01]
+- Expand `<communication_style>` with Cascade subsections: `<markdown_formatting>` (8 rules: fenced code blocks with language, bold critical info, section headings, short display lists, bold list item titles, no unicode bullet points, endline-delimited lists, Markdown format), `<citation_guidelines>` (code citation format `@<absolute_filepath>:<start_line>-<end_line>` with valid/invalid examples)
+- Add communication rules missing from Cascade parity: proactive vs careful balance, direct responses (no preamble), no repetition of initial response, user assistance communication, code comment preservation
+- Harden `<running_commands>`: double emphasis "NEVER NEVER", add information control rule (do not refer to specific arguments of `run_command` tool), add "not running in a dedicated container" awareness, reference user allowlist settings
+- Add `<workspace_information>` section: file tree snapshot frozen at session start, generated from the workspace directory, respecting `.gitignore` patterns and `IGNORED_DIRECTORIES`, capped at a configurable depth and line limit; content is static for the session (IG-01 compatible)
+- Add `<memory_system>` section acknowledging that cross-session memories are unavailable; user rules serve a similar persistent-context role
+- Append injected behaviors after all XML sections (positional salience for recency bias): bug fixing discipline, planning cadence, testing discipline, verification tools, progress notes, long-horizon workflow - these complement but do not duplicate user rules content
+- All additions maintain byte-identical stability within a session (IG-01)
+- Section order updated: identity, `<communication_style>` (with `<markdown_formatting>` + `<citation_guidelines>`), `<tool_calling>`, `<making_code_changes>`, `<task_management>`, `<running_commands>`, `<debugging>`, `<calling_external_apis>`, `<workflows>`, `<user_rules>`, `<capability_notice>`, `<user_information>`, `<workspace_information>`, `<memory_system>`, {injected behaviors}
+
+**LANAAGNT-DD-26:** Workspace information uses `_walk_files`-style traversal with configurable `workspace_tree_max_depth` (default 4) and `workspace_tree_max_lines` (default 200) to avoid bloating the system prompt for large projects. Rationale: Cascade freezes the tree at conversation start; generating it once at session start satisfies IG-01 and gives the Generator structural awareness without tool calls. The tree excludes gitignored and `IGNORED_DIRECTORIES` entries to match the existing tool behavior.
+
+**LANAAGNT-DD-27:** Injected behaviors are placed AFTER all XML sections as plain text (no XML wrapper) to exploit recency bias / positional salience, matching Cascade's architecture. Content is Lana-authored (not user-configurable) and complements user rules without duplicating them. If a user rule contradicts an injected behavior, the user rule wins per the `<user_rules>` precedence preamble.
+
 ## 2. Design Decisions
 
-**LANAAGNT-DD-02:** Two roles only - `generator` and `summarizer` - configured in `lana-config.json`; defaults `claude-sonnet-4-5-20250929` and `gpt-4.1-mini` (OQ-02, OQ-05). Rationale: both are `enabled` in the registry; the summarizer needs no reasoning; role -> model mapping stays pure configuration with no hardcoded model IDs.
+**LANAAGNT-DD-02:** Three roles - `generator`, `summarizer`, `websearch` - configured in `lana-config.json`; defaults `claude-sonnet-4-5-20250929` (generator) and `gpt-4.1-mini` (summarizer + websearch) (OQ-02, OQ-05). Rationale: all defaults are `enabled` in the registry; summarizer and websearch need no reasoning; role -> model mapping stays pure configuration with no hardcoded model IDs.
 
 **LANAAGNT-DD-12:** Single prompt system folder configurable via `agent_folder`, Cascade folder layout (`rules/`, `workflows/`, `skills/`) (OQ-21). Rationale: one agent has one prompt system folder, matching the Cascade architecture; pointing `agent_folder` at any folder with the standard layout requires zero content changes. Relative path resolves against the app directory (DD-25); absolute path used as-is.
 
@@ -76,17 +90,34 @@
   "agent_folder": ".lana",          // resolved relative to app directory (DD-25)
   "data_dir": ".lana-data",            // resolved relative to app directory (DD-25)
   "rule_block_max_chars": 6000,
-  "max_tool_calls_per_prompt": 25,
+  "max_tool_calls_per_prompt": 40,
   "auto_continue": false,
   "tool_result_max_chars": 50000,
   "compaction_threshold_fraction": 0.6,
   "compaction_threshold_max_tokens": 150000,
+  "workspace_tree_max_depth": 4,
+  "workspace_tree_max_lines": 200,
   "execution_policy": "manual",
+  "unified_file_search_tool": true,
   "command_denylist": ["rm", "del", "rmdir", "erase", "ri", "Remove-Item", "Move-Item", "format", "kill", "pkill", "Stop-Process", "shutdown", "git push --force"]
 }
 ```
 
 ## 5. Document History
+
+**[2026-09-02 00:50]**
+- Added: `unified_file_search_tool` boolean to LanaConfig schema (DD-28, synced from `config.py`)
+- Source: Code -> Docs sync after unified search tool implementation
+
+**[2026-09-02 00:01]**
+- Added: FR-17 (System Prompt Cascade Parity), DD-26 (workspace tree config), DD-27 (injected behaviors placement)
+- Added: `workspace_tree_max_depth`, `workspace_tree_max_lines` to LanaConfig schema
+- Source: LANASYSP-SP01 reverse spec gap analysis
+
+**[2026-09-01 21:58]**
+- Fixed: DD-02 "Two roles" -> "Three roles" including `websearch` (synced from `config.py` `DEFAULT_ROLES`)
+- Fixed: Schema example `max_tool_calls_per_prompt` 25 -> 40 (synced from code default in `config.py`; deployed `lana-config.json` still overrides to 25)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]`: FR-01, FR-02, FR-03, DD-02, DD-12, DD-16, DD-23, DD-25, IG-01, Section 10 (LanaConfig schema)

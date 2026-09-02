@@ -18,6 +18,8 @@ Topics MUST be 7-14 uppercase chars and unique.
 - `LANATOOL` - Lana Tool System
 - `LANACLI` - Lana CLI Frontend
 - `LANASTST` - Lana Selftest (resolves LANATEST Doc ID collision with Eval Suite)
+- `LANASYSP` - Lana System Prompt Design (system prompt structure, content taxonomy, context composition)
+- `LANAMREPO` - Lana Multi-Repo Setup (product/dev repo separation)
 
 ## External Topic References
 
@@ -25,3 +27,4 @@ Topics defined outside this workspace, referenced in docs:
 
 - `CSMP` - Cascade Metaprompts research (source: `knowledge/Windsurf/HowCascadeWorks/`)
 - `ACP` - Agent Client Protocol research (authoritative source: `knowledge/AI-Standards/ACP-AgentClientProtocol_2026-08-30/`; superseded: `ACP-AgentClientProtocol_2026-06-12/`)
+- `RGREPREF` - Ripgrep CLI reference (source: `knowledge/Ripgrep/`)

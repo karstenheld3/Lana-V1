@@ -5,9 +5,9 @@
 **Timeline**: Created 2026-08-29, Extracted from _TEST_LANA_MVP-1.md 2026-09-01
 
 **Target file(s)**:
-- `tests/test_tools.py` (file/edit/shell/state tool tests)
+- `tests/test_file_tools.py`, `tests/test_edit_tools.py`, `tests/test_shell_tools.py`, `tests/test_state_tools.py`, `tests/test_skill_tool.py`, `tests/test_tools_registry.py` (tool unit tests)
 - `tests/test_web_tools.py` (web research tools)
-- `tests/test_trajectory.py` (trajectory search)
+- `tests/test_trajectory_tools.py` (trajectory search)
 
 **Depends on:**
 - `_SPEC_LANA_05-Tools.md [LANATOOL-SP01]` for FR-10, FR-11, FR-13, FR-15
@@ -43,9 +43,18 @@ Black-box scenarios (Layer 3) proving Tool System requirements. Unit/integration
 ## 2. Verification Checklist
 
 - [x] **LANATOOL-TP01-VC-01**: TP01-TC-09 and TC-10 pass (TC-10 skip if keys absent)
-- [x] **LANATOOL-TP01-VC-02**: Coverage contract - FR-10 (via IP01 TC-16..25), FR-11 (via IP01 TC-19..22), FR-13 (via TP01-TC-10 + IP01 TC-43..45), FR-15 (via IP01 TC-61..63) each cited by passing TCs
+- [x] **LANATOOL-TP01-VC-02**: Coverage contract - FR-10 (via IP01 TC-16..25, TC-79..86 unified search), FR-11 (via IP01 TC-19..22), FR-13 (via TP01-TC-10 + IP01 TC-43..45), FR-15 (via IP01 TC-61..63) each cited by passing TCs
 
 ## 3. Document History
+
+**[2026-09-02 00:50]**
+- Changed: VC-02 coverage contract updated to include unified search tool TCs (TC-79..86, DD-28)
+- Source: Code -> Docs sync after unified search tool implementation
+
+**[2026-09-01 23:15]**
+- Fixed: Target files `tests/test_tools.py` -> actual split files (`test_file_tools.py`, `test_edit_tools.py`, `test_shell_tools.py`, `test_state_tools.py`, `test_skill_tool.py`, `test_tools_registry.py`)
+- Fixed: `tests/test_trajectory.py` -> `tests/test_trajectory_tools.py` (actual filename)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_TEST_LANA_MVP-1.md [LANAAGNT-TP01]`: Categories 5 (Diagnostics) and 5b (Web Research)

@@ -70,7 +70,7 @@ IP01 test cases TC-01..04 are the authoritative definitions. This plan maps them
 
 ### Category 3: Live end-to-end (3 manual tests, user-approved spend)
 
-- **LANATEST-TP01-TC-07**: Full suite live run (all 9 tests, real LLM) -> results.json with all tier scores, REPORT.md summary, cost totals reported (FR-05..08, NFR-02)
+- **LANATEST-TP01-TC-07**: Full suite live run (all 10 tests, real LLM) -> results.json with all tier scores, REPORT.md summary, cost totals reported (FR-05..08, NFR-02)
 - **LANATEST-TP01-TC-08**: Single test with Tier 3 judge (03-T01 TranscribeLocal) -> judge/ audit trail complete (input.md, prompt.md, response.json, call.log), dimension scores in results.json (FR-08)
 - **LANATEST-TP01-TC-09**: Run with `--skip-judge` flag -> Tier 3 scores null, Tier 1/2 still evaluated, no judge API call (runner flag behavior)
 
@@ -102,6 +102,10 @@ IP01 test cases TC-01..04 are the authoritative definitions. This plan maps them
 - [x] **LANATEST-TP01-VC-09**: Every SP01 IG has at least one TC (IG-01..04 -> TC-01/03/04/05)
 
 ## 6. Document History
+
+**[2026-09-01 23:30]**
+- Fixed: TC-07 test count 9 -> 10 (02-T04_SessionLoad added post-IMPL)
+- Source: `/fact-check` + `/sync` against `evals/suite/` filesystem
 
 **[2026-09-01 21:55]**
 - Initial test plan created (spec restructure step 9)

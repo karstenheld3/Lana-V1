@@ -54,6 +54,11 @@
 **Trajectory search:**
 - **LANAAGNT-IP01-EC-27**: `trajectory_search` with unknown `ID`, ambiguous prefix, `SearchType: "user"`, or no sessions folder -> error naming available session ids / the contract violation (FR-15)
 
+**Unified search (DD-28):**
+- **LANAAGNT-IP01-EC-34**: `search` with empty or whitespace-only Query -> ToolError: "Query is empty. Provide a search pattern (regex for Mode='content', glob for Mode='name')."
+- **LANAAGNT-IP01-EC-35**: `search` content mode with invalid regex -> ToolError with arrow-chain: "Invalid regex pattern '...' -> ..."; recovery: "Set FixedStrings=true to search for the literal text instead of treating it as a regex."
+- **LANAAGNT-IP01-EC-36**: `search` name mode on a file path -> ToolError: "SearchPath '...' is not a directory -> Mode='name' requires a directory. Use Mode='content' to search inside a file, or pass a directory path."
+
 ## 2. Implementation Steps
 
 ### Phase C: Tools (offline set)
@@ -64,7 +69,7 @@
 
 **Action**: Transcribe the 15 tool definitions verbatim from `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (12 native + 3 web). Substitution points: `{OS}`/`{SHELL}` in `run_command`, `{SKILL_LIST}` in `skill` (per IN02 section 1). Registry maps name -> (definition, executor, needs_approval_fn)
 
-**Note**: This is transcription work, not authoring - diff-check each description against IN02 (zero differences outside substitution points = IN02 acceptance rule); cross-check the 12 ebook-covered tools against chapters 8-9. Serialize schemas deterministically (sorted keys) for cache stability
+**Note**: This is transcription work, not authoring - diff-check each description against IN02 (zero differences outside substitution points = IN02 acceptance rule); cross-check the 12 ebook-covered tools against chapters 8-9. Serialize schemas deterministically (sorted keys) for cache stability. When `unified_file_search_tool` is true (DD-28), `render_definitions()` replaces `grep_search` + `find_by_name` with a single `search` tool definition (`UNIFIED_DESCRIPTION`/`UNIFIED_SCHEMA`); `list_dir` description updated to reference the unified tool instead of `find_by_name`. `ToolRegistry.__init__` passes the flag through to `render_definitions`; `dispatch` validates args against both `SCHEMAS` and `UNIFIED_SCHEMA`
 
 ### LANAAGNT-IP01-IS-07: File reading tools
 
@@ -72,7 +77,7 @@
 
 **Action**: Add executors: `read_file` (cat -n format, 1-indexed, offset/limit, 2000-char line truncation), `list_dir` (sizes, recursive item counts), `grep_search` (regex/fixed, includes, case flag, MatchPerLine; pure-Python line scan - no external rg dependency), `find_by_name` (glob, excludes, type, depth, 50-result cap)
 
-**Note**: All results pass through the shared `cap_result()` (EC-04). `read_file` success updates the ReadLedger; image files refused with explanatory error (EC-26). Pure-Python grep instead of bundling ripgrep [TESTED - full suite + real-system scans green 2026-08-30]. grep_search/find_by_name skip a fixed IGNORED_DIRECTORIES set (.git, node_modules, __pycache__, .lana, .lana-data, ...) as a gitignore approximation - the tool descriptions promise rg/fd ignore semantics (synced 2026-08-30)
+**Note**: All results pass through the shared `cap_result()` (EC-04). `read_file` success updates the ReadLedger; image files refused with explanatory error (EC-26). Pure-Python grep instead of bundling ripgrep [TESTED - full suite + real-system scans green 2026-08-30]. grep_search/find_by_name skip a fixed IGNORED_DIRECTORIES set (.git, node_modules, __pycache__, .lana, .lana-data, ...) as a gitignore approximation - the tool descriptions promise rg/fd ignore semantics (synced 2026-08-30). When `unified_file_search_tool` is true (DD-28), `execute_search` replaces both legacy executors: content mode (`_search_content_rg` + `_search_content_python` fallback) and name mode (`_search_name_rg` + `_search_name_python` fallback); both modes use `--no-ignore` with rg and the hardcoded `IGNORED_DIRECTORIES` set for Python fallback. Error messages per MC-PR-05: empty query rejected, invalid regex suggests FixedStrings=true, name-on-file error suggests Mode='content' (EC-34..36)
 
 ### LANAAGNT-IP01-IS-08: Edit tools with ReadLedger (LANAAGNT-FR-11)
 
@@ -151,6 +156,17 @@
 - **LANAAGNT-IP01-TC-62**: Empty query returns all chunks chronologically (contract); ID resolution by exact name, stem, and unique prefix
 - **LANAAGNT-IP01-TC-63**: Error paths (EC-27) - unknown ID lists available sessions, ambiguous prefix rejected, SearchType "user" rejected, definitions diff test covers the 16th tool
 
+### Category 16: Unified Search Tool (8 tests, DD-28)
+
+- **LANAAGNT-IP01-TC-79**: `execute_search` content mode Python fallback - regex + MatchPerLine + no-matches path
+- **LANAAGNT-IP01-TC-80**: `execute_search` name mode Python fallback - file/directory type filter, IGNORED_DIRECTORIES skipped
+- **LANAAGNT-IP01-TC-81**: `execute_search` empty query rejected (EC-34), invalid regex suggests FixedStrings (EC-35), name-on-file suggests Mode='content' (EC-36)
+- **LANAAGNT-IP01-TC-82**: `execute_search` content + name mode via rg backend; name mode finds gitignored `_Sessions` dir (SSNLVRFY-PR-0001 regression)
+- **LANAAGNT-IP01-TC-83**: `render_definitions` with flag true -> `search` present, `grep_search`/`find_by_name` absent; flag false -> legacy set unchanged
+- **LANAAGNT-IP01-TC-84**: `render_definitions` flag true -> `list_dir` description references unified `search` tool, not `find_by_name`
+- **LANAAGNT-IP01-TC-85**: `UNIFIED_SCHEMA['search']` valid: type object, additionalProperties false, Query + SearchPath required
+- **LANAAGNT-IP01-TC-86**: `schema_json('search')` deterministic serialization
+
 ## 4. Verification Checklist
 
 - [x] **LANATOOL-IP01-VC-01**: LANATOOL-SP01 re-read; all 4 FRs, 5 DDs accounted for
@@ -159,8 +175,16 @@
 - [x] **LANATOOL-IP01-VC-04**: Category 11 green (TC-56..60, synced regressions)
 - [x] **LANATOOL-IP01-VC-05**: Category 12 green (TC-61..63, trajectory search)
 - [x] **LANATOOL-IP01-VC-06**: Tool definitions diff-checked against IN02 (zero differences outside substitution points)
+- [ ] **LANATOOL-IP01-VC-07**: Category 16 green (TC-79..86, unified search tool)
 
 ## 5. Document History
+
+**[2026-09-02 00:50]**
+- Changed: IS-06 updated for unified tool definitions, `render_definitions` flag, schema dispatch
+- Changed: IS-07 updated for `execute_search` executor with content/name modes and MC-PR-05 error messages
+- Added: EC-34 (empty query), EC-35 (invalid regex recovery), EC-36 (name-on-file recovery)
+- Added: Category 16 (TC-79..86, unified search tool), VC-07
+- Source: Code -> Docs sync after unified search tool implementation
 
 **[2026-09-01 21:45]**
 - Extracted from `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: IS-06 (definitions), IS-07 (file tools), IS-08 (edit tools), IS-09 (shell tools portion), IS-10 (state/skill/interact), IS-18 (web tools), IS-23 (trajectory search)

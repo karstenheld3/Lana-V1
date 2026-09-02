@@ -48,7 +48,7 @@ e:\Dev\Lana-V1\
 │   ├── __init__.py                   # Version constant (~5 lines) [NEW]
 │   ├── __main__.py                   # python -m lana -> cli.main() (~5 lines) [NEW]
 │   ├── models.py                     # Canonical types: Message, ToolCall, ToolResult, ThinkingBlock, Usage (pydantic) (~120 lines) [NEW]
-│   └── events.py                     # AgentEvent union (11 types per SPEC incl. session_started), serialization (~130 lines) [NEW]
+│   └── events.py                     # AgentEvent union (12 types per SPEC incl. session_started + prompt_step), serialization (~110 lines) [NEW]
 └── tests/
     └── conftest.py                   # Fixtures: tmp workspace, fake prompt system, scripted adapter wiring (~120 lines) [NEW]
 ```
@@ -74,10 +74,10 @@ Estimated total: ~480 lines source + ~120 lines test fixtures [ASSUMED].
 **Action**: Add pydantic types:
 ```python
 # models.py - provider-neutral conversation model
-class ToolCall: id, name, args_json, status          # status: pending|ok|error|cancelled
-class ThinkingBlock: provider, payload               # opaque, resent per provider rules
-class Message: role, content, tool_calls, thinking, usage
-# events.py - the 11 AgentEvent types from SPEC Domain Objects, each with ts + to_jsonl()/from_jsonl()
+class ToolCall: id, name, args_json, status, result  # status: pending|ok|error|cancelled
+class ThinkingBlock: provider, payload               # opaque, resent per provider rules; provider: openai|anthropic|scripted
+class Message: role, content, tool_calls, thinking, usage, tool_call_id
+# events.py - the 12 AgentEvent types from SPEC Domain Objects (incl. prompt_step), each with ts + to_jsonl()/from_jsonl()
 ```
 
 **Note**: `checkpoint_created` carries full checkpoint text (resume replay); `user_message` carries `expanded_workflow` name when applicable; `session_started` carries the full-recall environment (FR-08, see `_IMPL_LANA_02-AgentCore.md [LANACORE-IP01]`)
@@ -105,6 +105,11 @@ NFRs are defined in `_SPEC_LANA_01-ProductOverview.md [LANAAGNT-SP01]`. Their ve
 - [x] **LANAAGNT-IP01-VC-04**: Phase A green -- skeleton + models + events compile and pass basic tests
 
 ## 5. Document History
+
+**[2026-09-01 21:58]**
+- Fixed: events.py line count 11 -> 12 types, ~130 -> ~110 lines (synced from code)
+- Fixed: `ToolCall` added `result` field, `ThinkingBlock` added `scripted` provider literal, `Message` added `tool_call_id` field (synced from `src/lana/models.py`)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: Impact Analysis, File Structure (skeleton portion), IS-01 (package skeleton), IS-02 (canonical models and events), Phase A VCs

@@ -69,7 +69,7 @@
 
 **LANAAGNT-DD-20:** Black-box CLI testing via three observable interfaces (FR-14): headless prompt injection, per-line-flushed session JSONL as the activity monitor, and the scripted replay adapter for deterministic turns. Rationale: tests exercise the real `lana` executable end-to-end without API cost, nondeterminism, or pseudo-terminal emulation (fragile on Windows); the AgentEvent stream (DD-06) stays the single observability surface for humans, tests, and the future ACP frontend alike.
 
-**LANAAGNT-DD-24:** Severity-prefixed notices over the existing `error` event: messages starting `WARNING:` render yellow, `NOTICE:` render dim (prefix stripped), all others red with `ERROR:` prefix; the AgentEvent enum stays at 11 types. Rationale: retry notices (FR-16) and the pre-compaction line need non-error rendering; a 12th event type would touch the JSONL schema, resume projection, and the ACP translator for a pure presentation concern - the EC-17 `WARNING:` prefix convention already exists, this formalizes it.
+**LANAAGNT-DD-24:** Severity-prefixed notices over the existing `error` event: messages starting `WARNING:` render yellow, `NOTICE:` render dim (prefix stripped), all others red with `ERROR:` prefix; the AgentEvent enum stays at 12 types (prompt_step is the 12th, added for prompt queue). Rationale: retry notices (FR-16) and the pre-compaction line need non-error rendering; an additional notice event type would touch the JSONL schema, resume projection, and the ACP translator for a pure presentation concern - the EC-17 `WARNING:` prefix convention already exists, this formalizes it.
 
 ## 3. Domain Objects
 
@@ -140,6 +140,11 @@ Running workflow 'prime'...
 - Key operations: request/response JSON per API call, cache token accounting, compaction decisions
 
 ## 6. Document History
+
+**[2026-09-01 23:17]**
+- Fixed: DD-24 "AgentEvent enum stays at 11 types" -> 12 (prompt_step is the 12th; synced from `events.py` AgentEvent union)
+- Fixed: DD-24 rationale "a 12th event type" -> "an additional notice event type" (prompt_step was added for prompt queue, not notices)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]`: FR-09, FR-14, FR-16, DD-20, DD-24, Section 11 (User Actions), Section 12 (Logging Requirements)

@@ -110,7 +110,7 @@ A **SkillFolder** is one folder with `SKILL.md` and supporting files, loadable v
 
 ### ToolDefinition
 
-A **ToolDefinition** is one callable capability exposed to the Generator: name, description, JSON Schema. 12 in MVP-1 (see LANAAGNT-FR-10).
+A **ToolDefinition** is one callable capability exposed to the Generator: name, description, JSON Schema. 16 in MVP-1 (see LANAAGNT-FR-10).
 
 ### ToolCall
 
@@ -148,7 +148,7 @@ An **ExecutionPolicy** governs command auto-execution. One of: `manual` (every c
 
 ### AgentEvent
 
-An **AgentEvent** is one item on the internal event stream consumed by the frontend: `session_started`, `user_message`, `turn_started`, `text_delta`, `thinking_delta`, `tool_call_requested`, `tool_call_finished`, `approval_required`, `checkpoint_created`, `turn_finished`, `error`. The `checkpoint_created` event carries the full checkpoint text (required for resume replay). The `session_started` event carries the byte-verbatim system prompt, the verbatim tool definitions, and the resolved config snapshot; the `turn_finished` event carries the turn's resendable thinking payloads (both required for full recall, LANAAGNT-FR-08).
+An **AgentEvent** is one item on the internal event stream consumed by the frontend: `session_started`, `user_message`, `turn_started`, `text_delta`, `thinking_delta`, `tool_call_requested`, `tool_call_finished`, `approval_required`, `checkpoint_created`, `turn_finished`, `error`, `prompt_step`. The `checkpoint_created` event carries the full checkpoint text (required for resume replay). The `session_started` event carries the byte-verbatim system prompt, the verbatim tool definitions, the resolved config snapshot, and a prompt system fingerprint; the `turn_finished` event carries the turn's resendable thinking payloads (both required for full recall, LANAAGNT-FR-08). The `prompt_step` event marks prompt queue boundaries in headless mode (LANAACPB-FR-12).
 
 ### LanaConfig
 
@@ -204,6 +204,12 @@ A **LanaConfig** is the merged runtime configuration from `config/lana-config.js
 - Tool definition authority chain: `_INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02]` (live-session verbatim, all 16 tools) > `HowWindsurfCascadeWorks.md` chapters 8-9 (wire-capture, 12 of 16 verbatim) > any memory of tool behavior
 
 ## 8. Document History
+
+**[2026-09-01 21:58]**
+- Fixed: ToolDefinition count 12 -> 16 (synced from `src/lana/tools/definitions.py` DESCRIPTION_TEMPLATES)
+- Fixed: AgentEvent types 11 -> 12 (added `prompt_step` from LANAACPB-FR-12, synced from `src/lana/events.py`)
+- Added: `prompt_system_fingerprint` to `session_started` description (synced from `SessionStarted` class)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]`: Sections 1 (Scenario), 2 (Context), 3 (Domain Objects), 5 (Non-Functional Requirements), 13 (Technical Constraints), DD-06, DD-09, DD-17, DD-18, IG-05

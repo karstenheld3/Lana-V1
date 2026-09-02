@@ -10,10 +10,10 @@
 - `src/lana/debug_viewer.py` (NEW ~100 lines - JSONL stdin reader, colorized rendering, EOF latch)
 - `src/lana/cli.py` (MODIFY - `--debug-console`, `--log-dir`, `--debug-viewer` flags, viewer spawn)
 - `src/lana/agent.py` (MODIFY - LLM request/response/TTFT/error instrumentation calls)
-- `src/lana/providers/openai_adapter.py` (MODIFY - retry, sidecall instrumentation)
-- `src/lana/providers/anthropic_adapter.py` (MODIFY - retry instrumentation)
-- `src/lana/acp/server.py` (MODIFY - ACP recv/send/turn/roundtrip instrumentation)
-- `src/lana/acp/bridge.py` (MODIFY - approval gate instrumentation)
+- `src/lana/acp/server.py` (MODIFY - ACP recv/send/turn instrumentation)
+- `src/lana/acp/jsonrpc.py` (MODIFY - ACP roundtrip instrumentation)
+- `src/lana/tools/web_tools.py` (MODIFY - websearch sidecall instrumentation)
+- `src/lana/compaction.py` (MODIFY - compaction_start/compaction_failed instrumentation)
 
 **Depends on:**
 - `_SPEC_LANA_08-DebugConsole.md [LANADEBG-SP01]` for all FR/DD/IG/NFR/EC requirements
@@ -49,12 +49,12 @@ src/lana/
 ├── debug_viewer.py     # Viewer subprocess entry point (DD-03) [NEW]
 ├── cli.py              # --debug-console, --log-dir, --debug-viewer flags [MODIFY]
 ├── agent.py            # LLM instrumentation calls [MODIFY]
-├── providers/
-│   ├── openai_adapter.py   # Retry + sidecall instrumentation [MODIFY]
-│   └── anthropic_adapter.py # Retry instrumentation [MODIFY]
+├── tools/
+│   └── web_tools.py    # Websearch sidecall instrumentation [MODIFY]
+├── compaction.py       # Compaction start/failed instrumentation [MODIFY]
 └── acp/
     ├── server.py       # ACP recv/send/turn instrumentation [MODIFY]
-    └── bridge.py       # Approval gate instrumentation [MODIFY]
+    └── jsonrpc.py      # ACP roundtrip instrumentation [MODIFY]
 ```
 
 ## 2. Edge Cases
@@ -82,7 +82,7 @@ src/lana/
 ```python
 # Module-level: _writer: DebugLogWriter | None = None
 # enable(log_dir=None) -> spawn viewer (--debug-console) or file-only (--log-dir alone)
-# log(dom, op, **fields) -> if _writer and not _writer.dead: serialize DebugLine, write to pipe + file
+# dlog(dom, op, **fields) -> if _writer and not _writer.dead: serialize DebugLine, write to pipe + file
 # DebugLogWriter: viewer subprocess handle, dead flag, optional log file handle
 #   write(): try pipe.write + flush; OSError/BrokenPipeError -> dead=True, stderr warning (IG-02)
 #   optional file write: independent failure path (EC-09/10)
@@ -121,7 +121,7 @@ src/lana/
 
 ### LANADEBG-IP01-IS-04: LLM domain instrumentation
 
-**Location**: `src/lana/agent.py`, `src/lana/providers/openai_adapter.py`, `src/lana/providers/anthropic_adapter.py`
+**Location**: `src/lana/agent.py`, `src/lana/tools/web_tools.py`
 
 **Action**: Add instrumentation calls at operation boundaries
 
@@ -131,8 +131,8 @@ src/lana/
 # agent.py: dlog("llm", "first_token", dur_ms=)  # TTFT from monotonic clock
 # agent.py: dlog("llm", "response", dur_ms=, in_tok=, cache_read=, cache_write=, out_tok=, cost_usd=, tool_calls=)
 # agent.py: dlog("llm", "error", dur_ms=, err=truncate(300))
-# adapters: dlog("llm", "retry", err=) per retry notice
-# openai_adapter: dlog("llm", "sidecall", role=, provider=, model=, dur_ms=, results=)
+# agent.py: dlog("llm", "retry", err=) per notice delta from adapter
+# web_tools.py: dlog("llm", "sidecall", role=, provider=, model=, dur_ms=, results=)
 ```
 
 ### LANADEBG-IP01-IS-05: Tool domain instrumentation
@@ -150,7 +150,7 @@ src/lana/
 
 ### LANADEBG-IP01-IS-06: ACP domain instrumentation
 
-**Location**: `src/lana/acp/server.py`, `src/lana/acp/bridge.py`
+**Location**: `src/lana/acp/server.py`, `src/lana/acp/jsonrpc.py`
 
 **Action**: Add ACP recv/send/turn/roundtrip instrumentation
 
@@ -159,12 +159,12 @@ src/lana/
 # server.py: dlog("acp", "recv", method=, id=) per inbound request/notification
 # server.py: dlog("acp", "send", method=, id=, dur_ms=, status=) per outbound response (except session/prompt)
 # server.py: dlog("acp", "turn", id=, dur_ms=, stop=, updates=) per prompt turn end
-# bridge.py: dlog("acp", "roundtrip", method=, dur_ms=, outcome=) per permission/elicitation
+# jsonrpc.py: dlog("acp", "roundtrip", method=, dur_ms=, outcome=) per permission/elicitation round-trip
 ```
 
 ### LANADEBG-IP01-IS-07: App domain instrumentation
 
-**Location**: `src/lana/cli.py`, `src/lana/agent.py`
+**Location**: `src/lana/cli.py`, `src/lana/agent.py`, `src/lana/compaction.py`
 
 **Action**: Add startup/roles/session/compaction instrumentation
 
@@ -173,10 +173,10 @@ src/lana/
 # cli.py: dlog("app", "startup", mode=, version=)
 # cli.py: dlog("app", "roles", roles=formatted_string) at runtime build
 # cli.py: dlog("app", "prompt_system", dur_ms=, rules=, workflows=, skills=)
-# agent.py: dlog("app", "session", file=, resumed=, dur_ms=)
-# agent.py: dlog("app", "compaction_start", projected=, threshold=)
+# cli.py: dlog("app", "session", file=, resumed=, dur_ms=)
 # agent.py: dlog("app", "compaction", truncated=, kept=, checkpoint_chars=)
-# agent.py: dlog("app", "compaction_failed", err=)
+# compaction.py: dlog("app", "compaction_start", projected=, threshold=)
+# compaction.py: dlog("app", "compaction_failed", err=)
 ```
 
 ## 4. Test Cases
@@ -220,6 +220,14 @@ src/lana/
 - [x] **LANADEBG-IP01-VC-10**: Full offline suite green (no regression from instrumentation calls)
 
 ## 6. Document History
+
+**[2026-09-01 23:30]**
+- Fixed: Target files and file structure synced from code - removed adapter files and `bridge.py` (zero dlog calls); added `jsonrpc.py` (roundtrip), `web_tools.py` (sidecall), `compaction.py` (compaction_start/failed)
+- Fixed: IS-01 function name `log()` -> `dlog()` (consistent with IS-04..07 and actual code)
+- Fixed: IS-04 locations - retry instrumentation is in `agent.py` (notice delta handler), sidecall in `web_tools.py` (not in adapter files)
+- Fixed: IS-06 roundtrip location `bridge.py` -> `jsonrpc.py` (Connection.request method)
+- Fixed: IS-07 added `compaction.py` for `compaction_start` and `compaction_failed`; `session` dlog moved from `agent.py` to `cli.py`
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:55]**
 - Initial implementation plan created (spec restructure step 9, post-hoc documentation of implemented debug console)

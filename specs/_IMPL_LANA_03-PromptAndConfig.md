@@ -52,20 +52,20 @@
 
 **Location**: `config.py`
 
-**Action**: Add `load_lana_config(workspace, install_root)`:
+**Action**: Add `load_lana_config(workspace, config_path, require_keys, app_dir) -> AppConfig`:
 ```python
-def load_lana_config(workspace, install_root) -> LanaConfig: ...
-# 0. install_root is the base for config, agent_folder, data_dir (DD-25)
-# 1. Parse install_root/config/lana-config.json (pydantic schema per SPEC section 10)
+def load_lana_config(workspace, config_path=None, require_keys=True, app_dir=None) -> AppConfig: ...
+# 0. app_dir is the base for config, agent_folder, data_dir (DD-25); defaults to workspace
+# 1. Parse app_dir/config/lana-config.json (pydantic schema per SPEC section 10)
 # 2. Resolve each role model against model-registry.json: exists + enabled, else ConfigError
 # 3. Resolve provider params via model_id_startswith method + effort_mapping factors
 # 4. Keys: env var first (OPENAI_API_KEY / ANTHROPIC_API_KEY), then config/.api-keys.txt; track source per provider ("env" or ".api-keys.txt") in key_sources dict
 # 5. Load model-pricing.json into cost table (missing model tolerated, EC-24)
 # 6. Boot banner prints "Keys: provider (source), ..." line so user knows where keys come from (FR-01)
-# 7. agent_folder and data_dir resolved relative to install_root (not workspace)
+# 7. agent_folder and data_dir resolved relative to app_dir (not workspace)
 ```
 
-**Note**: ALL validation at startup (IG-05); ConfigError messages name file, key, and corrective action. Never log key material
+**Note**: ALL validation at startup (IG-05); ConfigError messages name file, key, and corrective action. Never log key material. `unified_file_search_tool: bool = True` controls whether the tool registry exposes the unified `search` tool or the legacy `grep_search` + `find_by_name` pair (LANATOOL-SP01 DD-28)
 
 ### Phase B: Prompt System Loading and System Prompt
 
@@ -114,6 +114,29 @@ def load_lana_config(workspace, install_root) -> LanaConfig: ...
 **Edge cases**:
 - **LANAAGNT-IP01-EC-31**: `path_not_found_hint` on deeply nested nonexistent paths - parent walk stops at drive root, returns hint with closest existing ancestor
 
+### Phase L: System Prompt Cascade Parity
+
+### LANAAGNT-IP01-IS-26: System prompt Cascade parity (LANAAGNT-FR-17)
+
+**Location**: `prompt.py`, `config.py`, `cli.py`
+
+**Action**:
+```python
+# prompt.py: Expand COMMUNICATION_STYLE with <markdown_formatting> (8 rules) and <citation_guidelines> (code citation format + examples)
+# prompt.py: Add communication rules: proactive/careful balance, direct responses, no repetition, user assistance, code comment preservation
+# prompt.py: Harden RUNNING_COMMANDS: "NEVER NEVER" doubled emphasis, info control rule, container awareness
+# prompt.py: Add MEMORY_SYSTEM constant describing unavailable cross-session memories
+# prompt.py: Add INJECTED_BEHAVIORS constant (6 behavioral rules: bug fixing, long-horizon, planning, testing, verification, progress notes)
+# prompt.py: Add build_workspace_information() - file tree snapshot frozen at session start, respects IGNORED_DIRECTORIES, configurable depth/lines
+# prompt.py: Update build_system_prompt() section order to include workspace_information, memory_system, injected_behaviors
+# config.py: Add workspace_tree_max_depth (default 4) and workspace_tree_max_lines (default 200) to LanaConfig
+# cli.py: Pass workspace_tree config values in workspace_info dict
+```
+
+**Edge cases**:
+- **LANAAGNT-IP01-EC-32**: Workspace directory is empty or inaccessible -> workspace_information shows empty tree or error message
+- **LANAAGNT-IP01-EC-33**: Workspace tree exceeds max_lines -> truncation marker appended, rest of tree skipped
+
 ## 3. Test Cases
 
 ### Category 1: Configuration (7 tests)
@@ -149,6 +172,14 @@ def load_lana_config(workspace, install_root) -> LanaConfig: ...
 - **LANAAGNT-IP01-TC-72**: `list_dir` not-found error message includes HINT with parent path
 - **LANAAGNT-IP01-TC-73**: `path_not_found_hint` returns empty string when even root doesn't exist (e.g. Z:\ drive)
 
+### Category 15: System Prompt Cascade Parity (5 tests)
+
+- **LANAAGNT-IP01-TC-74**: System prompt contains `<markdown_formatting>` and `<citation_guidelines>` subsections
+- **LANAAGNT-IP01-TC-75**: `<running_commands>` contains "NEVER NEVER" doubled emphasis
+- **LANAAGNT-IP01-TC-76**: `build_workspace_information` generates tree with correct depth limit and line cap (EC-32, EC-33)
+- **LANAAGNT-IP01-TC-77**: System prompt section order matches FR-17 (15 sections including workspace_information, memory_system, injected_behaviors)
+- **LANAAGNT-IP01-TC-78**: Two builds of workspace_information with same workspace are identical (IG-01)
+
 ## 4. Verification Checklist
 
 - [x] **LANAPRCF-IP01-VC-01**: LANAPRCF-SP01 re-read; all 3 FRs, 5 DDs, 1 IG accounted for
@@ -156,8 +187,22 @@ def load_lana_config(workspace, install_root) -> LanaConfig: ...
 - [x] **LANAPRCF-IP01-VC-03**: Phase B green (TC-07..15)
 - [x] **LANAPRCF-IP01-VC-04**: Phase K green (TC-69..73)
 - [x] **LANAPRCF-IP01-VC-05**: IG-01 test: two consecutive builds byte-identical
+- [x] **LANAPRCF-IP01-VC-06**: Phase L green (TC-74..78), 331 passed full suite
 
 ## 5. Document History
+
+**[2026-09-02 00:50]**
+- Changed: IS-03 note mentions `unified_file_search_tool` flag (DD-28)
+- Source: Code -> Docs sync after unified search tool implementation
+
+**[2026-09-02 00:01]**
+- Added: Phase L (System Prompt Cascade Parity), IS-26, EC-32/33, Category 15 (TC-74..78), VC-06
+- Source: LANASYSP-SP01 reverse spec gap analysis, FR-17
+
+**[2026-09-01 21:58]**
+- Fixed: IS-03 `load_lana_config` signature synced from code (return type `AppConfig` not `LanaConfig`, param `app_dir` not `install_root`, extra params `config_path`/`require_keys`)
+- Fixed: IS-03 comments `install_root` -> `app_dir` (terminology aligned with code)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: IS-03 (config), IS-04 (loader), IS-05 (prompt assembly), IS-25 (session load improvements)

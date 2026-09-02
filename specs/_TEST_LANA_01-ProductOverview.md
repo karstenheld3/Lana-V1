@@ -102,14 +102,17 @@ Dependency: T2 requires T1 green; T3/T4 require T2 green. T1+T2 are the continuo
 ```python
 # tests/harness.py - the automated CLI driver (IP01 IS-22)
 class LanaProc:
-    def start(workspace, config, script, args) -> LanaProc: ...   # spawn real executable, env wired
-    def send(line) -> None: ...                                   # stdin prompt injection (piped mode)
-    def events() -> list[AgentEvent]: ...                         # parsed stdout JSONL (--output-format jsonl)
-    def tail_session(predicate, timeout_s=5) -> AgentEvent: ...   # poll flushed session file (FR-08 contract)
-    def wait_exit(timeout_s=30) -> int: ...                       # exit code (FR-14 semantics)
+    def __init__(workspace, config_path, script_path, policy): ...  # configure; not yet started
+    def run_headless(prompt, output_format="jsonl", timeout=60): ...  # lana -p "<prompt>" (FR-14)
+    def run_piped(stdin_text, timeout=60): ...                       # piped stdin REPL fallback
+    def start_piped(extra_args=None) -> Popen: ...                   # non-blocking spawn (kill/resume)
+    def send(line) -> None: ...                                      # stdin injection (piped mode)
+    def events(result=None) -> list[AgentEvent]: ...                 # parsed stdout JSONL
+    def tail_session(predicate, timeout=10.0) -> AgentEvent: ...     # poll flushed session file (FR-08)
+    def wait_exit(timeout=30) -> int: ...                            # exit code (FR-14 semantics)
 # assertions
-def assert_event_sequence(events, expected_subsequence): ...      # ordered match, ids/timestamps masked
-def assert_no_secret_leak(all_outputs, key_values): ...           # NFR-01: key material absent everywhere
+def assert_event_order(events, expected_types): ...                  # ordered subsequence match on type strings
+def assert_no_secret_leak(outputs, key_values): ...                  # NFR-01: key material absent everywhere
 ```
 
 ## 7. Cleanup
@@ -138,6 +141,10 @@ Every NFR from `_SPEC_LANA_01-ProductOverview.md [LANAAGNT-SP01]` must be cited 
 - [x] **LANAAGNT-TP01-VC-06**: T4 acceptance executed; deviations synced back to SPEC/IMPL via `/sync`
 
 ## 10. Document History
+
+**[2026-09-01 21:58]**
+- Fixed: `LanaProc` API sketch synced from `tests/harness.py` (`__init__` not `start`, `run_headless`/`run_piped`/`start_piped` methods, `assert_event_order` not `assert_event_sequence`)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_TEST_LANA_MVP-1.md [LANAAGNT-TP01]`: Overview, Test Strategy, Test Priority Matrix, Test Data, Test Phases, Helper Functions, Cleanup, Verification Checklist

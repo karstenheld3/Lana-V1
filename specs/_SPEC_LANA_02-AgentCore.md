@@ -55,13 +55,19 @@
 - Every AgentEvent appended to the session JSONL file at occurrence (crash-safe) (OQ-10)
 - Each event line is flushed to disk at write time - external processes can tail the session file as a live activity monitor (test harness contract, LANAAGNT-DD-20)
 - Full recall: every byte sent to the Generator is reconstructible from the JSONL alone - system prompt and tool definitions from `session_started`, conversation from event projection, checkpoint text from `checkpoint_created` (LANAAGNT-IG-07)
-- Assistant thinking payloads that the adapter must resend on later calls (Anthropic thinking blocks with signatures) are recorded verbatim on the turn's `turn_finished` event - resume reproduces the exact resend content without adding a 12th event type
+- Assistant thinking payloads that the adapter must resend on later calls (Anthropic thinking blocks with signatures) are recorded verbatim on the turn's `turn_finished` event - resume reproduces the exact resend content without adding a dedicated event type
 - `lana --resume [session-file]` rebuilds conversation state, system prompt, and tool definitions from the JSONL and continues - the recorded system prompt is reused byte-verbatim (preserves LANAAGNT-IG-01 across resume); the on-disk prompt system is loaded only for new workflow expansion and skill invocation
 - Resume fingerprint check: when the loaded prompt system's fingerprint differs from the recorded one, print a one-line warning naming the difference (counts/hash) - the recorded system prompt still wins for Generator calls
 - Model change on resume: role -> model resolution follows the CURRENT `lana-config.json` (enables switching models between runs); the recorded config snapshot serves audit and reconstruction, never model selection; a differing generator is reported at startup (recorded vs current)
 - Provider independence: recall never depends on provider-side state - prompt caches are ephemeral (minutes-scale TTL) and provider-bound; after a model or provider change the full recorded context is re-sent from the JSONL (cold-cache cost effect only, no information loss)
 - Cross-provider thinking payloads: recorded thinking payloads are resent only when the resumed provider matches their recording provider; on provider change they are dropped from the resend (signatures are provider-bound) while their rendered text remains in the log for recall
 - Session files never auto-deleted
+
+**LANAAGNT-FR-18: User Message Cascade Parity** [LANASYSP-SP01]
+- Wrap ALL user message content in `<user_request>` tags, not just workflow-expanded messages
+- Current state: only `expand_slash_command()` adds `<user_request>` wrapper; regular messages via `build_user_message()` append `<user_metadata>` without wrapping the content
+- Target state: `build_user_message()` wraps user content in `<user_request>` before appending `<user_metadata>`, matching Cascade's universal wrapping
+- The `<user_metadata>` block (date, cwd) remains outside `<user_request>` as structural metadata
 
 **LANAAGNT-FR-12: Command Safety**
 - Generator self-classifies via `SafeToAutoRun` (schema kept verbatim); Lana runtime applies the ExecutionPolicy on top (OQ-29)
@@ -113,7 +119,7 @@ Interactive turn with workflow invocation:
 User types "/prime"
 ├─> Slash expander: match workflows/prime.md
 │   └─> Build user message: <user_request>/prime</user_request> + <workflows>{full prime.md}</workflows>
-├─> Turn loop (repeat until no tool calls or limit 25):
+├─> Turn loop (repeat until no tool calls or limit 40):
 │   ├─> ProviderAdapter: canonical messages -> provider request (cache breakpoints set)
 │   ├─> Stream response: text_delta / thinking_delta events -> CLI renderer
 │   ├─> For each requested ToolCall (sequential):
@@ -127,6 +133,15 @@ User types "/prime"
 ```
 
 ## 6. Document History
+
+**[2026-09-02 00:01]**
+- Added: FR-18 (User Message Cascade Parity - universal `<user_request>` wrapping)
+- Source: LANASYSP-SP01 reverse spec gap analysis
+
+**[2026-09-01 21:58]**
+- Fixed: Action flow diagram call limit 25 -> 40 (synced from `config.py` `max_tool_calls_per_prompt` default, matching FR-04 text)
+- Fixed: FR-08 "without adding a 12th event type" -> "dedicated event type" (prompt_step is already the 12th, synced in 01-ProductOverview)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]`: FR-04, FR-05, FR-07, FR-08, FR-12, DD-05, DD-07, DD-08, DD-13, DD-15, DD-22, IG-02, IG-03, IG-04, IG-06, IG-07, Section 8 (Key Mechanisms), Section 9 (Action Flow)

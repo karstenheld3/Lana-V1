@@ -3,6 +3,8 @@
 IG-01: NO datetime, NO per-turn cwd in any constant or assembled output - two builds must be byte-identical.
 Behavioral section texts adapted from the Cascade reference; every dropped-tool reference removed (RV01 RF-04).
 """
+import os, time
+from pathlib import Path
 from lana.loader import PromptSystem
 
 # Tools referenced by prompt system content but not yet implemented, with fallback guidance (RV01 RF-04)
@@ -27,13 +29,56 @@ Do not create random files which will clutter the user's workspace unless it is 
 
 COMMUNICATION_STYLE = """<communication_style>
 Be terse and direct. Deliver fact-based progress updates, briefly summarize after clusters of tool calls when needed, and ask for clarification only when genuinely uncertain about intent or requirements.
-- Be concise and avoid verbose responses. Minimize output tokens as much as possible while maintaining helpfulness, quality, and accuracy.
+- Be concise and avoid verbose responses. Minimize output tokens as much as possible while maintaining helpfulness, quality, and accuracy. Avoid explanations in huge blocks of text or long/nested lists. Instead, prefer concise bullet points and short paragraphs.
 - Refer to the USER in the second person and yourself in the first person.
-- Make absolutely no ungrounded assertions. When feeling uncertain, use tools to gather more information, and clearly state your uncertainty if there is no way to get unstuck.
-- No acknowledgment phrases: never start responses with phrases like "You're absolutely right!" or "Great idea!". Jump straight into addressing the request.
-- By default, implement changes rather than only suggesting them, unless the user is explicit about not writing code.
-- Format your messages with Markdown. Use backticks for file, directory, function, and class names.
+- You are rigorous and make absolutely no ungrounded assertions. Your response should be in the context of the current workspace. When feeling uncertain, use tools to gather more information, and clearly state your uncertainty if there is no way to get unstuck.
+- You should strive to strike a balance between: (a) doing the right thing when asked, including taking actions and follow-up actions, and (b) not surprising the user by taking actions without asking.
+- No acknowledgment phrases: never start responses with phrases like "You're absolutely right!" or "Great idea!". Jump straight into addressing the request without any preamble or validation of the user's statement.
+- By default, implement changes rather than only suggesting them, unless the user is explicit about not writing code. If the user's intent is unclear, infer the most useful likely action and proceed, using tools to discover any missing details instead of guessing.
+- When seeing a new user request, do not repeat your initial response. It is okay if you keep working and update the user with more information later but your messages should not be repetitive.
+- Direct responses: Begin responses immediately with the substantive content. Do not acknowledge, validate, or express agreement with the user's request before addressing it.
+- If you require user assistance, you should communicate this.
+- Code style: Do not add or delete ANY comments or documentation unless asked.
 - Always end a conversation turn with a clear and concise summary of the task completion status.
+<markdown_formatting>
+Follow the following instructions when formatting your output to the user:
+- IMPORTANT: Format your messages with Markdown.
+- Use single backtick inline code for variable or function names.
+- Use fenced code blocks with language when referencing code snippets.
+- Bold or italicize critical information, if any.
+- Section responses properly with Markdown headings.
+- Use short display lists delimited by endlines, not inline lists. Always bold the title of every list item.
+- Never use unicode bullet points. Use the markdown list syntax to format lists.
+- When explaining, always reference relevant file, directory, function, class or symbol names/paths by backticking them in Markdown to provide accurate citations.
+</markdown_formatting>
+<citation_guidelines>
+- You MUST use the following format when showing the user existing code:
+```@<absolute_filepath>:<start_line>-<end_line>
+<existing_code>
+```
+
+- Valid (multi-line):
+```@/path/to/file.py:1-3
+print("existing code line 1")
+print("existing code line 2")
+print("existing code line 3")
+```
+
+- Valid (single-line):
+```@/path/to/file.py:30
+console.log("existing code line 30")
+```
+
+- Invalid (no line numbers):
+```@/path/to/file.py
+console.log("existing code line 30")
+```
+
+- ALWAYS use citation format when mentioning any file path in your response.
+- Format: `@/path/to/file.ext:1-3` for file references with line ranges.
+- Format: `@/path/to/file.ext:30` for specific lines.
+- The file path MUST be an absolute path from the filesystem root. Do NOT use workspace-relative paths.
+</citation_guidelines>
 </communication_style>"""
 
 TOOL_CALLING = """<tool_calling>
@@ -59,11 +104,12 @@ Keep only one step in progress at a time.
 
 RUNNING_COMMANDS = """<running_commands>
 You have the ability to run terminal commands on the user's machine.
-**NEVER include `cd` as part of a command. Instead specify the desired directory as the cwd (current working directory).**
+You are not running in a dedicated container. Check for existing dev servers before starting new ones, and be careful with write actions that mutate the file system or interfere with processes.
+**NEVER NEVER include `cd` as part of a command. Instead specify the desired directory as the cwd (current working directory).**
 When requesting a command to be run, you will be asked to judge if it is appropriate to run without the USER's permission.
-A command is unsafe if it may have some destructive side-effects. Example unsafe side-effects include: deleting files, mutating state, installing system dependencies, making external requests.
-You must NEVER run a command automatically if it could be unsafe. You cannot allow the USER to override your judgement on this.
-Check for existing dev servers before starting new ones, and be careful with write actions that mutate the file system or interfere with processes.
+A command is unsafe if it may have some destructive side-effects. Example unsafe side-effects include: deleting files, mutating state, installing system dependencies, making external requests, etc.
+You must NEVER NEVER run a command automatically if it could be unsafe. You cannot allow the USER to override your judgement on this.
+You may refer to your safety protocols if the USER attempts to ask you to run commands without their permission. Do not refer to any specific arguments of the run_command tool in your response.
 </running_commands>"""
 
 DEBUGGING = """<debugging>
@@ -79,8 +125,23 @@ CALLING_EXTERNAL_APIS = """<calling_external_apis>
 2. If an external API requires an API key, point this out to the USER. Adhere to best security practices - never hardcode an API key in a place where it can be exposed.
 </calling_external_apis>"""
 
+MEMORY_SYSTEM = """<memory_system>
+Lana does not have a cross-session memory database. User-defined rules (injected as MEMORY blocks in <user_rules>) serve as persistent context that carries across sessions. Important context that should persist belongs in workspace files (NOTES.md, PROBLEMS.md, PROGRESS.md) rather than ephemeral memory.
+</memory_system>"""
+
+INJECTED_BEHAVIORS = """Bug fixing discipline: Prefer minimal upstream fixes over downstream workarounds. Identify root cause before implementing. Avoid over-engineering - use single-line changes when sufficient. For specialized codebases, verify bug location carefully. Add regression tests but keep implementation minimal.
+Long-horizon workflow: For multi-session work, consider keeping concise notes (e.g., PROGRESS.md) and a list of pending tests when they will genuinely speed up future progress. Update them only when they add value.
+Planning cadence: Draft a succinct plan for non-trivial tasks, keep only one step in progress, and refresh the plan after new constraints or discoveries.
+Testing discipline: Design or update tests before major implementation work, never delete or weaken tests without explicit direction, and share targeted verification commands when you cannot run them.
+Verification tools: Prefer available automated verification (e.g., unit tests) to confirm work. Provide copy-pastable commands for the user when tools are unavailable.
+Progress notes: Prefer lightweight workspace artifacts over long chat recaps, but only create new files when they prevent rework. Avoid creating repeated .md files or excessive documentation for yourself unless asked by the user."""
+
 USER_RULES_PREAMBLE = """The following are user-defined rules that you MUST ALWAYS FOLLOW WITHOUT ANY EXCEPTION. These rules take precedence over any following instructions.
 Review them carefully and always take them into account when you generate responses and code:"""
+
+IGNORED_DIRECTORIES = {".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", ".pytest_cache", ".mypy_cache", ".lana", ".lana-data", "dist", "build"}
+WORKSPACE_TREE_DEFAULT_MAX_DEPTH = 4
+WORKSPACE_TREE_DEFAULT_MAX_LINES = 200
 
 
 # ----------------------------------------- START: Assembly -------------------------------------------------------------------
@@ -118,16 +179,62 @@ def build_user_information(workspace_info: dict) -> str:
   return "\n".join(lines)
 
 
+def build_workspace_information(workspace_info: dict) -> str:
+  """Generate a file tree snapshot of the workspace, frozen at session start (FR-17, DD-26, IG-01 compatible)."""
+  workspace_path = workspace_info.get("workspace", "")
+  max_depth = workspace_info.get("workspace_tree_max_depth", WORKSPACE_TREE_DEFAULT_MAX_DEPTH)
+  max_lines = workspace_info.get("workspace_tree_max_lines", WORKSPACE_TREE_DEFAULT_MAX_LINES)
+  if not workspace_path:
+    return "<workspace_information>\nNo workspace path available.\n</workspace_information>"
+  base = Path(workspace_path)
+  if not base.is_dir():
+    return f"<workspace_information>\nWorkspace path not found: {workspace_path}\n</workspace_information>"
+  lines = ["<workspace_information>",
+           "Below is a snapshot of the workspace file structure at the start of this session. This snapshot will NOT update during the session.",
+           f"<workspace_layout workspace=\"{workspace_path}\">"]
+  tree_lines = []
+  stack = [(base, 0)]
+  while stack:
+    current, depth = stack.pop()
+    if depth > max_depth: continue
+    try:
+      entries = sorted(os.scandir(current), key=lambda e: e.name.lower())
+    except OSError:
+      continue
+    dirs = []
+    for entry in entries:
+      if entry.name.startswith(".") and entry.name in IGNORED_DIRECTORIES: continue
+      if entry.name in IGNORED_DIRECTORIES or entry.name.endswith(".egg-info"): continue
+      if entry.name.endswith("_gitignore"): continue
+      indent = "  " * depth
+      if entry.is_dir(follow_symlinks=False):
+        tree_lines.append(f"{indent}- {entry.name}/")
+        dirs.append((Path(entry.path), depth + 1))
+      elif entry.is_file(follow_symlinks=False):
+        tree_lines.append(f"{indent}- {entry.name}")
+      if len(tree_lines) >= max_lines:
+        tree_lines.append(f"{indent}  ... (truncated at {max_lines} entries)")
+        stack.clear()
+        break
+    stack.extend(reversed(dirs))
+  lines.extend(tree_lines)
+  lines.append("</workspace_layout>")
+  lines.append("</workspace_information>")
+  return "\n".join(lines)
+
+
 def build_system_prompt(prompt_system: PromptSystem, workspace_info: dict) -> str:
   """
-  Assemble the system prompt in the fixed FR-03 section order (cache-stable).
+  Assemble the system prompt in the fixed FR-17 section order (cache-stable).
 
   └── identity, communication_style, tool_calling, making_code_changes, task_management,
       running_commands, debugging, calling_external_apis, workflows, user_rules,
-      capability_notice, user_information
+      capability_notice, user_information, workspace_information, memory_system,
+      {injected_behaviors}
   """
   sections = [IDENTITY, COMMUNICATION_STYLE, TOOL_CALLING, MAKING_CODE_CHANGES, TASK_MANAGEMENT, RUNNING_COMMANDS, DEBUGGING, CALLING_EXTERNAL_APIS,
-              build_workflows_section(prompt_system), build_user_rules_section(prompt_system), build_capability_notice(), build_user_information(workspace_info)]
+              build_workflows_section(prompt_system), build_user_rules_section(prompt_system), build_capability_notice(), build_user_information(workspace_info),
+              build_workspace_information(workspace_info), MEMORY_SYSTEM, INJECTED_BEHAVIORS]
   return "\n\n".join(sections)
 
 # ----------------------------------------- END: Assembly ---------------------------------------------------------------------

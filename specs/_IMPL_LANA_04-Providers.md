@@ -33,7 +33,7 @@
 
 ## 1. Edge Cases
 
-- **LANAAGNT-IP01-EC-16**: Provider API error (429/5xx) -> SDK default retries; final failure surfaces as `error` event with provider message, turn discarded like cancellation
+- **LANAAGNT-IP01-EC-16**: Provider API error (429/5xx) -> SDK retries disabled (`max_retries=0`), Lana-owned retries (up to 2, delays 2s/8s, each announced as notice delta, FR-16 UX-03); final failure surfaces as `error` event with provider message, turn discarded like cancellation
 - **LANAAGNT-IP01-EC-19**: `search_web` role model's provider tool unavailable -> tool error advising a different `websearch` model
 
 ## 2. Implementation Steps
@@ -71,6 +71,10 @@
 - [x] **LANAPRVD-IP01-VC-03**: Anthropic cache-read tokens verified on call 2 (NFR-03)
 
 ## 5. Document History
+
+**[2026-09-01 22:00]**
+- Fixed: EC-16 "SDK default retries" -> "SDK retries disabled, Lana-owned retries" (synced from `base.py` `RETRY_DELAYS_SECONDS` and adapters `max_retries=0`)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: IS-11 (OpenAI adapter), IS-12 (Anthropic adapter)

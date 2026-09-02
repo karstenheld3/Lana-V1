@@ -33,7 +33,7 @@
 
 Three layers matching IP01 categories:
 
-- **Layer 1 (pytest)**: CLI flag + zero-setup materialization - `--version`, bundled config materialization, agent folder behavior. 6 tests.
+- **Layer 1 (pytest)**: CLI flag + zero-setup materialization - `--version`, bundled config materialization, agent folder behavior, tools materialization. 7 tests.
 - **Layer 2 (manual)**: Ship pipeline - full `_build.bat` run, same-version replacement, signing skip, checksum, wheel listing, key-leak guard. 6 tests.
 - **Layer 3 (manual)**: Distribution binary behavior - fresh machine startup, ACP stdout purity, VirusTotal. 5 tests.
 
@@ -60,6 +60,7 @@ IP01 test cases TC-01..17 are the authoritative definitions. This plan maps them
 - **LANADIST-TP01-TC-04**: Partial config (pricing JSON deleted) -> only pricing JSON recreated, others untouched (IP01-TC-13, EC-15)
 - **LANADIST-TP01-TC-05**: Existing empty agent folder -> NOT repopulated (IP01-TC-14, EC-14, FR-08)
 - **LANADIST-TP01-TC-06**: Materialized `.api-keys.txt` contains `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` lines commented, no values (IP01-TC-15, DD-09)
+- **LANADIST-TP01-TC-18**: Tools materialization: missing `.lana-tools/` -> bundled `rg.bin` materializes as `rg.exe`; existing `rg.exe` -> untouched (IP01-TC-18, DD-12, FR-08)
 
 ### Category 2: Ship pipeline (6 manual tests, Windows x64 build machine)
 
@@ -80,7 +81,7 @@ IP01 test cases TC-01..17 are the authoritative definitions. This plan maps them
 
 ## 4. Test Phases
 
-1. **Phase 1: Offline unit** - TC-01..06 -- pytest, no toolchain required, fast
+1. **Phase 1: Offline unit** - TC-01..06, TC-18 -- pytest, no toolchain required, fast
 2. **Phase 2: Pipeline** - TC-07..12 -- requires Rust + .venv + build package, Windows x64
    - Gate: Phase 1 green
 3. **Phase 3: Binary behavior** - TC-13..17 -- requires completed binary from Phase 2
@@ -103,10 +104,16 @@ IP01 test cases TC-01..17 are the authoritative definitions. This plan maps them
 - [ ] **LANADIST-TP01-VC-06**: TC-17 VirusTotal result recorded (LANADIST-PR-0006)
 
 ### Coverage cross-check
-- [x] **LANADIST-TP01-VC-07**: Every SP01 FR has at least one TC (FR-01..09 covered)
+- [x] **LANADIST-TP01-VC-07**: Every SP01 FR has at least one TC (FR-01..09 covered; FR-08 tools path via TC-18)
 - [x] **LANADIST-TP01-VC-08**: Every SP01 IG has at least one TC (IG-01..05 covered)
+- [x] **LANADIST-TP01-VC-09**: DD-12 agent tools vs skill tools distinction covered by TC-18
 
 ## 6. Document History
+
+**[2026-09-02 00:00]**
+- Added: TC-18 tools materialization (DD-12, FR-08 tools path)
+- Added: VC-09 DD-12 coverage check
+- Changed: Layer 1 test count 6 -> 7; Phase 1 scope includes TC-18
 
 **[2026-09-01 21:55]**
 - Initial test plan created (spec restructure step 9)

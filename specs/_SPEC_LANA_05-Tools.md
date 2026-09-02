@@ -31,7 +31,7 @@
 
 ## 1. Functional Requirements
 
-**LANAAGNT-FR-10: Tool Set (16 tools)**
+**LANAAGNT-FR-10: Tool Set (16 tools, 15 with unified search flag)**
 - File reading: `read_file`, `list_dir`, `grep_search`, `find_by_name`
 - File editing: `edit`, `multi_edit`, `write_to_file`
 - Execution: `run_command`, `command_status`
@@ -44,6 +44,7 @@
 - `read_file` refuses image files with an explanatory error - visual presentation is unavailable in a CLI; the capability notice states this limitation (synced from implementation 2026-08-30)
 - `read_file` and `list_dir` path-not-found errors include a hint showing the closest existing parent directory and up to 5 similarly-named siblings, guiding the Generator toward the correct path without broad searches (LANALOGS-PR-0002)
 - Dropped from Cascade's 27 with rationale recorded in LANAAGNT-DD-10
+- When `unified_file_search_tool` is true (default), `grep_search` and `find_by_name` are replaced by a single `search` tool combining content regex search and filename glob search with consistent `--no-ignore` behavior and hardcoded `IGNORED_DIRECTORIES` excludes; `list_dir` description updated to reference the unified tool (DD-28). Tool count becomes 15. When false, the legacy 16-tool set is served unchanged
 
 **LANAAGNT-FR-11: Edit Enforcement Gates**
 - `edit`/`multi_edit` fail unless the target file was read via `read_file` in the current session after its last external modification (OQ-31)
@@ -77,9 +78,15 @@
 
 **LANAAGNT-DD-19:** Web research tools included in MVP-1 via provider-native web search (revised from MVP-2 deferral per user directive and scan evidence) [PROVEN - live web search TC-43 + Anthropic branch smoke green 2026-08-30]. Rationale: `search_web`/`read_url_content` are the most-referenced non-core tools in IPPS (14 + 17 refs), powering the flagship deep-research skill; OpenAI and Anthropic both offer native web search tools, so the two-backend constraint holds; `read_url_content` is plain HTTP fetching (no LLM backend involved), gated by Cascade-parity user approval.
 
+**LANAAGNT-DD-28:** When `unified_file_search_tool` is true, a single `search` tool replaces `grep_search` + `find_by_name`. Rationale: two separate tools with overlapping exclude lists and inconsistent `--no-ignore` vs gitignore behavior caused agent confusion (content search honored .gitignore, name search did not); a unified tool with one exclude list and one `Mode` parameter (content/name) provides predictable behavior. Feature flag preserves backward compatibility. The unified tool uses `rg --no-ignore` with Python fallback for both modes, matching the name-search behavior that proved necessary for finding gitignored session folders (SSNLVRFY-PR-0001). Error messages follow MC-PR-05: each ToolError states what failed, why, and recovery action.
+
 **LANAAGNT-DD-21:** `trajectory_search` implemented locally over session JSONL files, lexical scoring, no embeddings (resolves deferred candidate D-01; amends the DD-18 deferral). Rationale: the session log is already the event-sourced trajectory (Key Mechanisms); the `/remove` workflow (3 refs) becomes executable; the verbatim Cascade contract (IN02 section 7) is satisfiable without a vector index - semantic ranking quality beyond term overlap is deferred until evidence demands it.
 
 ## 3. Document History
+
+**[2026-09-02 00:50]**
+- Added: FR-10 unified search tool note, DD-28 (unified_file_search_tool design decision)
+- Source: Code -> Docs sync after unified search tool implementation
 
 **[2026-09-01 21:45]**
 - Extracted from `_SPEC_LANA_MVP-1.md [LANAAGNT-SP01]`: FR-10, FR-11, FR-13, FR-15, DD-10, DD-11, DD-14, DD-19, DD-21

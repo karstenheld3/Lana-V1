@@ -277,7 +277,7 @@ Each test calls the adapter's `stream_turn()` and collects all `AdapterDelta` ob
 
 ### Cost Computation
 
-Per-test cost uses the same formula as `lana.cost.CostTracker.turn_cost()`: look up rates by `(provider, model_id)` in `model-pricing.json`, compute `(input - cache_read) * input_rate + cache_read * cached_rate + output * output_rate`.
+Per-test cost uses the same formula as `lana.cost.CostTracker.turn_cost()`: look up rates by `(provider, model_id)` in `model-pricing.json`, compute `(input - cache_read) * input_rate + cache_read * cached_rate + cache_write * cache_write_rate + output * output_rate`.
 
 ## 9. Action Flow
 
@@ -404,7 +404,7 @@ SELFTEST: 04 Model Sweep (15 OpenAI, 5 Anthropic) | Budget: $5.00
   ...
   [ 16 / 20 ] claude-sonnet-4-5 (thinking, medium)...
     OK. 145in/31out $0.0008 2.1s
-  [ 17 / 20 ] claude-opus-4-5 (thinking, medium)...
+  [ 17 / 20 ] claude-opus-4-5 (effort, high)...
     FAIL: timeout after 60s
   ...
   04 Model Sweep: 19 passed, 1 failed, 0 skipped.
@@ -425,6 +425,11 @@ Results: .lana-data/selftest/2026-08-30_22-15-00/results.json
 - Workflow runs the script via Lana's `run_command` tool -- subject to execution policy (manual/auto/turbo)
 
 ## 13. Document History
+
+**[2026-09-01 23:15]**
+- Fixed: Section 8 cost formula added `cache_write * cache_write_rate` term (matches `cost.py` `turn_cost()` which includes `cache_write_tokens * cache_write_per_1m`)
+- Fixed: Section 11 log example `claude-opus-4-5 (thinking, medium)` -> `(effort, high)` - registry prefix `claude-opus-4-5` (dash) now matches the model ID; method is `effort` with default `high` (prefix dot/dash fix invalidated earlier PR-0003 correction)
+- Source: `/fact-check` + `/sync` against `src/lana/cost.py`, `config/model-registry.json`
 
 **[2026-08-30 22:22]**
 - Changed: generalized from model-only test to selftest framework with category menu (codes 01-06)

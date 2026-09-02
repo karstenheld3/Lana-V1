@@ -156,18 +156,19 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 - Checksum file is published as a release asset alongside the binary
 
 **LANADIST-FR-08: Bundled Default Payload**
-- The wheel embeds `src/lana/bundled/`: `config/` (three model JSON files) and `agent/` (default prompt library)
-- Ship pipeline syncs workspace `config/*.json` and `.lana/` into the bundle BEFORE the wheel build; sync NEVER touches `.api-keys.txt`
+- The wheel embeds `src/lana/bundled/`: `config/` (three model JSON files), `agent/` (default prompt library), and `tools/` (agent infrastructure binaries, renamed `.bin` to avoid AV triggers in the wheel/zip chain - DD-12)
+- Ship pipeline syncs workspace `config/*.json`, `.lana/`, and `.lana-tools/*.exe` (as `.bin`) into the bundle BEFORE the wheel build; sync NEVER touches `.api-keys.txt`
 - Key-leak guard: pipeline aborts if any bundled file contains an `API_KEY=` assignment with a real-key-shaped value (40+ character token); short documentation placeholders pass
 - Zero-setup materialization on the end-user machine (default config path only, extends existing FR-16 behavior):
   - Missing model JSON files -> written from bundle
   - Missing `.api-keys.txt` -> keyless template written from code constant
   - MISSING agent folder -> bundled prompt library copied (replaces today's empty-folder scaffold)
   - EXISTING agent folder (even empty) -> left untouched (user deletions are respected)
+  - Missing agent tools -> bundled `.bin` files copied to `app_dir/.lana-tools/` and renamed to executable names (e.g. `rg.bin` -> `rg.exe`); existing tools untouched
 - Every materialized artifact is reported via the existing zero-setup `Created '...'` lines
 
-**LANADIST-FR-09: External Tools Not Bundled**
-- `.tools/` (7-Zip, GitHub CLI, Ghostscript, ImageMagick, QPDF, youtube-downloader; 836 MB) is NOT part of the distribution
+**LANADIST-FR-09: Skill Tools Not Bundled**
+- `.tools/` (7-Zip, GitHub CLI, Ghostscript, ImageMagick, QPDF, youtube-downloader; 836 MB) is NOT part of the distribution - these are skill tools called by skill script wrappers, not agent infrastructure (DD-12)
 - Skills referencing missing tools degrade gracefully: skill instructions carry install hints for the end user
 - Tool provisioning (download-on-demand command or separate release asset) is deferred (DD-10)
 
@@ -213,7 +214,14 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 
 **LANADIST-DD-09:** `.api-keys.txt` template is generated from a code constant, never copied from the workspace. Rationale: eliminates every code path where real keys could enter the distribution; the workspace key file never meets the pipeline.
 
-**LANADIST-DD-10:** `.tools/` distribution deferred to a future `lana tools install` command or separate release asset. Rationale: 836 MB dwarfs the ~42 MB binary; Ghostscript's AGPL license imposes redistribution obligations the single-binary channel should not carry. Skills already name their tools and can hint installation.
+**LANADIST-DD-10:** `.tools/` (skill tools) distribution deferred to a future `lana tools install` command or separate release asset. Rationale: 836 MB dwarfs the ~42 MB binary; Ghostscript's AGPL license imposes redistribution obligations the single-binary channel should not carry. Skills already name their tools and can hint installation.
+
+**LANADIST-DD-11:** `PYAPP_PASS_LOCATION=1` injects the outer binary's absolute path as the `PYAPP` env var at runtime. `resolve_app_dir()` reads this to auto-detect `app_dir` (exe parent) for portable-app data isolation. Rationale: eliminates the need for `--app-dir` in IDE agent configs - the binary knows where it lives.
+
+**LANADIST-DD-12:** Two categories of external binaries with different distribution paths:
+- **Agent tools** (`.lana-tools/`): binaries called by Lana source code via `subprocess` (e.g. ripgrep for `grep_search`). Python wrappers live in `src/lana/tools/`. Bundled in the wheel as renamed package data (`.bin` extension to avoid AV triggers), materialized to `app_dir/.lana-tools/` at startup. Constraint: MIT/permissive license only, <10 MB per binary.
+- **Skill tools** (`.tools/`): binaries referenced by skill instructions for user-facing capabilities (e.g. Ghostscript, ImageMagick). Skill script wrappers live in `.lana/skills/`. NOT bundled (FR-09). User installs manually following skill-provided hints. No license constraint on the user's machine.
+Rationale: agent tools are infrastructure the binary NEEDS to function well; skill tools are capabilities the user CHOOSES. Different ownership (source code vs. prompt system), different distribution path (wheel vs. manual), different license exposure (Lana redistributes vs. user installs).
 
 ## 7. Implementation Guarantees
 
@@ -249,27 +257,29 @@ The **PyApp Cache** is the per-user runtime environment the binary creates on fi
 ```
 User runs _build.bat
 ├─> pwsh -f _build.ps1
-│   ├─> [ 1 / 7 ] Verify toolchain
+│   ├─> [ 1 / 8 ] Verify toolchain
 │   │   ├─> Python 3.12+ present? (build machine only)
 │   │   ├─> Rust/cargo present? If missing → offer rustup install
 │   │   └─> signtool + certificate configured? → note signing on/off
-│   ├─> [ 2 / 7 ] Sync bundle
+│   ├─> [ 2 / 8 ] Sync bundle
 │   │   ├─> config/*.json → src/lana/bundled/config/ (NEVER .api-keys.txt)
 │   │   ├─> .lana/ → src/lana/bundled/agent/
 │   │   └─> key-leak guard: scan bundle for uncommented *_API_KEY= → abort on hit
-│   ├─> [ 3 / 7 ] Build wheel
+│   ├─> [ 3 / 8 ] Build wheel
 │   │   └─> python -m build → dist/lana-{version}-py3-none-any.whl
-│   ├─> [ 4 / 7 ] Build PyApp binary
+│   ├─> [ 4 / 8 ] Build PyApp binary
 │   │   ├─> set PYAPP_* environment variables
 │   │   └─> cargo build --release → pyapp.exe
-│   ├─> [ 5 / 7 ] Rename + smoke test
+│   ├─> [ 5 / 8 ] Rename + smoke test
 │   │   ├─> copy → dist/lana-{version}-win-x64.exe
 │   │   └─> run binary --version → must match pyproject.toml
-│   ├─> [ 6 / 7 ] Sign (if certificate configured)
+│   ├─> [ 6 / 8 ] Sign (if certificate configured)
 │   │   └─> signtool sign + timestamp
-│   └─> [ 7 / 7 ] Checksum + report
-│       ├─> SHA256SUMS.txt
-│       └─> print artifact path, size, signed status
+│   ├─> [ 7 / 8 ] Checksum + report
+│   │   ├─> SHA256SUMS.txt
+│   │   └─> print artifact path, size, signed status
+│   └─> [ 8 / 8 ] Cleanup build artifacts
+│       └─> remove bundled agent/config dirs (build-time only)
 ```
 
 ```
@@ -295,22 +305,24 @@ End user (CLI)                      IDE (ACP client)
 
 **Expected output for ship run:**
 ```
-Shipping Lana 0.1.0 (win-x64)...
-[ 1 / 7 ] Verifying toolchain...
-  Python 3.12.4 OK. Cargo 1.86.0 OK.
-  NOTICE: No signing certificate configured - binary will be UNSIGNED.
-[ 2 / 7 ] Syncing bundle...
+Building Lana 0.1.0 (win-x64)...
+[ 1 / 8 ] Verifying toolchain...
+  Python 3.12.4 (.venv) OK. Cargo 1.86.0 OK.
+  NOTICE: LANA_SIGN_THUMBPRINT not set - binary will be UNSIGNED.
+[ 2 / 8 ] Syncing bundle...
   3 config files, 291 agent files (2.2 MB). Key-leak scan OK.
-[ 3 / 7 ] Building wheel...
-  dist/lana-0.1.0-py3-none-any.whl (2.4 MB). OK.
-[ 4 / 7 ] Building PyApp binary (this takes 1-3 minutes)...
+[ 3 / 8 ] Building wheel...
+  build\wheel\lana-0.1.0-py3-none-any.whl (2.4 MB). OK.
+[ 4 / 8 ] Building PyApp binary (pyapp 0.29.0, this takes 1-3 minutes)...
   OK.
-[ 5 / 7 ] Smoke test...
-  lana.exe --version -> 0.1.0. OK.
-[ 6 / 7 ] Signing... SKIPPED (no certificate).
-[ 7 / 7 ] Checksum...
+[ 5 / 8 ] Smoke test (first run extracts Python + installs dependencies, up to 5 min)...
+  lana --version -> lana 0.1.0. OK.
+[ 6 / 8 ] Signing... SKIPPED (no certificate).
+[ 7 / 8 ] Checksum...
   SHA256SUMS.txt written. OK.
-DONE: dist/lana-0.1.0-win-x64.exe (42 MB, unsigned)
+[ 8 / 8 ] Cleaning build artifacts...
+  src/lana/bundled/agent/ and config/ cleaned (build-time only, not tracked in git).
+DONE: dist\lana-0.1.0-win-x64.exe (42 MB, unsigned)
 ```
 
 ## 11. Technical Constraints
@@ -330,6 +342,19 @@ DONE: dist/lana-0.1.0-win-x64.exe (42 MB, unsigned)
 - GitHub Release assets are the distribution and update-download source in V1
 
 ## 12. Document History
+
+**[2026-09-02 00:00]**
+- Added: DD-11 formal block (app_dir auto-detection via PYAPP, previously referenced but undefined)
+- Added: DD-12 agent tools vs skill tools distinction (`.lana-tools/` bundled infrastructure vs `.tools/` user-installed capabilities)
+- Changed: FR-08 extended with tools bundling (`.bin` rename, materialization to `.lana-tools/`)
+- Changed: FR-09 title "External Tools Not Bundled" -> "Skill Tools Not Bundled" to clarify scope; added DD-12 reference
+- Source: code changes in `file_tools.py`, `config.py`, `cli.py`, `_build.ps1`
+
+**[2026-09-01 23:30]**
+- Fixed: Pipeline step count 7 -> 8 throughout (action flow + logging preview); step 8 = cleanup bundled build artifacts (added post-SPEC)
+- Fixed: Logging header `Shipping` -> `Building` (matches actual `_build.ps1` output)
+- Fixed: Logging preview aligned to actual output (`.venv` label, `LANA_SIGN_THUMBPRINT` var name, `build\wheel\` path, pyapp version, smoke test label, `lana` prefix in version output)
+- Source: `/fact-check` + `/sync` against `_build.ps1`
 
 **[2026-09-01 20:25]**
 - Added: `PYAPP_PASS_LOCATION=1` to configuration set (section 8) - enables portable-app auto-detection per LANAAGNT-DD-25

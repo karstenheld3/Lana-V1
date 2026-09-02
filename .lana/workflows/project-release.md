@@ -15,7 +15,7 @@ Create a dated release with comprehensive release notes.
 
 ## Mandatory Read
 
-Read `SOPS.md` before executing. It defines post-release procedures (SOP 7: version bump) that are part of this workflow.
+Read `_SOPS.md` before executing. It defines post-release procedures (SOP 7: version bump) that are part of this workflow.
 
 ## Steps
 
@@ -138,7 +138,7 @@ Report release URL to user.
 
 ### 8. Post-Release Version Bump (SOP 7)
 
-Execute `SOPS.md` SOP 7 immediately after push:
+Execute `_SOPS.md` SOP 7 immediately after push:
 
 1. Rename `DevSystem[OLD_VERSION]` to `DevSystem[NEW_VERSION]` (increment minor)
 2. Update `NOTES.md`: `Current [DEVSYSTEM]: DevSystem[NEW_VERSION]`
@@ -162,4 +162,4 @@ Tag: 2026-01-27
 - Include ALL sessions since last release, not just completed ones
 - Mark in-progress sessions clearly in release notes
 - If `gh` not installed, provide manual release URL
-- All prior DevSystem version folders MUST be backed up in `[WORKSPACE]\_OldDevSystemVersions\` before deletion (see `SOPS.md` SOP 4)
+- All prior DevSystem version folders MUST be backed up in `[WORKSPACE]\_OldDevSystemVersions\` before deletion (see `_SOPS.md` SOP 4)

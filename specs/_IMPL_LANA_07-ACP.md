@@ -36,7 +36,7 @@
 - One turn per session (FR-05); `session/cancel` is a NOTIFICATION - never respond to it
 - Denylist classification is agent-side (`safety.classify`), untouched by any client response (LANAACPB-IG-04)
 - No new dependencies (LANAAGNT-DD-17); jsonrpc core is stdlib-only
-- Offline tests use the scripted adapter (`LANA_SCRIPTED`); no provider calls
+- Offline tests use the scripted adapter (`LANA_SCRIPTED_ADAPTER`); no provider calls
 
 ## Table of Contents
 
@@ -127,7 +127,7 @@ Prompt queue (FR-12):
 def parse_line(line: str): ...
 # Serialize any outbound message to one escaped JSON line (ensure_ascii=False, no embedded raw newlines)
 def to_line(message: dict) -> str: ...
-PARSE_ERROR, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, REQUEST_CANCELLED = -32700, -32601, -32602, -32603, -32800
+PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, REQUEST_CANCELLED = -32700, -32600, -32601, -32602, -32603, -32800
 ```
 
 **Note**: Malformed JSON returns a sentinel so the caller can send EC-01's `-32700` and continue.
@@ -509,6 +509,11 @@ stdout carries no log lines in any case (LANAACPB-IG-01).
 - [x] **LANAACPB-IP01-VC-12**: SPEC sync: Technical Constraints (executor readline, callback seam) + FR-06 usage mapping + EC-10 race clarification reverse-updated into LANAACPB-SP01
 
 ## 7. Document History
+
+**[2026-09-01 23:17]**
+- Fixed: MNF env var `LANA_SCRIPTED` -> `LANA_SCRIPTED_ADAPTER` (actual name in `providers/__init__.py:7`)
+- Fixed: IS-01 code sketch added `INVALID_REQUEST = -32600` (used in `server.py` for state-gate errors; was omitted from the original plan)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-08-30 20:05]**
 - Changed: VC-13 checked - Phase 7 implemented (prompt_queue.py parser, --prompt-file + run_headless_queue in cli.py, PromptStep in events.py, translator no-op); full suite 265 offline green

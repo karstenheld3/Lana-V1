@@ -1,8 +1,9 @@
-"""15 verbatim Cascade tool definitions (LANAAGNT-IN02 transcription, IS-06).
+"""Tool definitions: 16 Cascade-derived + 1 unified search (LANAAGNT-IN02, IS-06).
 
-GENERATED from _INFO_CASCADE_TOOL_DEFINITIONS.md [LANAAGNT-IN02] (generator script `.tmp_generate_definitions.py` was single-run temp, recoverable from git history).
-Descriptions are [LITERAL] - never hand-edit; regenerate from IN02 instead. tests/test_definitions_diff.py guards the zero-diff contract.
+Cascade-derived descriptions are [LITERAL] - never hand-edit; regenerate from IN02 instead.
+tests/test_definitions_diff.py guards the zero-diff contract for the 16 originals.
 Substitution points: {OS}/{SHELL} in run_command, {SKILL_LIST} in skill (applied by render_definitions).
+The unified 'search' tool replaces grep_search+find_by_name when unified_file_search_tool=true.
 """
 import json
 
@@ -25,6 +26,15 @@ DESCRIPTION_TEMPLATES = {
   "trajectory_search": "Semantic search or retrieve trajectory. Trajectories are one of conversations. Returns chunks from the trajectory, scored, sorted, and filtered by relevance. Maximum number of chunks returned is 50. Call this tool when the user @mentions a @conversation. Do NOT call this tool with SearchType: 'user'. IGNORE @activity mentions.",
 }
 
+# Unified search tool (replaces grep_search + find_by_name when unified_file_search_tool=true)
+UNIFIED_DESCRIPTION = {
+  "search": "Search for files, directories, or file content within a directory tree.\n\nTwo modes:\n- Mode='content' (default): Search file content for a regex or literal pattern. Returns matching files with counts, or matching lines when MatchPerLine=true.\n- Mode='name': Search for files or directories by name pattern (glob format). Set Type to filter results.\n\nExcluded directories (hardcoded): .git, node_modules, __pycache__, .venv, venv, dist, build, .hg, .svn, .pytest_cache, .mypy_cache.\nHidden files (starting with .) ARE searched. Binary files are skipped.\n\nUsage:\n- DO NOT USE MatchPerLine for initial searches. Use it only for specific, targeted searches.\n- Query is regex in content mode, glob in name mode. Set FixedStrings=true for literal content search.\n- Use Includes to filter by file glob (e.g. '*.py'). Use MaxDepth to limit traversal depth.\n- Results capped at 50 (name mode) or 200 lines (content mode).\n- If truncated, narrow your search with a more specific query or more filters.",
+}
+UNIFIED_SCHEMA = {
+  "search": {'type': 'object', 'additionalProperties': False, 'properties': {'Query': {'type': 'string'}, 'SearchPath': {'type': 'string'}, 'Mode': {'type': 'string', 'enum': ['content', 'name']}, 'MatchPerLine': {'type': 'boolean'}, 'Type': {'type': 'string', 'enum': ['file', 'directory', 'any']}, 'MaxDepth': {'type': 'integer'}, 'Includes': {'type': 'array', 'items': {'type': 'string'}}, 'CaseSensitive': {'type': 'boolean'}, 'FixedStrings': {'type': 'boolean'}}, 'required': ['Query', 'SearchPath']},
+}
+UNIFIED_LIST_DIR_DESC = "Lists files and directories in a given path. The path parameter must be an absolute path to a directory that exists. For each item in the directory, output will have: relative path to the file or directory, and size in bytes if file or number of items (recursive) if directory. You should generally prefer the search tool, if you know which directories to search."
+
 SCHEMAS = {
   "read_file": {'type': 'object', 'additionalProperties': False, 'properties': {'file_path': {'type': 'string'}, 'offset': {'type': 'integer'}, 'limit': {'type': 'integer'}}, 'required': ['file_path']},
   "list_dir": {'type': 'object', 'additionalProperties': False, 'properties': {'DirectoryPath': {'type': 'string'}}, 'required': ['DirectoryPath']},
@@ -46,11 +56,14 @@ SCHEMAS = {
 
 
 TOOL_NAMES = list(DESCRIPTION_TEMPLATES)
+_LEGACY_SEARCH_TOOLS = {"grep_search", "find_by_name"}
 
 
 # Deterministic serialization for cache stability (IS-06): sorted keys, compact separators
 def schema_json(name: str) -> str:
-  return json.dumps(SCHEMAS[name], sort_keys=True, separators=(",", ":"))
+  schema = SCHEMAS.get(name) or UNIFIED_SCHEMA.get(name)
+  if schema is None: raise KeyError(f"No schema for tool '{name}'")
+  return json.dumps(schema, sort_keys=True, separators=(",", ":"))
 
 
 def render_skill_list(skills) -> str:
@@ -62,16 +75,22 @@ def render_skill_list(skills) -> str:
   return "\n".join(entries)
 
 
-def render_definitions(os_name: str, shell: str, skills) -> list[dict]:
+def render_definitions(os_name: str, shell: str, skills, *, unified_file_search_tool: bool = False) -> list[dict]:
   """
   Produce the finalized tool definitions with substitution points filled.
 
+  When unified_file_search_tool=True, grep_search and find_by_name are replaced by a single 'search' tool.
   Example item: {"name": "read_file", "description": "Reads a file...", "schema": {...}}
   """
   rendered = []
   for name in TOOL_NAMES:
+    if unified_file_search_tool and name in _LEGACY_SEARCH_TOOLS: continue
     description = DESCRIPTION_TEMPLATES[name]
+    if unified_file_search_tool and name == "list_dir": description = UNIFIED_LIST_DIR_DESC
     if name == "run_command": description = description.replace("{OS}", os_name).replace("{SHELL}", shell)
     if name == "skill": description = description.replace("{SKILL_LIST}", render_skill_list(skills))
     rendered.append({"name": name, "description": description, "schema": SCHEMAS[name]})
+  if unified_file_search_tool:
+    for name, desc in UNIFIED_DESCRIPTION.items():
+      rendered.append({"name": name, "description": desc, "schema": UNIFIED_SCHEMA[name]})
   return rendered

@@ -5,7 +5,9 @@
 **Timeline**: Created 2026-08-29, Extracted from _TEST_LANA_MVP-1.md 2026-09-01
 
 **Target file(s)**:
-- `tests/test_cli.py` (CLI harness scenarios)
+- `tests/test_headless.py` (headless mode, exit codes, non-terminal fallback)
+- `tests/test_e2e_offline.py` (offline end-to-end transcript)
+- `tests/test_prompt_queue.py` (prompt queue parsing and execution)
 - `tests/test_cost.py` (cost engine)
 - `tests/test_hardening.py` (zero-setup and resilience)
 
@@ -48,6 +50,10 @@ Black-box scenarios (Layer 3) proving CLI Frontend requirements. Unit/integratio
 - [x] **LANACLI-TP01-VC-03**: `assert_no_secret_leak` wired into every black-box scenario (NFR-01)
 
 ## 3. Document History
+
+**[2026-09-01 23:17]**
+- Fixed: Target `tests/test_cli.py` -> actual files (`test_headless.py`, `test_e2e_offline.py`, `test_prompt_queue.py`)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_TEST_LANA_MVP-1.md [LANAAGNT-TP01]`: Provider failure scenario

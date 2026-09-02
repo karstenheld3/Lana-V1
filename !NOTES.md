@@ -18,6 +18,8 @@
 - `docs\` - product documentation
 - `specs\` - internal specifications and plans
 - `specs\SOPS\` - workflow-related SOPs (standard operating procedures for improving, testing, releasing Lana)
+- `.lana-tools\` - agent infrastructure binaries (rg.exe), bundled in exe, auto-materialized at startup (DD-12)
+- `.tools\` - skill binaries (Ghostscript, ImageMagick, etc.), user-installed, NOT bundled (FR-09, DD-12)
 
 ## Key Inputs
 

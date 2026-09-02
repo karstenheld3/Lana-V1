@@ -46,8 +46,11 @@ class LanaConfig(BaseModel):
   tool_result_max_chars: int = 50000
   compaction_threshold_fraction: float = 0.6
   compaction_threshold_max_tokens: int = 150000
+  workspace_tree_max_depth: int = 4
+  workspace_tree_max_lines: int = 200
   execution_policy: Literal["manual", "auto", "turbo"] = "manual"
   command_denylist: list[str] = Field(default_factory=list)
+  unified_file_search_tool: bool = True  # feature flag: replace grep_search+find_by_name with single search tool
 
 
 @dataclass
@@ -141,6 +144,25 @@ def materialize_bundled_agent(target: Path) -> bool:
   with importlib.resources.as_file(agent) as source:
     shutil.copytree(source, target)
   return True
+
+
+# Materialize bundled tools (rg.bin -> rg.exe) into app_dir/.lana-tools/; existing files stay untouched
+BUNDLED_TOOLS = {"rg.bin": ("rg.exe" if os.name == "nt" else "rg")}
+
+def materialize_bundled_tools(tools_dir: Path, created: list) -> None:
+  root = bundled_root()
+  if root is None: return
+  tools_source = root / "tools"
+  if not tools_source.is_dir(): return
+  for bundled_name, target_name in BUNDLED_TOOLS.items():
+    target = tools_dir / target_name
+    if target.exists(): continue
+    source = tools_source / bundled_name
+    if not source.is_file(): continue
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    with importlib.resources.as_file(source) as src_path:
+      shutil.copy2(src_path, target)
+    created.append(str(target))
 
 
 def parse_key_file(path: Path) -> dict[str, str]:

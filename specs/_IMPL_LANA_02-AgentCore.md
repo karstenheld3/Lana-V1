@@ -68,9 +68,10 @@
 **Action**: `classify(command, policy, config) -> RUN | ASK`:
 ```python
 # 1. first_token = first whitespace-delimited token, strip path/quotes, casefold
-# 2. wrapper? (pwsh|powershell|cmd|bash + -Command|-c|/c present) -> ASK in auto/turbo
-# 3. denylist: single-token entries match first_token; multi-token entries prefix-match full line
-# 4. policy: manual -> always ASK; auto -> ASK unless SafeToAutoRun and no match; turbo -> RUN unless match
+# 2. denylist: single-token entries match first_token; multi-token entries prefix-match full line -> ASK always (IG-03)
+# 3. manual -> always ASK
+# 4. wrapper? (pwsh|powershell|cmd|bash + -Command|-c|/c present) -> ASK in auto/turbo
+# 5. policy: auto -> ASK unless SafeToAutoRun; turbo -> RUN
 ```
 
 **Note**: Approval renders exact command + cwd (render.py); IG-03 test: `Remove-Item` and `pwsh -Command "Remove-Item x"` both stop in auto policy
@@ -115,7 +116,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 #            config_snapshot (role -> model_id/effort/provider, policy, thresholds, limits),
 #            prompt_system_fingerprint (paths, per-folder counts, sha256 content hash)
 # events.py: TurnFinished gains optional thinking_payloads: [{provider, payload}] - the turn's
-#            resendable ThinkingBlocks (Anthropic signature blocks, OpenAI reasoning items); enum stays at 11
+#            resendable ThinkingBlocks (Anthropic signature blocks, OpenAI reasoning items); enum is now 12 (prompt_step added)
 # cli.py:   new session -> session_started written as the FIRST line before any user event
 # session.py resume: read session_started -> recorded system prompt + tool definitions REPLACE disk assembly
 #            for Generator calls; projector rebuilds Message.thinking from turn_finished.thinking_payloads
@@ -142,7 +143,7 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 ### Category 6: Loop, Session, Compaction (8 tests, fake adapter)
 
 - **LANAAGNT-IP01-TC-32**: Scripted 3-tool-call turn -> event sequence and JSONL complete (IG-02)
-- **LANAAGNT-IP01-TC-33**: Call limit 25 (EC-11) -> pause; auto_continue -> no pause
+- **LANAAGNT-IP01-TC-33**: Call limit 40 (EC-11) -> pause; auto_continue -> no pause
 - **LANAAGNT-IP01-TC-34**: Cancellation mid-loop (EC-10) -> kept results + synthetic note; resume reflects it
 - **LANAAGNT-IP01-TC-35**: Resume after simulated crash with truncated last line (EC-21)
 - **LANAAGNT-IP01-TC-36**: Projection: anchor 100K + 80K chars delta -> 120K projected, compaction fires
@@ -167,6 +168,12 @@ def compact(session, summarizer_adapter): ...                  # one call, 3 lab
 - [x] **LANACORE-IP01-VC-06**: IG-04 test: todo JSON byte-identical through compaction
 
 ## 5. Document History
+
+**[2026-09-01 21:58]**
+- Fixed: IS-09 `classify` evaluation order synced from `safety.py` (denylist -> manual -> wrapper -> policy, not wrapper-before-denylist)
+- Fixed: IS-24 event enum count "stays at 11" -> "is now 12 (prompt_step added)"
+- Fixed: TC-33 call limit 25 -> 40 (synced from `config.py`)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: IS-09 (safety gate), IS-13 (turn loop), IS-14 (session store/resume), IS-17 (compaction), IS-24 (full-recall session log)

@@ -88,7 +88,7 @@ lana --prompt-file PROMPTS.md           # headless: run a queue of prompts in on
 
 **Exit codes** (headless mode): 0 = completed, 2 = config error, 3 = provider/API failure, 4 = stopped without completion.
 
-See [Prompt Queue File Format](docs/PROMPT_FILE_FORMAT.md) for the `--prompt-file` input format and [Standard Operating Procedures](SOPS.md) for versioning, building, and releasing.
+See [Prompt Queue File Format](docs/PROMPT_FILE_FORMAT.md) for the `--prompt-file` input format and [Standard Operating Procedures](_SOPS.md) for versioning, building, and releasing.
 
 ## Tests
 
@@ -160,7 +160,7 @@ Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (
 - `cmd` must be an absolute path to the `.exe` binary -- Devin Desktop does not download from `archive` URLs and cannot spawn `.bat` files
 - To open the debug console alongside ACP, add `"--debug-console"` before `"--acp"` in the `args` array
 - Configure API keys for Lana via the `...` button next to the agent in the Agents tab, or place keys in `config/.api-keys.txt` relative to the workspace
-- See [SOP 7](SOPS.md#sop-7-register-lana-as-acp-agent) for the full step-by-step procedure and troubleshooting
+- See [SOP 7](_SOPS.md#sop-7-register-lana-as-acp-agent) for the full step-by-step procedure and troubleshooting
 
 ## Specifications
 

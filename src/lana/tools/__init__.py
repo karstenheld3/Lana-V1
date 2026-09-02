@@ -3,7 +3,7 @@ import inspect, platform
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional
-from lana.tools.definitions import SCHEMAS, render_definitions
+from lana.tools.definitions import SCHEMAS, UNIFIED_SCHEMA, render_definitions
 
 
 # Session-scoped context passed to every executor
@@ -11,6 +11,7 @@ from lana.tools.definitions import SCHEMAS, render_definitions
 class ToolContext:
   workspace: Path
   data_dir: Optional[Path] = None     # resolved runtime data directory; falls back to workspace/.lana-data
+  tools_dir: Optional[Path] = None    # .lana-tools/ dir for external binaries (rg, fd); resolved from app_dir
   tool_result_max_chars: int = 50000
   read_ledger: dict[str, float] = field(default_factory=dict)         # path -> mtime at last read/edit by Lana (FR-11)
   background_processes: dict[str, Any] = field(default_factory=dict)  # command id -> BackgroundProcess (IS-09)
@@ -66,14 +67,14 @@ class RegisteredTool:
 
 
 class ToolRegistry:
-  def __init__(self, os_name: str = "", shell: str = "pwsh", skills: Optional[list] = None):
+  def __init__(self, os_name: str = "", shell: str = "pwsh", skills: Optional[list] = None, *, unified_file_search_tool: bool = False):
     self.os_name = os_name or platform.system().lower()
     self.shell = shell
     self.tools: dict[str, RegisteredTool] = {}
-    self.definitions = {item["name"]: item for item in render_definitions(self.os_name, self.shell, skills or [])}
+    self.definitions = {item["name"]: item for item in render_definitions(self.os_name, self.shell, skills or [], unified_file_search_tool=unified_file_search_tool)}
 
   def register(self, name: str, executor: Callable[[dict, ToolContext], str]):
-    if name not in self.definitions: raise ValueError(f"Unknown tool name '{name}' - not in the 16 registered definitions")
+    if name not in self.definitions: raise ValueError(f"Unknown tool name '{name}' - not in registered definitions")
     self.tools[name] = RegisteredTool(name=name, definition=self.definitions[name], executor=executor)
 
   def definition_list(self) -> list[dict]:
@@ -84,7 +85,7 @@ class ToolRegistry:
     tool = self.tools.get(name)
     if tool is None: raise ToolError(f"Unknown tool '{name}'. Available tools: {', '.join(self.tools)}")
     try:
-      validate_args(args, SCHEMAS[name])
+      validate_args(args, SCHEMAS.get(name) or UNIFIED_SCHEMA[name])
     except ToolError as error:
       raise ToolError(f"Invalid arguments for '{name}': {error}") from None
     result = tool.executor(args, context)

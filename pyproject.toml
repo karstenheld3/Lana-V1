@@ -28,7 +28,7 @@ lana = "lana.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"lana.bundled" = ["config/*.json", "agent/**/*"]
+"lana.bundled" = ["config/*.json", "agent/**/*", "tools/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -89,7 +89,7 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 
 - **Script**: `call-llm.py` - one judge call per test
 - **Python**: `../.tools/llm-venv/Scripts/python.exe` (skill dependency home)
-- **Model**: `gpt-5-mini` (skill recommendation: best judge calibration), `--response-format json`, `--reasoning-effort medium`
+- **Model**: `gpt-5.6-luna` (upgraded from initial gpt-5-mini), `--response-format json`, `--reasoning-effort medium`
 - **Keys**: `config/.api-keys.txt` via `--keys-file` (env-file format)
 - **Input assembly**: `judge.py` builds a structured `judge/input.md` with three sections: `# PROMPTS` (task from PROMPTS.md), `# REFERENCE OUTPUT` (golden files with folder tree, optional), `# AGENT OUTPUT` (output files with folder tree). File contents use adaptive backtick fences (one more backtick than the longest run inside); multiple files separated by `---` lines. Prompt = `judge_prompt_template.md` with the test's `rubric.md` inlined into `judge/prompt.md`
 - **Output contract**: `{"dimensions": [{"name": str, "score": 0-100, "justification": str}]}`; Tier 3 score = mean/100
@@ -259,6 +259,11 @@ Tier 3 uses @skills:llm-evaluation scripts exclusively (user decision 2026-08-30
 - [x] **LANATEST-IP01-VC-04**: `/verify` run - IMPL structure (header, MNF, TOC, STRUT template compliance), REPORT.md + results.json inspected on both drive records, privacy scan (fixtures generic: fictional Acme Widgets), IG-03 (runner writes only under `evals/runs_gitignore/`)
 
 ## 9. Document History
+
+**[2026-09-01 23:30]**
+- Fixed: Judge model `gpt-5-mini` -> `gpt-5.6-luna` (matches `runner-config.json`)
+- Noted: `02_WorkflowsSkills/T04_SessionLoad` exists in suite (10th test) but was added post-STRUT P10 and is not documented in any STRUT phase. Golden pending. Drive scripts `02_t04_baseline.jsonl` and `02_t04_pass.jsonl` present.
+- Source: `/fact-check` + `/sync` against `evals/suite/runner/runner-config.json` and filesystem
 
 **[2026-08-30 23:55]**
 - Changed: Run folder naming now includes `[ModelId]_[Effort]` from lana-config.json generator role

@@ -9,10 +9,10 @@
 - `src/lana/debug_viewer.py` (new)
 - `src/lana/cli.py`
 - `src/lana/agent.py`
-- `src/lana/providers/openai_adapter.py`
-- `src/lana/providers/anthropic_adapter.py`
 - `src/lana/acp/server.py`
-- `src/lana/acp/bridge.py`
+- `src/lana/acp/jsonrpc.py`
+- `src/lana/tools/web_tools.py`
+- `src/lana/compaction.py`
 
 **Depends on:**
 - `_SPEC_LANA_02-AgentCore.md [LANACORE-SP01]` for AgentEvent model and turn loop
@@ -339,6 +339,10 @@ WARNING: debug console pipe broken - debug logging disabled for this session.
 **LANADEBG-EC-11:** Viewer pipe breaks but log file still open → viewer logging stops, file logging continues independently
 
 ## 16. Document History
+
+**[2026-09-01 23:30]**
+- Fixed: Target files synced from code - removed `openai_adapter.py`, `anthropic_adapter.py`, `bridge.py` (no dlog calls); added `jsonrpc.py` (roundtrip), `web_tools.py` (sidecall), `compaction.py` (compaction_start/failed)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 19:10]**
 - Added: FR-07 (--log-dir file output), EC-09/EC-10/EC-11 (file failure modes)

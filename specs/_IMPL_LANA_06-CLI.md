@@ -20,7 +20,7 @@
 
 ## MUST-NOT-FORGET
 
-- AgentEvent enum stays at 11 types + 1 headless-only `prompt_step` (DD-24); notices ride on ErrorEvent with severity prefixes
+- AgentEvent enum is 12 types (11 core + headless-only `prompt_step`, DD-24); notices ride on ErrorEvent with severity prefixes
 - stdout purity in headless jsonl mode: startup banner, warnings, and error notices route to stderr
 - No test deleted or weakened; existing tests stay green
 - Small cycles: implement -> test -> green -> commit per phase; never proceed on red
@@ -42,7 +42,7 @@
 
 **Action**: `cli.py`: args (`--resume`, `--debug`, `--policy`, `--app-dir`, `--prompt-file`), startup sequence (config -> prompt system -> banner + auto/turbo risk notice per NFR-05), REPL via prompt_toolkit, built-ins `/help` `/cost` `/exit`. `--app-dir` (or env `LANA_APP_DIR`) sets the base directory for config, agent_folder, and data_dir (DD-25); defaults to CWD when unset. `render.py`: subscribes to events; streams text; tool lines + approval y/n/a prompts (FR-12: `a` sets an approve-all flag for the rest of the session) + numbered `ask_user_question` prompts per SPEC section 12 format; per-turn cost line via `cost.py`
 
-**Note**: `--debug` writes redacted request/response JSON to `.lana-data/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only
+**Note**: `--debug` writes redacted request/response JSON to `.lana-data/logs/` (NFR-04). Renderer constraint (BG-0004, synced 2026-08-30): event payload text (model output, tool results, provider messages) is UNTRUSTED and never enters rich markup parsing - markup=False on all payload prints, styling via style= parameters only. Executor registration is feature-flag-aware: `_EXECUTORS_BASE` (shared tools) + `_EXECUTORS_UNIFIED_SEARCH` or `_EXECUTORS_LEGACY_SEARCH` selected by `app.lana.unified_file_search_tool` (DD-28); the flag is also passed to the `ToolRegistry` constructor so definitions match executors
 
 ### Phase F: Cost Tracking
 
@@ -64,7 +64,7 @@
 
 ### LANAAGNT-IP01-IS-22: Scripted adapter and CLI test harness (LANAAGNT-DD-20)
 
-**Location**: `tests/scripted_adapter.py`, `tests/harness.py`, `providers/__init__.py` (env hook)
+**Location**: `providers/scripted_adapter.py` (adapter), `tests/scripted_adapter.py` (re-export + helpers), `tests/harness.py`, `providers/__init__.py` (env hook)
 
 **Action**: Script format = JSONL, one line per Generator turn: `{"text": str, "thinking": str?, "tool_calls": [{"name": str, "args": {}}]?, "usage": {"input": int, "output": int}?}` or `{"error": str}` (adapter raises a simulated provider failure - deterministic exit-code-3 testing, TP01-TC-10) - the adapter replays lines in order, errors if the script is exhausted. Harness `LanaProc`: spawn `lana` via subprocess with temp workspace + `--config` + `LANA_SCRIPTED_ADAPTER`, inject prompts (`-p` or stdin pipe), collect stdout JSONL events, `tail_session(predicate, timeout)` polling the flushed session file, assert exit codes
 
@@ -118,6 +118,15 @@ LANAAGNT-IP02-TC-01 through TC-16 verify FR-16 zero-setup and hardening. See `_I
 - [x] **LANACLI-IP01-VC-05**: E2E green (TC-46..47)
 
 ## 4. Document History
+
+**[2026-09-02 00:50]**
+- Changed: IS-15 note updated for feature-flag-aware executor registration (`_EXECUTORS_BASE` + unified/legacy split, DD-28)
+- Source: Code -> Docs sync after unified search tool implementation
+
+**[2026-09-01 23:17]**
+- Fixed: MNF "11 types + 1" -> "12 types (11 core + prompt_step)" (synced from `events.py` AgentEvent union)
+- Fixed: IS-22 location added `providers/scripted_adapter.py` as primary (adapter lives there; `tests/scripted_adapter.py` is a re-export helper)
+- Source: `/fact-check` + `/sync` against source code
 
 **[2026-09-01 21:45]**
 - Extracted from `_IMPL_LANA_MVP-1.md [LANAAGNT-IP01]`: IS-15 (CLI frontend), IS-16 (cost engine), IS-21 (headless mode), IS-22 (scripted adapter/harness)

@@ -23,7 +23,7 @@
 - Clear ALL `PYAPP_*` environment variables before setting our own (stale user shell vars poison the build)
 - Pin the PyApp version in the script (NFR-02 reproducible builds)
 - `--version` must use argparse `action="version"` so it exits BEFORE config load / zero-setup side effects
-- Smoke test timeout must cover first-run extraction (5-30 s) - use 120 s
+- Smoke test timeout must cover first-run extraction + PyPI install (1-5 min) - use 300 s
 - Test ACP stdout purity on FIRST run of a fresh binary (LANADIST-PR-0005)
 - `self update` does NOT update the binary (SPEC MNF) - no update logic in the ship script
 - Bundle sync NEVER touches `.api-keys.txt` (DD-09); key-leak guard is a hard gate (IG-05)
@@ -52,7 +52,8 @@
 │   └── bundled/              # Package data (committed, pipeline-synced) [NEW]
 │       ├── __init__.py       #   makes lana.bundled a package for importlib.resources
 │       ├── config/           #   model-registry/-parameter-mapping/-pricing.json (from config/)
-│       └── agent/            #   rules/ workflows/ skills/ (from .lana/, ~291 files, 2.2 MB)
+│       ├── agent/            #   rules/ workflows/ skills/ (from .lana/, ~291 files, 2.2 MB)
+│       └── tools/            #   agent infrastructure binaries renamed (rg.bin from .lana-tools/rg.exe, DD-12)
 ├── build/                    # Intermediate: wheel + pyapp cargo root (gitignored, script-created)
 │   ├── wheel/                #   lana-{version}-py3-none-any.whl
 │   └── pyapp/bin/pyapp.exe   #   cargo install output
@@ -78,6 +79,7 @@
 - **LANADIST-IP01-EC-13**: workspace `.lana/` missing at sync time -> abort with hint (bundle would silently lose the library)
 - **LANADIST-IP01-EC-14**: end-user agent folder EXISTS (even empty) -> materialization skips it entirely (FR-08)
 - **LANADIST-IP01-EC-15**: end-user has partial config (e.g. only `model-pricing.json` missing) -> only the missing files are written, existing files untouched
+- **LANADIST-IP01-EC-16**: workspace `.lana-tools/rg.exe` missing at build time -> print NOTICE, ship without ripgrep (graceful: Python fallback in `file_tools.py`)
 
 ## 3. Implementation Steps
 
@@ -104,10 +106,10 @@ parser.add_argument("--version", action="version", version=f"%(prog)s {importlib
 **Code**:
 ```toml
 [tool.setuptools.package-data]
-"lana.bundled" = ["config/*.json", "agent/**/*"]
+"lana.bundled" = ["config/*.json", "agent/**/*", "tools/*"]
 ```
 
-**Note**: Empty `__init__.py` in `bundled/`. Verify wheel contents after build (`python -m zipfile -l`): agent tree present, `.api-keys.txt` ABSENT.
+**Note**: Empty `__init__.py` in `bundled/`. `tools/*` carries agent infrastructure binaries renamed to `.bin` (DD-12). Verify wheel contents after build (`python -m zipfile -l`): agent tree present, `.api-keys.txt` ABSENT.
 
 ### LANADIST-IP01-IS-03: Zero-setup materialization from bundle
 
@@ -124,6 +126,9 @@ parser.add_argument("--version", action="version", version=f"%(prog)s {importlib
 #   called from load_lana_config() DEFAULT-path branch only (explicit --config never auto-creates)
 # cli.py build_runtime(): replace empty-folder scaffold (current lines 79-81):
 #   if not app.agent_folder.is_dir(): copy bundled agent tree via importlib.resources (EC-14)
+# config.py: materialize_bundled_tools(tools_dir, created) - for each entry in BUNDLED_TOOLS:
+#   rg.bin -> app_dir/.lana-tools/rg.exe (DD-12); existing files untouched
+#   called from cli.py build_runtime() after agent materialization
 ```
 
 **Note**: Fixes latent bug LANADIST-PR-0008 - `read_json` raised on missing model JSONs which zero-setup never created; fresh-machine startup was impossible.
@@ -168,8 +173,9 @@ REM Check pwsh exists -> run _build.ps1 -> pause + exit /b 1 on error, pause + e
 # abort if .lana missing (EC-13)
 # robocopy /MIR config\*.json -> src\lana\bundled\config\   (explicit file list, never .api-keys.txt)
 # robocopy /MIR .lana\ -> src\lana\bundled\agent\
+# .lana-tools\rg.exe -> src\lana\bundled\tools\rg.bin  (DD-12: renamed to avoid AV triggers; EC-16)
 # key-leak guard (EC-12, IG-05): Select-String '^\s*[A-Z_]*API_KEY\s*=\s*\S' over bundle -> abort on match
-# report: file counts + total size
+# report: file counts + total size + tools label
 ```
 
 **Note**: `/MIR` removes stale bundle files when workspace sources shrink - bundle can never drift (DD-08).
@@ -217,7 +223,7 @@ REM Check pwsh exists -> run _build.ps1 -> pause + exit /b 1 on error, pause + e
 ```powershell
 # report + replace existing same-version exe (EC-07, IG-01)
 # Copy-Item build\pyapp\bin\pyapp.exe dist\lana-$version-win-x64.exe
-# smoke test: & dist\...exe --version with 120s timeout (EC-11); expect "lana $version" (EC-08)
+# smoke test: & dist\...exe --version with 300s timeout (EC-11); expect "lana $version" (EC-08)
 # NOTE: smoke test performs the binary's first run (5-30s) - announce this in output
 ```
 
@@ -241,34 +247,36 @@ Follows SPEC section 10 contract (Announce > Track > Report, Script-Level).
 
 **Success path (unsigned dev build):**
 ```
-Shipping Lana 0.1.0 (win-x64)...
-[ 1 / 7 ] Verifying toolchain...
+Building Lana 0.1.0 (win-x64)...
+[ 1 / 8 ] Verifying toolchain...
   Python 3.12.4 (.venv) OK. Cargo 1.86.0 OK.
   NOTICE: LANA_SIGN_THUMBPRINT not set - binary will be UNSIGNED.
-[ 2 / 7 ] Syncing bundle...
-  3 config files, 291 agent files (2.2 MB). Key-leak scan OK.
-[ 3 / 7 ] Building wheel...
+[ 2 / 8 ] Syncing bundle...
+  3 config files, 291 agent files (2.2 MB), tools (rg 4.0 MB). Key-leak scan OK.
+[ 3 / 8 ] Building wheel...
   build\wheel\lana-0.1.0-py3-none-any.whl (2.4 MB). OK.
-[ 4 / 7 ] Building PyApp binary (pyapp 0.29.0, this takes 1-3 minutes)...
+[ 4 / 8 ] Building PyApp binary (pyapp 0.29.0, this takes 1-3 minutes)...
   OK.
-[ 5 / 7 ] Smoke test (first run extracts embedded Python, up to 30 s)...
+[ 5 / 8 ] Smoke test (first run extracts Python + installs dependencies, up to 5 min)...
   lana --version -> lana 0.1.0. OK.
-[ 6 / 7 ] Signing... SKIPPED (no certificate).
-[ 7 / 7 ] Checksum...
+[ 6 / 8 ] Signing... SKIPPED (no certificate).
+[ 7 / 8 ] Checksum...
   SHA256SUMS.txt written. OK.
+[ 8 / 8 ] Cleaning build artifacts...
+  src/lana/bundled/ agent, config, tools cleaned (build-time only, not tracked in git).
 DONE: dist\lana-0.1.0-win-x64.exe (42 MB, unsigned)
 ```
 
 **Error case - key-leak guard hit (EC-12):**
 ```
-[ 2 / 7 ] Syncing bundle...
+[ 2 / 8 ] Syncing bundle...
   ERROR: possible API key in 'src\lana\bundled\agent\skills\seo-tools\example.md' line 12.
 FAILED at step 2: key-leak guard - remove the value, keep only placeholders.
 ```
 
 **Error case - smoke test version mismatch (EC-08):**
 ```
-[ 5 / 7 ] Smoke test (first run extracts embedded Python, up to 30 s)...
+[ 5 / 8 ] Smoke test (first run extracts Python + installs dependencies, up to 5 min)...
   ERROR: expected 'lana 0.1.0', got 'lana 0.0.9'.
   Removed partial artifact dist\lana-0.1.0-win-x64.exe.
 FAILED at step 5: smoke test version mismatch.
@@ -276,7 +284,7 @@ FAILED at step 5: smoke test version mismatch.
 
 **Error case - cargo missing (EC-01):**
 ```
-[ 1 / 7 ] Verifying toolchain...
+[ 1 / 8 ] Verifying toolchain...
   Python 3.12.4 (.venv) OK.
   Cargo not found. Install Rust toolchain now via winget? [y/N]
 FAILED at step 1: Rust toolchain required. Install manually: https://rustup.rs
@@ -301,6 +309,7 @@ FAILED at step 1: Rust toolchain required. Install manually: https://rustup.rs
 - **LANADIST-IP01-TC-06**: `Get-FileHash` of exe matches `SHA256SUMS.txt` entry (FR-07)
 - **LANADIST-IP01-TC-16**: wheel listing contains `lana/bundled/agent/` tree and NO `.api-keys.txt` (IG-05)
 - **LANADIST-IP01-TC-17**: planted fake key in a bundled file -> pipeline aborts at step 2 (EC-12)
+- **LANADIST-IP01-TC-18**: tools materialization: missing `.lana-tools/` -> `rg.bin` from bundle materializes as `rg.exe`; existing `rg.exe` -> untouched (DD-12, FR-08)
 
 ### Category 3: Distribution binary behavior (manual)
 
@@ -338,6 +347,23 @@ FAILED at step 1: Rust toolchain required. Install manually: https://rustup.rs
 - [x] **LANADIST-IP01-VC-19**: SPEC synced from verified implementation, session tracking files updated
 
 ## 7. Document History
+
+**[2026-09-02 00:00]**
+- Added: IS-02 package-data updated to include `tools/*` (DD-12)
+- Added: IS-03 tools materialization (`materialize_bundled_tools`, `rg.bin` -> `rg.exe`)
+- Added: IS-06 tools sync (`.lana-tools/rg.exe` -> `bundled/tools/rg.bin`)
+- Added: EC-16 (missing rg.exe at build time -> NOTICE, graceful skip)
+- Added: TC-18 (tools materialization behavior)
+- Changed: file structure includes `bundled/tools/`; logging preview includes tools label
+- Source: code changes synced from `config.py`, `cli.py`, `file_tools.py`, `_build.ps1`
+
+**[2026-09-01 23:30]**
+- Fixed: Pipeline step count 7 -> 8 in logging previews and error examples; step 8 = cleanup bundled build artifacts
+- Fixed: Logging header `Shipping` -> `Building` (matches actual `_build.ps1` output)
+- Fixed: MNF smoke test timeout 120 s -> 300 s (deviation was documented in history but not back-synced to MNF/IS-09)
+- Fixed: IS-09 code sketch timeout 120s -> 300s
+- Fixed: Smoke test label aligned to actual output (extraction + dependency install, up to 5 min)
+- Source: `/fact-check` + `/sync` against `_build.ps1`
 
 **[2026-09-01 20:25]**
 - Added: `PYAPP_PASS_LOCATION=1` to IS-08 PyApp build step (DD-11, portable-app data isolation)

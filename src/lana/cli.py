@@ -7,7 +7,7 @@ from pathlib import Path
 from prompt_toolkit import PromptSession
 from lana.agent import Agent, UnknownWorkflowError
 from lana.compaction import make_compactor
-from lana.config import ConfigError, load_lana_config, materialize_bundled_agent
+from lana.config import ConfigError, load_lana_config, materialize_bundled_agent, materialize_bundled_tools
 from lana.cost import CostTracker
 from lana.debuglog import dlog, enable as enable_debug_console
 from lana.events import PromptStep, SessionStarted
@@ -19,7 +19,7 @@ from lana.render import Renderer, prompt_approval, prompt_continue, prompt_quest
 from lana.session import SessionStore, resume as resume_session
 from lana.tools import ToolContext, ToolRegistry
 from lana.tools.edit_tools import execute_edit, execute_multi_edit, execute_write_to_file
-from lana.tools.file_tools import execute_find_by_name, execute_grep_search, execute_list_dir, execute_read_file
+from lana.tools.file_tools import execute_find_by_name, execute_grep_search, execute_list_dir, execute_read_file, execute_search
 from lana.tools.interact_tools import execute_ask_user_question
 from lana.tools.shell_tools import execute_command_status, execute_run_command, terminate_tool_processes
 from lana.tools.skill_tool import execute_skill
@@ -36,14 +36,16 @@ def package_version() -> str:
   except importlib.metadata.PackageNotFoundError:  # running from source without install
     return "0.0.0-dev"
 
-EXECUTORS = {
-  "read_file": execute_read_file, "list_dir": execute_list_dir, "grep_search": execute_grep_search, "find_by_name": execute_find_by_name,
+_EXECUTORS_BASE = {
+  "read_file": execute_read_file, "list_dir": execute_list_dir,
   "edit": execute_edit, "multi_edit": execute_multi_edit, "write_to_file": execute_write_to_file,
   "run_command": execute_run_command, "command_status": execute_command_status,
   "todo_list": execute_todo_list, "skill": execute_skill, "ask_user_question": execute_ask_user_question,
   "search_web": execute_search_web, "read_url_content": execute_read_url_content, "view_content_chunk": execute_view_content_chunk,
   "trajectory_search": execute_trajectory_search,
 }
+_EXECUTORS_LEGACY_SEARCH = {"grep_search": execute_grep_search, "find_by_name": execute_find_by_name}
+_EXECUTORS_UNIFIED_SEARCH = {"search": execute_search}
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -109,6 +111,8 @@ def build_runtime(args, workspace: Path, interactive: bool, app_dir: Path | None
     if not copied:  # bundle unavailable (source checkout without sync) - keep the empty scaffold behavior
       for sub in ("rules", "workflows", "skills"): (app.agent_folder / sub).mkdir(parents=True, exist_ok=True)
     created.append(str(app.agent_folder))
+  tools_dir = (app_dir or workspace) / ".lana-tools"
+  materialize_bundled_tools(tools_dir, created)
   for path in created: print(f"Created '{path}' (zero-setup).")
   if args.debug:
     app.debug_dir = app.data_dir / "logs"
@@ -138,11 +142,16 @@ def build_runtime(args, workspace: Path, interactive: bool, app_dir: Path | None
     print(f"  WARNING: policy '{app.lana.execution_policy}' auto-executes commands - prompt-injection risk.")
     print("  HINT: use this policy only in trusted workspaces; switch back with --policy manual.")
   git_root = find_git_root(workspace)
-  workspace_info = {"os": platform.system().lower(), "workspace": str(workspace), "git_root": str(git_root) if git_root else "", "agent_folder": str(app.agent_folder)}
+  workspace_info = {"os": platform.system().lower(), "workspace": str(workspace), "git_root": str(git_root) if git_root else "", "agent_folder": str(app.agent_folder),
+                    "workspace_tree_max_depth": app.lana.workspace_tree_max_depth, "workspace_tree_max_lines": app.lana.workspace_tree_max_lines}
   system_prompt = build_system_prompt(prompt_system, workspace_info)
-  registry = ToolRegistry(os_name=workspace_info["os"], shell="pwsh", skills=prompt_system.skills)
-  for name, executor in EXECUTORS.items(): registry.register(name, executor)
-  tool_context = ToolContext(workspace=workspace, data_dir=app.data_dir, tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
+  unified = app.lana.unified_file_search_tool
+  registry = ToolRegistry(os_name=workspace_info["os"], shell="pwsh", skills=prompt_system.skills, unified_file_search_tool=unified)
+  executors = {**_EXECUTORS_BASE, **(_EXECUTORS_UNIFIED_SEARCH if unified else _EXECUTORS_LEGACY_SEARCH)}
+  for name, executor in executors.items(): registry.register(name, executor)
+  tools_dir = (app_dir or workspace) / ".lana-tools"
+  tool_context = ToolContext(workspace=workspace, data_dir=app.data_dir, tools_dir=tools_dir if tools_dir.is_dir() else None,
+                             tool_result_max_chars=app.lana.tool_result_max_chars, prompt_system=prompt_system, app_config=app)
   messages = []
   cost_tracker = CostTracker(app)
   fingerprint = compute_fingerprint(prompt_system, [app.agent_folder])
