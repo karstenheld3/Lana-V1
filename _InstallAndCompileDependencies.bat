@@ -108,8 +108,10 @@ echo To run lana:
 echo   lana
 echo.
 echo To run tests:
-echo   pytest
+echo   _test.bat
 echo.
+
+if /i "%~1"=="/noPause" exit /b 0
 
 pause
 exit /b 0
