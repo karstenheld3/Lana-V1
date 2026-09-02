@@ -29,7 +29,7 @@ if exist "%VENV_PY%" (
   )
   if not defined PY_CMD (
     echo [ERROR] Neither 'py' launcher nor 'python' found. Install Python 3.12+ from https://www.python.org/downloads/windows/
-    pause
+    if /i not "%~1"=="/noPause" pause
     exit /b 1
   )
   %PY_CMD% -m venv "%VENV_DIR%" 2>nul
@@ -38,7 +38,7 @@ if exist "%VENV_PY%" (
     py -3.13 -m venv "%VENV_DIR%"
     if errorlevel 1 (
       echo [ERROR] Failed to create virtual environment.
-      pause
+      if /i not "%~1"=="/noPause" pause
       exit /b 1
     )
   )
@@ -50,7 +50,7 @@ echo [INFO] Upgrading pip...
 "%VENV_PY%" -m pip install -U pip >nul
 if errorlevel 1 (
   echo [ERROR] Failed to upgrade pip in the virtual environment.
-  pause
+  if /i not "%~1"=="/noPause" pause
   exit /b 1
 )
 
@@ -62,7 +62,7 @@ if exist "%VENV_UV%" (
   "%VENV_PY%" -m pip install uv >nul
   if errorlevel 1 (
     echo [ERROR] Failed to install 'uv' in the virtual environment.
-    pause
+    if /i not "%~1"=="/noPause" pause
     exit /b 1
   )
 )
@@ -77,7 +77,7 @@ if errorlevel 1 (
   if errorlevel 1 (
     echo [ERROR] Dependency installation failed.
     popd >nul
-    pause
+    if /i not "%~1"=="/noPause" pause
     exit /b 1
   )
 )
@@ -91,7 +91,7 @@ if errorlevel 1 (
   "%VENV_UV%" pip freeze > "%ROOT_DIR%requirements.txt"
   if errorlevel 1 (
     echo [ERROR] Failed to generate requirements.txt.
-    pause
+    if /i not "%~1"=="/noPause" pause
     exit /b 1
   ) else (
     echo [OK] requirements.txt generated via pip freeze.

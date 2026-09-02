@@ -35,7 +35,7 @@ if "%PY_FOUND%"=="0" (
   if not errorlevel 1 (
     for /f "tokens=2" %%v in ('python --version 2^>^&1') do set PY_VER=%%v
     echo [INFO] Found python %PY_VER%
-    echo %PY_VER% | findstr /r "^3\.1[2-9] ^3\.[2-9]" >nul
+    echo %PY_VER% | findstr /r "^3\.1[2-9] ^3\.[2-9][0-9]" >nul
     if not errorlevel 1 (
       echo [OK] Python %PY_VER% meets version requirement.
       set PY_FOUND=1
