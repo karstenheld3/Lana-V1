@@ -1,8 +1,0 @@
-required_files:
-  - "notes.md"
-file_rules:
-  - glob: "notes.md"
-    required_sections: ["## Alpha", "## Beta", "## Gamma"]
-    patterns:
-      - {name: alpha_fact_kept, regex: "## Alpha[\\s\\S]*?2031"}
-      - {name: gamma_references_year, regex: "## Gamma[\\s\\S]*?2031"}

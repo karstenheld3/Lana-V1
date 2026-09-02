@@ -1,6 +1,0 @@
-required_files:
-  - "count.txt"
-file_rules:
-  - glob: "count.txt"
-    patterns:
-      - {name: correct_count, regex: "^\\s*4\\s*$"}

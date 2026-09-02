@@ -1,7 +1,0 @@
-{
-  "copy_lana": [
-    "workflows/verify.md",
-    "rules/core-conventions.md",
-    "skills/write-documents"
-  ]
-}

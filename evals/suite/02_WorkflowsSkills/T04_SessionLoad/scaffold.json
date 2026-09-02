@@ -1,7 +1,0 @@
-{
-  "copy_lana": [
-    "workflows/session-load.md",
-    "workflows/prime.md",
-    "skills/session-management"
-  ]
-}

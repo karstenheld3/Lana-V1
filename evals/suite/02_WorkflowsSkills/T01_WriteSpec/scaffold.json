@@ -1,7 +1,0 @@
-{
-  "copy_lana": [
-    "workflows/write-spec.md",
-    "workflows/verify.md",
-    "skills/write-documents"
-  ]
-}

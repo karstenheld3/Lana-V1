@@ -1,7 +1,0 @@
-required_files:
-  - "!NOTES.md"
-  - "_Sessions/_!SampleProject/NOTES.md"
-  - "_Sessions/_!SampleProject/PROGRESS.md"
-  - "_Sessions/_!SampleProject/PROBLEMS.md"
-forbidden_files:
-  - "*.tmp"

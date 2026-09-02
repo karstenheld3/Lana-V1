@@ -1,4 +1,0 @@
-{"text": "Loading /session-load workflow.", "tool_calls": [{"name": "read_file", "args": {"file_path": ".lana/workflows/session-load.md"}}], "usage": {"input": 200, "output": 30}}
-{"text": "Running /prime. Reading workspace context.", "tool_calls": [{"name": "read_file", "args": {"file_path": "!NOTES.md"}}, {"name": "read_file", "args": {"file_path": "FAILS.md"}}], "usage": {"input": 400, "output": 40}}
-{"text": "Reading session documents.", "tool_calls": [{"name": "read_file", "args": {"file_path": "_Sessions/_!SampleProject/NOTES.md"}}, {"name": "read_file", "args": {"file_path": "_Sessions/_!SampleProject/PROGRESS.md"}}, {"name": "read_file", "args": {"file_path": "_Sessions/_!SampleProject/PROBLEMS.md"}}], "usage": {"input": 600, "output": 50}}
-{"text": "Session loaded. SampleProject is in IMPLEMENT phase, building a sample CLI tool. Python chosen, core module done, CLI argument parsing in progress. No problems recorded.", "usage": {"input": 800, "output": 80}}

@@ -19,3 +19,18 @@ config/.api-keys.txt
 *.swp
 *.swo
 ~$*
+
+# Dev workspace files (moved to E:\Dev\Lana-V1-Dev)
+.devin/
+_Sessions/
+_SOPS.md
+!NOTES.md
+!PROBLEMS.md
+!PROGRESS.md
+FAILS.md
+ID-REGISTRY.md
+Devin.bat
+DevinNext.bat
+specs/
+knowledge/
+evals/
