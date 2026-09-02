@@ -7,17 +7,21 @@ Lana uses a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS
 ## Prerequisites
 
 - **Windows x64** -- Lana currently targets Windows only (shell commands, binary distribution, path handling)
-- **Python 3.12+** (`python --version` to check)
 - **An API key** for at least one provider: [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/settings/keys)
+
+Python 3.12+ and Rust toolchain are auto-installed by `_InstallBuildTools.bat` if missing (via winget).
 
 ## Quick Start
 
 ```powershell
-# 1. Install (editable mode, includes test dependencies)
-pip install -e .[dev]
+# 1. Install build tools + dependencies (Python, Rust, venv, packages)
+_InstallBuildTools.bat
 
 # 2. Run
 lana
+
+# 3. Test
+_test.bat
 ```
 
 On first run, Lana creates `config/.api-keys.txt` (and `config/lana-config.json`, `.lana-data/`). Open the key file and uncomment your provider(s):
