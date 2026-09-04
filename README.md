@@ -27,6 +27,33 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 The first launch takes 1-5 minutes because Lana extracts its embedded Python and installs dependencies from PyPI (needs internet). After that, startup takes ~1.3 seconds.
 
+### Choosing Models
+
+Lana ships with sensible defaults -- it just works. If you want to change models, edit `config/lana-config.json`:
+
+```json
+{
+  "roles": {
+    "generator":  { "model_id": "claude-sonnet-4-5-20250929", "effort": "medium" },
+    "summarizer": { "model_id": "gpt-4.1-mini", "effort": "low" },
+    "websearch":  { "model_id": "gpt-4.1-mini", "effort": "low" }
+  }
+}
+```
+
+- **generator** -- the main model that reads code, writes replies, calls tools. This is where most of your API spend goes. Pick a strong model.
+- **summarizer** -- compresses conversation history when context gets long. A cheap, fast model is fine here.
+- **websearch** -- powers web research workflows. A cheap model is sufficient.
+
+**Effort** controls how much the model thinks before responding: `low` (fast, cheap), `medium` (balanced), `high` (thorough, expensive). Some models also support `none` or `xhigh`.
+
+**Available models** (you need an API key for the matching provider):
+
+- **Anthropic**: `claude-sonnet-4-5-20250929` (recommended), `claude-sonnet-4-6`, `claude-haiku-4-5-20251001` (cheap), `claude-opus-4-5-20251101` (premium)
+- **OpenAI**: `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-4.1`, `gpt-4.1-mini` (cheap)
+
+You can mix providers -- e.g., Anthropic for the generator and OpenAI for the summarizer. You'll need both API keys in that case.
+
 > **Tip**: Add the folder containing `lana.exe` to your `PATH` so you can run `lana` from anywhere.
 
 ---
