@@ -570,7 +570,7 @@ After implementing the fix, make sure to run /verify against the spec and then /
 ```
 After implementing the fix:
 
-/verify against specs/_SPEC_LANA_MVP-1.md
+/verify against rules/_SPEC_LANA_MVP-1.md
 /commit with conventional format
 ```
 `````

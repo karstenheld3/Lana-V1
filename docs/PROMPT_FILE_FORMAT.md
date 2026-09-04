@@ -2,7 +2,7 @@
 
 **Doc ID**: LANAACPB-DOC01
 **Goal**: Document the file format Lana accepts via `lana --prompt-file <path>` for headless multi-prompt execution
-**Normative source**: `specs/_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]` FR-12 (this document explains; the SPEC decides)
+**Normative source**: `rules/_SPEC_LANA_MVP-2_ACP.md [LANAACPB-SP01]` FR-12 (this document explains; the SPEC decides)
 
 ## Table of Contents
 

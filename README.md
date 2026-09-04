@@ -4,6 +4,35 @@ Lana is an ACP-compatible AI agent that runs in your terminal. You type requests
 
 Lana uses a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS) (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.lana/` folder.
 
+## Get Started
+
+**Requirements**: Windows x64, an API key from [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/settings/keys).
+
+1. Download `lana.exe` from the [latest release](https://github.com/karstenheld3/Lana/releases/latest)
+2. Open a terminal in the folder where you downloaded it
+3. Run it:
+
+```powershell
+.\lana.exe
+```
+
+4. On first launch, Lana creates `config/.api-keys.txt` next to the exe. Open it and add your key:
+
+```
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+5. Run `.\lana.exe` again -- you're ready to go.
+
+The first launch takes 1-5 minutes because Lana extracts its embedded Python and installs dependencies from PyPI (needs internet). After that, startup takes ~1.3 seconds.
+
+> **Tip**: Add the folder containing `lana.exe` to your `PATH` so you can run `lana` from anywhere.
+
+---
+
+*The sections below are for developers building Lana from source.*
+
 ## Prerequisites
 
 - **Windows x64** -- Lana currently targets Windows only (shell commands, binary distribution, path handling)
@@ -11,7 +40,7 @@ Lana uses a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS
 
 Python 3.12+ and Rust toolchain are auto-installed by `_InstallBuildTools.bat` if missing (via winget).
 
-## Quick Start
+## Quick Start (for developers)
 
 ```powershell
 # 1. Install build tools + dependencies (Python, Rust, venv, packages)
@@ -71,7 +100,7 @@ Lana has 16 built-in tools: read/write/edit files, run shell commands, search co
 config/             # model configuration, API keys, runtime settings
 src/lana/           # source code
 tests/              # test suite
-specs/              # specifications and implementation plans
+rules/             # specifications and implementation plans
 ```
 
 ## CLI Reference
@@ -168,7 +197,7 @@ Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (
 
 ## Specifications
 
-11 component-aligned spec triplets (SPEC + IMPL + TEST each) in `specs/`:
+11 component-aligned spec triplets (SPEC + IMPL + TEST each) in `rules/`:
 
 - **01-ProductOverview** [LANAAGNT] -- product vision, domain model, NFRs, architectural constraints
 - **02-AgentCore** [LANACORE] -- turn loop, session persistence, compaction, command safety
