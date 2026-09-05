@@ -39,7 +39,7 @@ Invoke based on context:
 **PROJECT-MODE** - Re-read workspace-level documents:
 - README.md
 - !NOTES.md or NOTES.md
-- !PROBLEMS.md or PROBLEMS.md (if exists)
+- PROBLEMS.md (if exists)
 - !PROGRESS.md or PROGRESS.md (if exists)
 - FAILS.md
 - LEARNINGS.md (if exists)
@@ -485,6 +485,35 @@ Verify before phase transition (when evaluating Transitions):
 - Objective is verified when ALL linked Deliverables are checked
 - Check Objective checkbox only after confirming linked Deliverables
 - If Objective has no links (`←`), require explicit [ACTOR] confirmation
+
+## Workspace Setup
+
+Detect by: user runs `/verify workspace` or `/verify setup` or context is workspace configuration.
+
+Read @skills:workspace-management SKILL.md, WORKSPACE-RULES.md, and WORKSPACE-GUIDES.md before verifying. Read templates (DEV_REPO_NOTES_TEMPLATE.md, PRODUCT_REPO_README_TEMPLATE.md, COMPANY_REPO_NOTES_TEMPLATE.md) for comparison against workspace files.
+
+Verification checklist (sourced from WORKSPACE-RULES.md):
+
+1. Read workspace constants from DevRepo NOTES.md
+2. Check required constants (8): [DEV_REPO_FOLDER], [PRODUCT_REPO_FOLDER], [COMPANY_REPO_FOLDER], [KNOWLEDGE_FOLDER], [KNOWLEDGE_SOURCE_FOLDER], [RULES_FOLDER], [RULES_SOURCE_FOLDER], [PRODUCT_DOCS_FOLDER]
+3. Check required files per workspace type:
+   - DevRepo: NOTES.md, PROBLEMS.md, PROGRESS.md, ID-REGISTRY.md, SOPS.md, FAILS.md
+   - ProductRepo: README.md
+   - CompanyRepo (if exists): NOTES.md
+4. Check agent folder structure: rules/, workflows/, skills/ subfolders exist
+5. Check skill registration: all skills in skills/ folder are in [SKILL_CATEGORIES], and vice versa
+6. Check workspace structure matches declared mode (SINGLE-PROJECT, MONOREPO, WORKSPACE)
+7. Check no deprecated files in agent folder
+
+Fix actions per gap type:
+- Missing constant -> add with template default from DEV_REPO_NOTES_TEMPLATE.md
+- Missing required file -> create from template
+- Broken reference -> report only (requires user judgment)
+- Structural violation -> report only
+
+Downstream repo modifications are allowed (customizations are valid). Do not fail verification for intentional customizations.
+
+Report all fixes with what was changed and why.
 
 ## No Context Match
 

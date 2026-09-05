@@ -87,7 +87,7 @@ Determines where implementation outputs are placed:
 
 - **IMPL-ISOLATED**: Implement separately from existing codebase
   - For: [PROVE], Proofs of Concept (POCs), prototypes, self-contained test scripts
-  - Output: `[SESSION_FOLDER]/` or `[SESSION_FOLDER]/poc/`
+  - Output: `[SESSION_FOLDER]/`, `[SESSION_FOLDER]/poc/`, `T##_` (Topic) folders, or `S##_` (Step) folders
   - Existing code/config/runtime MUST NOT be affected
   - NEVER create folders in workspace root
   - **REQUIRES SESSION**: If no session exists, run `/session-new` first
@@ -100,6 +100,7 @@ Three dimensions define how the agent should behave:
 
 - **SINGLE-PROJECT** - Workspace contains one project
 - **MONOREPO** - Workspace contains multiple independent projects
+- **WORKSPACE** - Workspace root with multiple independent repos (not monorepo). Detected by presence of `main.code-workspace` file
 
 ### Dimension 2: Version Strategy
 
@@ -133,7 +134,7 @@ Three dimensions define how the agent should behave:
 │   └── FAILS.md            # Lessons learned
 ├── src/                    # Source code
 ├── !NOTES.md               # Workspace notes (priority file)
-├── !PROBLEMS.md            # Known problems
+├── PROBLEMS.md            # Known problems
 ├── !PROGRESS.md            # Overall progress
 └── FAILS.md                # Lessons learned (workspace-level)
 ```
@@ -158,7 +159,7 @@ Three dimensions define how the agent should behave:
 ├── [PROJECT_B]/
 │   └── ...                 # Same structure
 ├── !NOTES.md               # Workspace-level notes
-├── !PROBLEMS.md            # Workspace-level problems
+├── PROBLEMS.md            # Workspace-level problems
 ├── !PROGRESS.md            # Workspace-level progress
 └── FAILS.md                # Lessons learned (workspace-level)
 ```

@@ -1,5 +1,5 @@
 # Lana version bump: analyze commits since last tag, determine semver bump, update pyproject.toml, commit.
-# Run AFTER _build.bat succeeds and before /project-release.
+# Run AFTER build.bat succeeds and before /project-release.
 $ErrorActionPreference = 'Stop'
 
 $RootDir = $PSScriptRoot

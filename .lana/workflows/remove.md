@@ -21,7 +21,7 @@ Scope: Destructive file deletion. User can run `/commit` before `/remove` if bac
 - Cascade .pb files are encrypted - identification by date/size only
 - Close Windsurf before deleting cascade conversations to avoid file handle conflicts
 - NEVER delete `.devin/`, `DevSystemV4.1/`, or `_OldDevSystemVersions/`
-- NEVER delete `ID-REGISTRY.md`, `FAILS.md`, `LEARNINGS.md`, `!NOTES.md`, `!PROBLEMS.md`, `!PROGRESS.md`
+- NEVER delete `ID-REGISTRY.md`, `FAILS.md`, `LEARNINGS.md`, `!NOTES.md`, `PROBLEMS.md`, `!PROGRESS.md`
 
 ## Trigger
 
@@ -53,7 +53,7 @@ Detection: determine context from trigger arguments.
 2. Check if session is active (has uncommitted changes or is current working session)
 3. Scan for outbound references:
    - `ID-REGISTRY.md` entries referencing session topic
-   - `!PROGRESS.md` or `!PROBLEMS.md` entries referencing session
+   - `!PROGRESS.md` or `PROBLEMS.md` entries referencing session
    - Other sessions referencing this session's documents
 4. Scan for inbound references:
    - Files inside the session that reference external documents

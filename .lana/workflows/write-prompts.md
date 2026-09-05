@@ -19,14 +19,18 @@ Create `_PROMPTS_[Topic].md` files containing an ordered list of prompts. Each p
 
 ## MUST-NOT-FORGET
 
-- First non-empty line MUST be an opening fence (no header block, no frontmatter)
+- First non-empty line MUST be an opening fence, Commentary (heading/notes), or optional Execution Frontmatter (per PRMT-FT-08). No other YAML frontmatter.
+- Optional Execution Frontmatter (PRMT-FT-08): YAML block at file start with `intended_model`, `context_window_size`, `reasoning_settings`, `prompt_system`. Execution engine MAY honor or override. Omit if no hints needed.
 - Fence length: 3-9 backticks per prompt. Outer fence MUST exceed deepest inner fence
 - `---` separator between every pair of consecutive prompts
-- Commentary (headings, notes) only between `---` and next fence - never sent to model
+- Commentary (headings, notes) only between `---` and next fence - never sent to model. Commentary notes MUST be in HTML comments (`<!-- ... -->`), headings as plain Markdown
+- Heading recommendation (PRMT-FT-07): use `## Prompt N - [title]` before each prompt. If headings are used, ALL prompts MUST have headings
 - At least one prompt per file
 - **NEVER modify tracking documents** (PROGRESS.md, PROBLEMS.md, NOTES.md, FAILS.md). Write-* workflows create NEW files only.
 - Pre-Write Privacy Gate (`agent-behavior.md`): General-purpose documents → all content generic. ILLUSTRATIVE content → examples generic.
 - **Rule precedence**: PRMT-CT-04 (objectives not steps) overrides PRMT-CT-05 (precision). See PRMT-CT-04 for details.
+- **Workflow references** (PRMT-CT-10): When a workflow name appears in prompt prose as a reference, wrap in backticks (`/write-prompts`). When actually calling a workflow, use a standalone line without backticks (PRMT-CT-08).
+- **NEVER self-execute prompt files** (PRMT-EX-02): After writing a prompt file, deliver it to the user or execution engine. Do NOT run all prompts in a single response. Each prompt is a separate turn for an execution engine (Lana, headless runner). Self-executing circumvents per-turn context engineering and compute allocation, defeating the purpose of prompt files.
 
 ## Context Branching
 
@@ -78,18 +82,27 @@ For each prompt, find the deepest inner fence and set the outer fence one longer
 
 ## Step 4: Write Prompts File
 
-**Format overview** (3-prompt example):
+**Format overview** (3-prompt example with optional frontmatter and headings, per PRMT-FT-07/08):
 
 `````markdown
+---
+intended_model: claude-sonnet-4-5
+context_window_size: 200k
+reasoning_settings: high
+prompt_system: IPPS
+---
+
+## Prompt 1 - Setup
+
 ```
 First prompt text. Plain instruction, no code blocks inside.
 ```
 
 ---
 
-## Step 2 - commentary heading (never sent to model)
+## Step 2 - commentary heading (never sent to the model)
 
-Optional notes explaining the next prompt's purpose.
+<!-- Optional notes explaining the next prompt's purpose. -->
 
 ````
 Second prompt with a code block inside:
@@ -100,28 +113,33 @@ print("hello")
 
 ---
 
+## Prompt 3 - Finalize
+
 ```
 Third prompt. Simple again.
 ```
 `````
 
 **Format rules:**
-1. First non-empty line = opening fence
+1. First non-empty line = optional Execution Frontmatter (per PRMT-FT-08), Commentary (heading/notes), or opening fence. No other YAML frontmatter
 2. Each prompt = opening fence + prompt text + closing fence
 3. Closing fence = line with >= N backticks (where N = opening fence length)
 4. `---` on its own line between consecutive prompts
-5. Commentary (headings, paragraphs, lists) allowed only between `---` and next opening fence
-6. Info string after opening fence (e.g. `` ```text ``) is optional and ignored by executor
-7. Prompts execute in file order
+5. Commentary (headings, paragraphs, lists) allowed before the first prompt and between `---` and next opening fence. Commentary notes MUST be in HTML comments (`<!-- ... -->`), headings as plain Markdown
+6. Heading recommendation (PRMT-FT-07): use `## Prompt N - [title]` before each prompt. If headings are used, ALL prompts MUST have headings
+7. Info string after opening fence (e.g. `` ```text ``) is optional and ignored by executor
+8. Prompts execute in file order
+9. Execution Frontmatter is optional - omit entirely if no execution hints needed
 
 ## Step 5: Verify
 
 Check output against all PRMT-* rules in `PROMPTS_RULES.md`:
 
-- [ ] Format (FT): PRMT-FT-01 through PRMT-FT-06
+- [ ] Format (FT): PRMT-FT-01 through PRMT-FT-08
 - [ ] Structure (ST): PRMT-ST-01 through PRMT-ST-05
 - [ ] Sequence (SQ): PRMT-SQ-01 through PRMT-SQ-03
-- [ ] Content (CT): PRMT-CT-01 through PRMT-CT-07
+- [ ] Content (CT): PRMT-CT-01 through PRMT-CT-10
+- [ ] Execution (EX): PRMT-EX-01 (one prompt per turn), PRMT-EX-02 (no self-execution)
 
 # FROM TEMPLATE MODE
 
@@ -156,13 +174,16 @@ For each placeholder in the registry:
 
 The filled file must pass all PRMT-* rules as a standalone prompts file:
 
-- [ ] PRMT-FT-01: First non-empty line is an opening fence
+- [ ] PRMT-FT-01: First non-empty line is optional frontmatter (PRMT-FT-08), Commentary, or opening fence
 - [ ] PRMT-FT-02: Fence lengths correct (outer > deepest inner)
 - [ ] PRMT-FT-03: `---` separator between every pair of consecutive prompts
-- [ ] PRMT-FT-04: Commentary only between separator and next fence
+- [ ] PRMT-FT-04: Commentary notes in HTML comments (`<!-- ... -->`), headings as plain Markdown, only between separator and next fence (or before first fence)
+- [ ] PRMT-FT-07: If headings are used, all prompts have headings (MUST)
+- [ ] PRMT-FT-08: If frontmatter present, it is at file start with valid keys
 - [ ] PRMT-ST-01..05: Each prompt has objective, constraints (if implementation), verification, single reasoning mode, density limit
 - [ ] PRMT-SQ-01..03: No contradictions, explicit dependencies, commentary documents state
-- [ ] PRMT-CT-01..07: Specific objectives, negative constraints, observable verification
+- [ ] PRMT-CT-01..10: Specific objectives, negative constraints, observable verification, workflow references in backticks
+- [ ] PRMT-EX-01..02: One prompt per turn, no self-execution by writing agent
 - [ ] No unresolved `[PLACEHOLDER]` values remain in the output
 - [ ] No XML comments remain in the output
 - [ ] Privacy gate: no real user data leaked into the filled instance
@@ -179,7 +200,7 @@ Validated `_PROMPTS_[Topic]_[Instance].md` file with all placeholders resolved, 
 
 ## Quality Gate
 
-- [ ] All PRMT-* rules pass
+- [ ] All PRMT-* rules pass (FT-01 through FT-08, ST, SQ, CT, EX, NM)
 - [ ] Privacy gate applied (no real project data in examples)
 - [ ] Fence depths verified (outer > deepest inner per prompt)
 - [ ] **From Template mode**: Zero unresolved placeholders

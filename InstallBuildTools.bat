@@ -2,9 +2,9 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 REM Lana V1 - Install Build Tools (Python 3.12+, Rust/Cargo)
-REM Idempotent: installs missing tools via winget, then runs _InstallAndCompileDependencies.bat
-REM Usage: _InstallBuildTools.bat           (interactive, pauses at end)
-REM        _InstallBuildTools.bat /noPause  (non-interactive, called from _build.ps1)
+REM Idempotent: installs missing tools via winget, then runs InstallAndCompileDependencies.bat
+REM Usage: InstallBuildTools.bat           (interactive, pauses at end)
+REM        InstallBuildTools.bat /noPause  (non-interactive, called from build.ps1)
 
 set NO_PAUSE=%~1
 
@@ -82,13 +82,13 @@ if "%CARGO_FOUND%"=="0" (
 )
 
 REM --- Now run dependency installer (venv + pip install) ---
-REM Skip when called from _InstallAndCompileDependencies.bat (/skipDeps) to avoid circular call
+REM Skip when called from InstallAndCompileDependencies.bat (/skipDeps) to avoid circular call
 set SKIP_DEPS=0
 if /i "%~2"=="/skipDeps" set SKIP_DEPS=1
 if "%SKIP_DEPS%"=="0" (
   echo.
-  echo [INFO] Running _InstallAndCompileDependencies.bat...
-  call "%~dp0_InstallAndCompileDependencies.bat" /noPause
+  echo [INFO] Running InstallAndCompileDependencies.bat...
+  call "%~dp0InstallAndCompileDependencies.bat" /noPause
   if errorlevel 1 (
     echo [ERROR] Dependency installation failed.
     if /i not "%NO_PAUSE%"=="/noPause" pause

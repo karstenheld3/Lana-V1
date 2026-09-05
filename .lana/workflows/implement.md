@@ -93,7 +93,7 @@ For each confirmed finding with an approved fix:
 ### Post-Corrections
 
 1. Update `FAILS.md`: mark addressed entries as `[RESOLVED]` with fix reference
-2. Delete or archive addressed `*_REVIEW.md` files (they served their purpose)
+2. Rename implemented `*_REVIEW.md` files: replace `_REVIEW.md` with `_REVIEW-implemented.md` (e.g., `_INFO_FOO_REVIEW.md` becomes `_INFO_FOO_REVIEW-implemented.md`)
 3. Run `/verify` on modified documents
 
 ### Gate Check: REVIEW-PIPELINE→COMPLETE
@@ -102,7 +102,7 @@ For each confirmed finding with an approved fix:
 - [ ] Replacement claims verified (not swapping one error for another)
 - [ ] Downstream dependents checked
 - [ ] FAILS.md updated
-- [ ] `*_REVIEW.md` files archived or deleted
+- [ ] `*_REVIEW.md` files renamed to `*_REVIEW-implemented.md`
 
 Pass: Complete | Fail: Continue applying
 
@@ -196,5 +196,5 @@ Run `/verify` on all modified artifacts.
 
 ## Output
 
-- **Review Pipeline**: Modified source documents + updated FAILS.md + archived `*_REVIEW.md`
+- **Review Pipeline**: Modified source documents + updated FAILS.md + `*_REVIEW.md` renamed to `*_REVIEW-implemented.md`
 - **Build**: Implemented code + tests + updated PROGRESS.md

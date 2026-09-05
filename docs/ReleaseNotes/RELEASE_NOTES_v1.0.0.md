@@ -66,7 +66,7 @@ Initial release of Lana, an ACP-compatible AI agent that runs as a CLI and suppo
 ### _2026-08-30_LanaDistribution
 
 **Goal**: Single-binary distribution pipeline via PyApp
-**Outcome**: Complete -- `_build.ps1` producing signed/unsigned Windows x64 binary
+**Outcome**: Complete -- `build.ps1` producing signed/unsigned Windows x64 binary
 **Artifacts**: `_SPEC_LANADIST.md`
 
 ---

@@ -28,10 +28,6 @@ Search for .md files NOT starting with "_" or "!":
 find_by_name Pattern="*.md" SearchDirectory="[WORKSPACE_FOLDER]" Type="file" Excludes=["_*", "!*"]
 ```
 
-**Large file limits** - these files grow unbounded; read only the relevant section:
-- `FAILS.md`: Read only the first 50 lines (`read_file offset=1 limit=50`) to get Active Issues. Skip the resolved history.
-- `ID-REGISTRY.md`: Read only the first 30 lines (`read_file offset=1 limit=30`) to get the Topic Registry header. Skip the full ID list.
-
 ## Exclusions
 
 - Skip .md files starting with "_"

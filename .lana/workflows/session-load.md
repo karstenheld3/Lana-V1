@@ -20,13 +20,6 @@ Check if user provided a session path:
 - If path provided with NOTES.md, PROGRESS.md, PROBLEMS.md: Use that session
 - If no path provided: Find most recently modified session folder:
 
-**Path resolution** - if the provided path does not exist:
-1. Split the path into segments
-2. Validate from root: check each segment exists (e.g., does `E:\Dev` exist? Does `E:\Dev\MyProject` exist?)
-3. Find the first segment that fails (the divergence point)
-4. Search within the last valid parent only (NOT the entire drive) using `find_by_name` with the missing segment name
-5. Never search more than one level above the divergence point
-
 ```powershell
 Get-ChildItem -Path "[DEFAULT_SESSIONS_FOLDER]" -Directory -Filter "_*" | Where-Object { Test-Path "$($_.FullName)\NOTES.md" } | Sort-Object { (Get-ChildItem $_.FullName -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime } -Descending | Select-Object -First 1 -ExpandProperty FullName
 ```
@@ -35,13 +28,11 @@ Get-ChildItem -Path "[DEFAULT_SESSIONS_FOLDER]" -Directory -Filter "_*" | Where-
 
 ## Step 2: Load Context
 
-Run `/prime` workflow now. If the session path is in a **different workspace** (not under the current working directory), `/prime` MUST target the session's parent workspace (the folder containing `_Sessions/`), not the current working directory.
+Run `/prime` workflow now.
 
 ## Step 3: Read Session Documents
 
-Read **root-level** session documents only: NOTES.md, PROGRESS.md, PROBLEMS.md, and any _INFO/_SPEC/_IMPL/_TASK files at the session root.
-
-**Do NOT** read topic subfolder (`T##_*/`) or step subfolder (`S##_*/`) documents unless the user's target path points inside a specific subfolder. The root NOTES.md contains topic summaries - reading subfolder contents wastes context.
+Read all session documents (NOTES.md, PROGRESS.md, PROBLEMS.md, and any INFO/SPEC/IMPL/TASK files).
 
 Restore phase state from NOTES.md "Current Phase" section.
 

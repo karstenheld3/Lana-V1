@@ -101,9 +101,9 @@ foreach ($target in $staleTargets) {
 # ---------------------------------------------------------------------------- [ 1 / 8 ] toolchain
 Step 'Verifying toolchain...'
 if (-not (Test-Path $VenvPy)) {
-  Write-Host "  .venv not found - running _InstallBuildTools.bat..."
-  $installBat = Join-Path $RootDir '_InstallBuildTools.bat'
-  if (-not (Test-Path $installBat)) { Fail "_InstallBuildTools.bat not found (EC-02)." }
+  Write-Host "  .venv not found - running InstallBuildTools.bat..."
+  $installBat = Join-Path $RootDir 'InstallBuildTools.bat'
+  if (-not (Test-Path $installBat)) { Fail "InstallBuildTools.bat not found (EC-02)." }
   cmd /c "$installBat /noPause"
   if ($LASTEXITCODE -ne 0) { Fail "build tool installation failed (EC-02)." }
   if (-not (Test-Path $VenvPy)) { Fail ".venv still missing after install script (EC-02)." }

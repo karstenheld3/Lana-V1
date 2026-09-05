@@ -9,7 +9,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0_ship.ps1"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0ship.ps1"
 if errorlevel 1 (
   echo.
   echo [ERROR] Version bump failed. See output above.

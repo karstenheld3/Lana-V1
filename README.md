@@ -65,19 +65,19 @@ You can mix providers -- e.g., Anthropic for the generator and OpenAI for the su
 - **Windows x64** -- Lana currently targets Windows only (shell commands, binary distribution, path handling)
 - **An API key** for at least one provider: [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/settings/keys)
 
-Python 3.12+ and Rust toolchain are auto-installed by `_InstallBuildTools.bat` if missing (via winget).
+Python 3.12+ and Rust toolchain are auto-installed by `InstallBuildTools.bat` if missing (via winget).
 
 ## Quick Start (for developers)
 
 ```powershell
 # 1. Install build tools + dependencies (Python, Rust, venv, packages)
-_InstallBuildTools.bat
+InstallBuildTools.bat
 
 # 2. Run
 lana
 
 # 3. Test
-_test.bat
+test.bat
 ```
 
 On first run, Lana creates `config/.api-keys.txt` (and `config/lana-config.json`, `.lana-data/`). Open the key file and uncomment your provider(s):
@@ -162,9 +162,9 @@ pytest -m live              # live smoke tests (requires API keys, budget-capped
 Build a standalone `lana.exe` that includes Python and all dependencies (no Python install required on the target machine):
 
 ```powershell
-_InstallAndCompileDependencies.bat   # once: creates .venv
-_ship.bat                            # bumps version in pyproject.toml based on commit types
-_build.bat                           # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
+InstallAndCompileDependencies.bat   # once: creates .venv
+ship.bat                            # bumps version in pyproject.toml based on commit types
+build.bat                           # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
 ```
 
 Then run `/project-release` to create release notes, tag the repo, and publish a GitHub release with the binary attached.
@@ -176,7 +176,7 @@ Then run `/project-release` to create release notes, tag the repo, and publish a
 - **First run**: 1-5 minutes (extracts embedded Python, installs dependencies from PyPI -- requires network); subsequent starts take ~1.3 seconds
 - **Interrupted first run**: local cache is broken -- fix with `lana.exe self restore` or delete `%LOCALAPPDATA%\pyapp\data\lana\`
 - **Updates**: replace the `lana.exe` file
-- **Code signing**: set `LANA_SIGN_THUMBPRINT` to an installed certificate thumbprint before running `_build.bat`
+- **Code signing**: set `LANA_SIGN_THUMBPRINT` to an installed certificate thumbprint before running `build.bat`
 
 ## ACP Integration (Devin Desktop)
 

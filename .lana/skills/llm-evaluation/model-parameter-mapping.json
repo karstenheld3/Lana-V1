@@ -1,6 +1,6 @@
 {
   "_version": "2.3.0",
-  "_updated": "2026-05-30",
+  "_updated": "2026-09-05",
   "_comment": "CLI params: --temperature, --reasoning-effort, --output-length, --verbosity. Each uses same keywords mapped to different values.",
   
   "effort_levels": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
@@ -20,6 +20,6 @@
     "medium":  { "temperature_factor": 0.35, "openai_reasoning_effort": "medium",  "openai_verbosity": "medium", "anthropic_thinking_factor": 0.1,  "anthropic_adaptive_effort": "medium", "output_length_factor": 0.75 },
     "high":    { "temperature_factor": 0.5,  "openai_reasoning_effort": "high",    "openai_verbosity": "high",   "anthropic_thinking_factor": 0.32, "anthropic_adaptive_effort": "high",   "output_length_factor": 1.0 },
     "xhigh":   { "temperature_factor": 0.5,  "openai_reasoning_effort": "xhigh",   "openai_verbosity": "high",   "anthropic_thinking_factor": 1.0,  "anthropic_adaptive_effort": "xhigh",  "output_length_factor": 1.0 },
-    "max":     { "temperature_factor": 0.5,  "openai_reasoning_effort": "xhigh",   "openai_verbosity": "high",   "anthropic_thinking_factor": 1.0,  "anthropic_adaptive_effort": "max",    "output_length_factor": 1.0 }
+    "max":     { "temperature_factor": 0.5,  "openai_reasoning_effort": "max",     "openai_verbosity": "high",   "anthropic_thinking_factor": 1.0,  "anthropic_adaptive_effort": "max",    "output_length_factor": 1.0 }
   }
 }

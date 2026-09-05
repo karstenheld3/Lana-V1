@@ -50,9 +50,9 @@ Plan what each prompt produces that the next one needs:
 - Do not restate facts already established - they are in conversation history
 - Never contradict constraints from earlier prompts
 
-Use commentary sections (before the first prompt or between `---` and next fence) to document expected state for human readers. Commentary density depends on file type:
+Use commentary sections (before the first prompt or between `---` and next fence) to document expected state for human readers. Commentary notes MUST be wrapped in HTML comments (`<!-- ... -->`). Commentary density depends on file type:
 
-- **Final output files**: heading + max 1 sentence per prompt. The sentence captures expected state for the human reviewer. More than one sentence is noise — the prompt itself carries the detail.
+- **Final output files**: heading + max 1 sentence in one HTML comment per prompt. The sentence captures expected state for the human reviewer. More than one sentence is noise — the prompt itself carries the detail.
 - **Template files**: no limit. Templates need authoring instructions, placeholder explanations, and conditional guidance that get removed when filling the template.
 
 ## 5. Manage Prompt Density
@@ -162,11 +162,66 @@ Keep examples minimal: one representative instance, not three variations of the 
 
 Examples containing code blocks require deeper outer fences. A prompt showing a markdown example with ``` inside needs a 4+ backtick outer fence. Plan fence depth AFTER writing examples (section 7).
 
-## 10. Review Checklist
+## 10. Optional Execution Frontmatter
+
+Execution Frontmatter (PRMT-FT-08) is an optional YAML block at the very top of the file. It provides execution hints to the execution engine.
+
+### 10.1 When to Include Frontmatter
+
+Include frontmatter when:
+- The prompts are designed for a specific model or reasoning level
+- The execution engine supports frontmatter and benefits from hints
+- The prompt sequence is part of a prompt system (e.g., IPPS)
+
+Omit frontmatter when:
+- The prompts are model-agnostic
+- No specific reasoning settings are needed
+- Simplicity is preferred over explicitness
+
+### 10.2 Supported Keys
+
+- `intended_model`: Model identifier (e.g., `claude-sonnet-4-5`, `gpt-4o`)
+- `context_window_size`: Context window size (e.g., `200k`, `128k`, `1M`)
+- `reasoning_settings`: Reasoning effort (`medium` | `high` | `extra-high`)
+- `prompt_system`: Prompt system identifier (e.g., `IPPS`)
+
+### 10.3 Key Principles
+
+- **Optional**: The execution engine decides whether to honor frontmatter or use its own configuration
+- **Portability**: The same prompt file can run on different engines with different models
+- **Never sent to model**: Frontmatter is metadata for the execution engine, not prompt content
+- **File start only**: Frontmatter must be the first content in the file (no blank lines before opening `---`)
+
+## 11. Execution Model: One Prompt Per Turn
+
+Prompt files are NOT executed as a single run. Each Prompt Block is a separate turn: submitted individually to the model, with the model response received before the next prompt is submitted.
+
+### 11.1 Why Separate Turns Matter
+
+Each turn receives the agent's full context engineering, input rendering, and compute budget. This is the entire point of prompt files - working around the context, compute, and output limits of a single model run:
+
+- **Context engineering**: The agent applies its internal input rendering mechanisms to each turn independently. Concatenating prompts bypasses this.
+- **Compute budget**: Each turn gets fresh reasoning compute. A 3-prompt sequence gets 3x the compute when run as separate turns vs one concatenated run.
+- **Execution depth**: A single run produces one response with limited depth. Separate turns allow each step to produce a full response, building on prior turns.
+
+### 11.2 Agent Role vs Execution Engine Role
+
+The writing agent creates the prompt file. The execution engine (Lana, headless runner, or human submitting one prompt at a time) runs it. These are separate roles.
+
+An agent that writes a prompt file and then immediately executes all prompts in a single response is NOT executing the prompt file - it is circumventing the format. The agent collapses the sequence into one turn, losing per-turn context engineering and compute allocation.
+
+### 11.3 What to Do Instead
+
+After writing a prompt file:
+- Deliver the file to the user or execution engine
+- Do NOT self-execute the prompts in the same response
+- If the user asks to execute, hand off to the execution engine or guide the user to run it
+
+## 12. Review Checklist
 
 Before considering the prompts file complete:
 
-- [ ] First non-empty line is an opening fence (no frontmatter, no header)
+- [ ] First non-empty line is optional frontmatter (PRMT-FT-08), Commentary, or opening fence (no other frontmatter)
 - [ ] Each prompt has a clear objective (verifiable from artifact per PRMT-ST-01)
 - [ ] Implementation prompts have constraints and verification criteria
 - [ ] No prompt mixes more than one reasoning mode (research + implement = split)
@@ -175,7 +230,10 @@ Before considering the prompts file complete:
 - [ ] Commentary sections explain purpose for human readers, not duplicate prompts
 - [ ] Fence lengths exceed all inner fence lengths within each prompt
 - [ ] `---` separator between every pair of consecutive prompts
+- [ ] If headings are used, ALL prompts have headings (PRMT-FT-07)
 - [ ] No prompt content outside fences (would be silently dropped)
 - [ ] Precision tokens preserved: constraints, verification, disambiguation not cut for brevity (PRMT-CT-05)
 - [ ] Signal redundancy preserved: explicit referents, not pronouns for ambiguous antecedents (PRMT-CT-06)
 - [ ] Format-critical prompts use examples instead of prose descriptions (PRMT-CT-07)
+- [ ] Commentary notes wrapped in HTML comments (`<!-- ... -->`), headings as plain Markdown (PRMT-FT-04)
+- [ ] Agent does not self-execute the prompt file (PRMT-EX-02): file is delivered, not run in one response

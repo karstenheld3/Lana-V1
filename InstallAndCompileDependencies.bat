@@ -28,8 +28,8 @@ if exist "%VENV_PY%" (
     if not errorlevel 1 set PY_CMD=python
   )
   if not defined PY_CMD (
-    echo [INFO] Python not found - running _InstallBuildTools.bat...
-    call "%~dp0_InstallBuildTools.bat" /noPause /skipDeps
+    echo [INFO] Python not found - running InstallBuildTools.bat...
+    call "%~dp0InstallBuildTools.bat" /noPause /skipDeps
     if errorlevel 1 exit /b 1
     set PY_CMD=py -3.12
     if not defined PY_CMD set PY_CMD=python
@@ -110,7 +110,7 @@ echo To run lana:
 echo   lana
 echo.
 echo To run tests:
-echo   _test.bat
+echo   test.bat
 echo.
 
 if /i "%~1"=="/noPause" exit /b 0

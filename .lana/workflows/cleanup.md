@@ -25,7 +25,14 @@ Scope: File deletion only. Does NOT uninstall tools, remove sessions, or modify 
 ## Trigger
 
 - `/cleanup` - infer scope from conversation context (narrowest scope wins), then scan
-- `/cleanup [path]` - scope to specified path directly
+- `/cleanup [path]` - scope to specified path directly (recursive scan limited to that path only)
+- `/cleanup review` - delete ONLY `*_REVIEW.md` files (Category 5 only), leave all other categories intact
+- `/cleanup review [path]` - delete ONLY `*_REVIEW.md` files within the specified path
+- `/cleanup file [path]` - scope to a single file only (strip markers from that file, delete its `_vN` backups)
+
+**Path-scoped mode** (`/cleanup [path]`): When an explicit path is provided, scan is STRICTLY limited to that path. No other workspace locations are scanned. All categories still apply but only within the given path.
+
+**Category-scoped mode** (`/cleanup review`): When a category keyword is provided, ONLY that category is deleted. All other categories are skipped entirely.
 
 ## GLOBAL-RULES
 
@@ -160,9 +167,11 @@ Six cleanup scopes exist, from narrowest to widest:
 6. **Workspace** - everything in `[WORKSPACE_FOLDER]` and all known locations
 
 **Resolution rules (narrowest scope wins):**
+- **Explicit path overrides everything**: If user provides a path argument, scope is STRICTLY that path. No other locations scanned. Do not broaden.
+- **Category keyword**: If user says "review", scope to Category 5 only (`*_REVIEW.md` files). All other categories skipped.
 - **Narrowest scope principle**: Always infer the NARROWEST scope that covers the user's working context. Never broaden beyond what the conversation context requires.
 - If all recent work is within a session subfolder (e.g., `Faro-Autokauf/`): scope = **Folder** (that subfolder), NOT Session
-- If path arg provided: infer scope from path type (file → document, directory → folder/session)
+- If path arg provided: infer scope type from path type (file → Document, directory → Folder)
 - If conversation just finished a `/critique` or `/improve` run: suggest workflow scope
 - If conversation spans multiple session subfolders or session root: scope = **Session**
 - If ambiguous: infer narrowest scope from conversation context. Default to **Folder** (current working directory) if no context available
@@ -264,7 +273,9 @@ If no items found: report "Workspace is clean - nothing to delete" and exit.
 
 ## Step 4: Execute
 
-Delete all found items immediately after preview:
+**Category-scoped mode**: If user said "review", only delete Category 5 items (`*_REVIEW.md`). Skip all other categories.
+
+Delete all found items immediately after preview (normal mode only):
 - Files: `Remove-Item -Force -Confirm:$false`
 - Directories (`__pycache__/`, `.pytest_cache/`, `.mypy_cache/`): `Remove-Item -Recurse -Force -Confirm:$false`
 - INFO markers: strip `[VERIFIED]` and `VERIFIED, ` via text replacement
@@ -304,6 +315,8 @@ Errors: [count and paths if any]
 - [ ] All target locations scanned before any deletion
 - [ ] Protected locations excluded from results
 - [ ] Preview shown in chat with full paths
+- [ ] If explicit path provided: scan STRICTLY limited to that path, no other locations scanned
+- [ ] If category keyword provided: only that category deleted, all others skipped
 - [ ] All categories deleted without asking (user runs `/commit` before if backups needed)
 - [ ] Deletion results reported with counts
 
