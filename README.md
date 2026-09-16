@@ -1,0 +1,238 @@
+# Lana
+
+Lana is an ACP-compatible AI agent that runs in your terminal. You type requests, Lana reads your files, writes code, runs commands, and manages work sessions -- powered by OpenAI or Anthropic models.
+
+Lana uses a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS) (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.agent/` folder.
+
+## Get Started
+
+**Requirements**: Windows x64, an API key from [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/settings/keys).
+
+1. Download `lana.exe` from the [latest release](https://github.com/karstenheld3/Lana/releases/latest)
+2. Open a terminal in the folder where you downloaded it
+3. Run it:
+
+```powershell
+.\lana.exe
+```
+
+4. On first launch, Lana creates `.agent-data/config/.api-keys.txt` next to the exe. Open it and add your key:
+
+```
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+5. Run `.\lana.exe` again -- you're ready to go.
+
+The first launch takes 1-5 minutes because Lana extracts its embedded Python and installs dependencies from PyPI (needs internet). After that, startup takes ~1.3 seconds.
+
+### Choosing Models
+
+Lana ships with sensible defaults -- it just works. If you want to change models, edit `.agent-data/config/agent-config.json`:
+
+```json
+{
+  "roles": {
+    "generator":  { "model_id": "claude-sonnet-4-5-20250929", "effort": "medium" },
+    "summarizer": { "model_id": "gpt-4.1-mini", "effort": "low" },
+    "websearch":  { "model_id": "gpt-4.1-mini", "effort": "low" }
+  }
+}
+```
+
+- **generator** -- the main model that reads code, writes replies, calls tools. This is where most of your API spend goes. Pick a strong model.
+- **summarizer** -- compresses conversation history when context gets long. A cheap, fast model is fine here.
+- **websearch** -- powers web research workflows. A cheap model is sufficient.
+
+**Effort** controls how much the model thinks before responding: `low` (fast, cheap), `medium` (balanced), `high` (thorough, expensive). Some models also support `none` or `xhigh`.
+
+**Available models** (you need an API key for the matching provider):
+
+- **Anthropic**: `claude-sonnet-4-5-20250929` (recommended), `claude-sonnet-4-6`, `claude-haiku-4-5-20251001` (cheap), `claude-opus-4-5-20251101` (premium)
+- **OpenAI**: `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-4.1`, `gpt-4.1-mini` (cheap)
+
+You can mix providers -- e.g., Anthropic for the generator and OpenAI for the summarizer. You'll need both API keys in that case.
+
+> **Tip**: Add the folder containing `lana.exe` to your `PATH` so you can run `lana` from anywhere.
+
+---
+
+*The sections below are for developers building Lana from source.*
+
+## Prerequisites
+
+- **Windows x64** -- Lana currently targets Windows only (shell commands, binary distribution, path handling)
+- **An API key** for at least one provider: [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/settings/keys)
+
+Python 3.12+ and Rust toolchain are auto-installed by `InstallBuildTools.bat` if missing (via winget).
+
+## Quick Start (for developers)
+
+```powershell
+# 1. Install build tools + dependencies (Python, Rust, venv, packages)
+InstallBuildTools.bat
+
+# 2. Run
+lana
+
+# 3. Test
+test.bat
+```
+
+On first run, Lana creates `.agent-data/config/.api-keys.txt` (and `.agent-data/config/agent-config.json`, `.agent-data/`). Open the key file and uncomment your provider(s):
+
+```
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Why a key file instead of environment variables?** Environment variables are global to the user session -- every process can read them, including other tools, extensions, or scripts that happen to run alongside Lana. `.agent-data/config/.api-keys.txt` is read only by Lana's own startup code and is gitignored by default, so keys stay scoped to this workspace and never leak into child processes or other applications. If both exist, the environment variable wins per provider -- useful for temporary CI overrides. The startup banner shows where each key came from (`env` or `.api-keys.txt`).
+
+## What Lana Can Do
+
+Once running, you interact by typing at the `>` prompt:
+
+- **Free text** -- ask Lana to read code, fix bugs, write features, explain files
+- **`/workflow`** -- invoke a workflow (e.g. `/prime` to load project context, `/commit` to create git commits, `/verify` to check work against specs)
+- **Web research** -- Lana can search the web and read URLs to gather information, powering workflows like `/deep-research` and `/research`
+- **Session resume** -- every session is saved as a JSONL file; pick up where you left off with `--resume`
+- **Headless automation** -- run a single prompt (`-p "..."`) or a [queue of prompts](docs/PROMPT_FILE_FORMAT.md) (`--prompt-file`) for scripted workflows and CI pipelines
+- **`/selftest`** -- verify environment health: config, prompt system, model connectivity
+- **`/help`** -- list all loaded workflows
+- **`/cost`** -- show API spend for the current session
+- **`/exit`** or **Ctrl+C** -- stop
+
+Lana has 16 built-in tools: read/write/edit files, run shell commands, search code, manage todos, do web research, and more. Every destructive action (file writes, command execution) requires your approval in `manual` mode. Lana automatically manages context length via checkpoint compaction -- long sessions work without manual intervention.
+
+## Configuration
+
+**`.agent-data/config/agent-config.json`** controls which AI models Lana uses and how it behaves:
+
+- **`roles`** -- which model handles each task (generation, summarization, web search)
+- **`agent_folder`** -- path to the prompt system (default: `.agent/`)
+- **`execution_policy`** -- safety level for tool execution:
+  - `manual` (default) -- every file write and command needs your approval
+  - `auto` -- safe operations run automatically, destructive ones still ask
+  - `turbo` -- everything runs automatically (use only in trusted workspaces)
+- **`command_denylist`** -- commands that are always blocked (e.g. `rm`, `del`, `format`)
+
+**API keys** resolve in order: environment variables (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) first, then `.agent-data/config/.api-keys.txt`. The key file is recommended (see Quick Start).
+
+## Project Structure
+
+```
+.agent/              # prompt system (rules, workflows, skills) -- shipped with project
+.agent-data/         # runtime data (sessions, debug logs, config) -- gitignored (config/ unignored)
+src/lana/           # source code
+tests/              # test suite
+rules/             # specifications and implementation plans
+```
+
+## CLI Reference
+
+```powershell
+lana                                    # interactive session (workspace = current directory)
+lana --resume .agent-data/sessions/X.jsonl  # resume a previous session
+lana --policy auto                      # override execution policy
+lana --debug                            # write redacted API traffic to .agent-data/logs/
+lana --show-thinking                    # show model reasoning (dim-styled)
+lana --config path/to/config.json       # use a different config file
+lana --acp                              # ACP mode (JSON-RPC over stdio, for IDE integration)
+lana --version                          # print version and exit
+lana -p "fix the bug in auth.py"        # headless: run one prompt and exit
+lana -p "..." --output-format jsonl     # headless: output AgentEvents as JSON Lines
+lana --prompt-file PROMPTS.md           # headless: run a queue of prompts in one session
+```
+
+**Exit codes** (headless mode): 0 = completed, 2 = config error, 3 = provider/API failure, 4 = stopped without completion.
+
+See [Prompt Queue File Format](docs/PROMPT_FILE_FORMAT.md) for the `--prompt-file` input format and [Standard Operating Procedures](_SOPS.md) for versioning, building, and releasing.
+
+## Tests
+
+```powershell
+pytest                      # offline suite (~280 tests, no API keys needed)
+pytest -m live              # live smoke tests (requires API keys, budget-capped)
+```
+
+## Distribution (Windows x64 Binary)
+
+Build a standalone `lana.exe` that includes Python and all dependencies (no Python install required on the target machine):
+
+```powershell
+InstallAndCompileDependencies.bat   # once: creates .venv
+ship.bat                            # bumps version in pyproject.toml based on commit types
+build.bat                           # builds dist\lana-{version}-win-x64.exe + SHA256SUMS.txt
+```
+
+Then run `/project-release` to create release notes, tag the repo, and publish a GitHub release with the binary attached.
+
+**Pipeline order matters**: ship (bump version) before build (so the binary carries the new version).
+
+- **Build requirements**: Rust toolchain + MSVC Build Tools (the script offers to install Rust), network access
+- **Two modes**: `lana.exe` (interactive CLI) and `lana.exe --acp` (ACP agent for IDEs)
+- **First run**: 1-5 minutes (extracts embedded Python, installs dependencies from PyPI -- requires network); subsequent starts take ~1.3 seconds
+- **Interrupted first run**: local cache is broken -- fix with `lana.exe self restore` or delete `%LOCALAPPDATA%\pyapp\data\lana\`
+- **Updates**: replace the `lana.exe` file
+- **Code signing**: set `LANA_SIGN_THUMBPRINT` to an installed certificate thumbprint before running `build.bat`
+
+## ACP Integration (Devin Desktop)
+
+Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (or Devin Next). The IDE spawns `lana.exe --acp` as a subprocess and communicates via JSON-RPC over stdio.
+
+**Setup:**
+
+1. Add Lana to the local ACP registry. Use `Ctrl+Shift+P` > **`Open Local ACP Registry Config`** to create/open the file at the correct path. On Windows both Devin Desktop and Next share `%APPDATA%\Code\User\acp\registry.json`; on macOS/Linux the paths are per-channel (`~/.windsurf/acp/` or `~/.windsurf-next/acp/`):
+
+```json
+{
+  "version": "1.0.0",
+  "agents": [
+    {
+      "id": "lana",
+      "name": "Lana",
+      "version": "1.1.0",
+      "description": "CLI agent running IPPS prompt system on OpenAI/Anthropic backends",
+      "authors": ["Karsten Held"],
+      "license": "proprietary",
+      "distribution": {
+        "binary": {
+          "windows-x86_64": {
+            "archive": "",
+            "cmd": "C:/path/to/lana.exe",
+            "args": ["--acp"]
+          }
+        }
+      }
+    }
+  ],
+  "extensions": []
+}
+```
+
+2. Restart Devin Desktop (or run `Reload ACP Connections` from the Command Palette)
+3. Open `Ctrl+Shift+P` > **Devin User Settings** > **Agents** tab > enable **Lana**
+4. Start a new conversation and select **Lana** from the agent selector
+
+**Notes:**
+- `cmd` must be an absolute path to the `.exe` binary -- Devin Desktop does not download from `archive` URLs and cannot spawn `.bat` files
+- To open the debug console alongside ACP, add `"--debug-console"` before `"--acp"` in the `args` array
+- Configure API keys for Lana via the `...` button next to the agent in the Agents tab, or place keys in `.agent-data/config/.api-keys.txt` relative to the workspace
+- See [SOP 7](_SOPS.md#sop-7-register-lana-as-acp-agent) for the full step-by-step procedure and troubleshooting
+
+## Specifications
+
+11 component-aligned spec triplets (SPEC + IMPL + TEST each) in `rules/`:
+
+- **01-ProductOverview** [LANAAGNT] -- product vision, domain model, NFRs, architectural constraints
+- **02-AgentCore** [LANACORE] -- turn loop, session persistence, compaction, command safety
+- **03-PromptAndConfig** [LANAPRCF] -- configuration loading, prompt system, system prompt assembly
+- **04-Providers** [LANAPRVD] -- OpenAI and Anthropic adapter layer
+- **05-Tools** [LANATOOL] -- tool set, edit enforcement, web research, trajectory search
+- **06-CLI** [LANACLI] -- CLI frontend, headless mode, prompt queue, cost tracking, zero-setup
+- **07-ACP** [LANAACPB] -- ACP v1 protocol frontend for IDE integration
+- **08-DebugConsole** [LANADEBG] -- pipe-connected debug viewer with LLM/tool/ACP instrumentation
+- **09-Distribution** [LANADIST] -- single-binary ship pipeline (PyApp + bundled prompt system)
+- **10-EvalSuite** [LANATEST] -- three-tier evaluation suite (structure, process, content quality)
+- **11-Selftest** [LANASTST] -- `/selftest` workflow for environment and model health checks

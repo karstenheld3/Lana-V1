@@ -1,0 +1,42 @@
+{
+  "last_sync": "2026-09-16T12:49:42Z",
+  "deprecated": [
+    "skills/workspace-management/LOCAL_ENVIRONMENTS_REVIEW.md"
+  ],
+  "targets": [
+    {
+      "path": ".devin",
+      "source": "../IPPS/.devin",
+      "include": [
+        "*"
+      ],
+      "never_overwrite": [
+        "skills/selftest/*"
+      ],
+      "exclude": [
+        "__pycache__/*",
+        "*.pyc",
+        "rules/devin.md",
+        "skills/devin-auto-model-switcher/*",
+        "skills/travel-info/*",
+        "workflows/switch-model.md"
+      ]
+    },
+    {
+      "path": ".lana",
+      "source": "../IPPS/.devin",
+      "include": [
+        "*"
+      ],
+      "never_overwrite": [],
+      "exclude": [
+        "__pycache__/*",
+        "*.pyc",
+        "rules/devin.md",
+        "skills/devin-auto-model-switcher/*",
+        "skills/travel-info/*",
+        "workflows/switch-model.md"
+      ]
+    }
+  ]
+}

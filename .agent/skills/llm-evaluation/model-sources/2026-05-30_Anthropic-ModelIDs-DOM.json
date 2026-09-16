@@ -1,0 +1,28 @@
+{
+  "extracted": "2026-05-30",
+  "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
+  "note": "Incremental update for Opus 4.8 release. Model ID format confirmed dateless (4.6+ convention).",
+  "source_announcement": "https://www.anthropic.com/news/claude-opus-4-8",
+  "source_model_ids": "https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions",
+  "model_table": {
+    "headers": ["Feature", "Claude Opus 4.8", "Claude Opus 4.7", "Claude Sonnet 4.6", "Claude Haiku 4.5"],
+    "api_ids": {
+      "claude-opus-4-8": {"context_window": "1M tokens", "max_output": "128k tokens", "effort_default": "high", "effort_levels": ["low", "medium", "high", "xhigh", "max"], "method": "adaptive_thinking", "released": "2026-05-28"},
+      "claude-opus-4-7": {"context_window": "1M tokens", "max_output": "128k tokens", "effort_levels": ["low", "medium", "high", "xhigh", "max"], "method": "adaptive_thinking"},
+      "claude-sonnet-4-6": {"context_window": "1M tokens", "max_output": "64k tokens"},
+      "claude-haiku-4-5-20251001": {"alias": "claude-haiku-4-5", "context_window": "200k tokens", "max_output": "64k tokens"}
+    }
+  },
+  "id_resolution": {
+    "Claude Opus 4.8": "claude-opus-4-8",
+    "Claude Opus 4.7": "claude-opus-4-7",
+    "Claude Opus 4.6": "claude-opus-4-6",
+    "Claude Sonnet 4.6": "claude-sonnet-4-6",
+    "Claude Haiku 4.5": "claude-haiku-4-5-20251001"
+  },
+  "api_changes": {
+    "mid_conversation_system_messages": "Messages API now accepts system entries inside the messages array. Developers can update instructions mid-task without breaking prompt cache.",
+    "manual_thinking_removed": "thinking: {type: 'enabled', budget_tokens: N} returns 400 on Opus 4.8. Must use thinking: {type: 'adaptive'}.",
+    "batch_300k_output": "Opus 4.8 supports up to 300k output tokens on Message Batches API with output-300k-2026-03-24 beta header."
+  }
+}
