@@ -1,5 +1,7 @@
 # Lana
 
+License: GNU Affero General Public License v3.0 (AGPL-3.0) - see LICENSE.
+
 Lana is an ACP-compatible AI agent that runs in your terminal. You type requests, Lana reads your files, writes code, runs commands, and manages work sessions -- powered by OpenAI or Anthropic models.
 
 Lana uses a **prompt system** called [IPPS](https://github.com/karstenheld3/IPPS) (rules, workflows, skills) that defines how it behaves: coding conventions to follow, workflows like `/prime` (load project context) or `/commit` (create git commits), and skills for specialized tasks. The prompt system ships with this project in the `.agent/` folder.
@@ -195,7 +197,7 @@ Lana can run as an ACP agent inside [Devin Desktop](https://devin.ai/download) (
       "version": "1.1.0",
       "description": "CLI agent running IPPS prompt system on OpenAI/Anthropic backends",
       "authors": ["Karsten Held"],
-      "license": "proprietary",
+      "license": "AGPL-3.0",
       "distribution": {
         "binary": {
           "windows-x86_64": {
