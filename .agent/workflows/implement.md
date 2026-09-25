@@ -23,7 +23,7 @@ Implement what was decided and approved. Works in two modes: building code from 
 1. NEVER ask questions - derive goal from conversation context. Act on best inference.
 2. Apply changes immediately without asking for permission - this workflow has authority to implement
 3. **Detect context first**: Review Pipeline or Build. Wrong mode = wrong output.
-4. Review Pipeline: input is `*_REVIEW.md` + reconcile output → apply corrections to source documents
+4. Review Pipeline: input is `*_CRITIQUE.md` / `*_FACT-CHECK.md` + reconcile output → apply corrections to source documents
 5. Build: input is SPEC/IMPL → produce code
 6. Run `/verify` after implementation complete
 
@@ -44,18 +44,18 @@ Implement what was decided and approved. Works in two modes: building code from 
 ## Context Detection
 
 **Review Pipeline** - ANY of these signals:
-- `*_REVIEW.md` file referenced or in scope (from `/critique` or `/fact-check`)
+- `*_CRITIQUE.md` or `*_FACT-CHECK.md` file referenced or in scope (from `/critique` or `/fact-check`)
 - Reconcile output in preceding conversation (recommended actions, improvement options)
 - User invokes after `/reconcile` without specifying a SPEC/IMPL
 - User mentions "apply findings", "implement corrections", "fix the review items"
 
 **Build** - ALL of these:
 - SPEC, IMPL, or TEST documents in scope
-- No `*_REVIEW.md` in scope
+- No `*_CRITIQUE.md` or `*_FACT-CHECK.md` in scope
 - No reconcile output in preceding conversation
 
 **Ambiguous** - Both signals present:
-- If user references a `*_REVIEW.md` AND a SPEC/IMPL → Review Pipeline (review takes priority)
+- If user references a critique/fact-check review file AND a SPEC/IMPL → Review Pipeline (review takes priority)
 - If unclear → state interpretation, proceed with best inference
 
 ## GLOBAL-RULES
@@ -76,7 +76,7 @@ Apply reconcile-approved corrections to source documents. This is document editi
 
 ### Input
 
-1. Read `*_REVIEW.md` files in scope
+1. Read `*_CRITIQUE.md` and `*_FACT-CHECK.md` files in scope
 2. Read reconcile output from conversation (Verified Findings, Recommendations)
 3. Identify which findings are CONFIRMED with approved fix options
 
@@ -93,7 +93,7 @@ For each confirmed finding with an approved fix:
 ### Post-Corrections
 
 1. Update `FAILS.md`: mark addressed entries as `[RESOLVED]` with fix reference
-2. Rename implemented `*_REVIEW.md` files: replace `_REVIEW.md` with `_REVIEW-implemented.md` (e.g., `_INFO_FOO_REVIEW.md` becomes `_INFO_FOO_REVIEW-implemented.md`)
+2. Rename implemented review files: append `-implemented` before `.md` (e.g., `_INFO_FOO_CRITIQUE.md` becomes `_INFO_FOO_CRITIQUE-implemented.md`, `_SPEC_BAR_FACT-CHECK.md` becomes `_SPEC_BAR_FACT-CHECK-implemented.md`)
 3. Run `/verify` on modified documents
 
 ### Gate Check: REVIEW-PIPELINE→COMPLETE
@@ -102,7 +102,7 @@ For each confirmed finding with an approved fix:
 - [ ] Replacement claims verified (not swapping one error for another)
 - [ ] Downstream dependents checked
 - [ ] FAILS.md updated
-- [ ] `*_REVIEW.md` files renamed to `*_REVIEW-implemented.md`
+- [ ] Review files renamed with `-implemented` suffix
 
 Pass: Complete | Fail: Continue applying
 
@@ -196,5 +196,5 @@ Run `/verify` on all modified artifacts.
 
 ## Output
 
-- **Review Pipeline**: Modified source documents + updated FAILS.md + `*_REVIEW.md` renamed to `*_REVIEW-implemented.md`
+- **Review Pipeline**: Modified source documents + updated FAILS.md + review files renamed with `-implemented` suffix
 - **Build**: Implemented code + tests + updated PROGRESS.md

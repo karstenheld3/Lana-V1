@@ -58,7 +58,7 @@ print(f"Balance: {r.json()['tasks'][0]['result'][0]['money']['balance']}")
 
 ## MCP Server Config
 
-Add to `~/.codeium/windsurf/mcp_config.json`:
+Add to your agent's MCP config (Devin: `~/.codeium/windsurf/mcp_config.json`, legacy Windsurf path; Claude Code: `claude mcp add <name> -- <command>`; Codex: `~/.codex/config.toml`):
 ```json
 {
   "mcpServers": {

@@ -57,11 +57,11 @@ Variables (VR)
 - CV-VR-03: Missing variables in NOTES.md default to `=true` and are added back
 
 Links (LN)
-- CV-LN-01: All URLs as clickable Markdown links
+- CV-LN-01: All URLs in the "Links and shared documents" section as clickable Markdown links
 - CV-LN-02: Links section groups by date with description
 - CV-LN-03: All attachments, transcriptions, and translations recorded in Links and shared documents
 - CV-LN-04: All links absolute - full clickable paths, never relative paths or `...` abbreviations
-- CV-LN-05: Explicit inline URLs when referencing sources in emails - URL at point of reference, not only in Links section
+- CV-LN-05: Explicit inline URLs when referencing sources in emails - plain full URL at point of reference, not only in Links section. Email bodies never use Markdown link syntax (lost on copy/paste)
 
 History Integrity (HY)
 - CV-HY-01: Sent emails are immutable - NEVER edit, correct, or modify emails in History that have already been sent. They are a factual record of what was actually communicated. Corrections go in a NEW follow-up email/message.
@@ -415,18 +415,30 @@ Maintain per-conversation Ignore Files pattern list for recurring garbage.
 
 ## URL Format
 
-All URLs as clickable Markdown links with descriptive title.
+"Links and shared documents" section: clickable Markdown links. Everywhere else (Log, History, email bodies): plain full URLs - Markdown link syntax is lost on copy/paste.
 
-**BAD:**
+**In "Links and shared documents" section:**
+
+BAD (bare URL without title):
 ```
 Check https://www.company.com for details.
-See provider.com/services/energy/
 ```
 
-**GOOD:**
+GOOD:
 ```
 Check [Company Name](https://www.company.com) for details.
-See [Provider Energy](https://provider.com/services/energy/)
+```
+
+**Everywhere else, including email bodies:**
+
+BAD (Markdown syntax - lost on copy/paste):
+```
+Check [Company Name](https://www.company.com) for details.
+```
+
+GOOD (plain full URL, always with scheme):
+```
+Check https://www.company.com for details.
 ```
 
 ## Absolute Links

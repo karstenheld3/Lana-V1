@@ -226,7 +226,7 @@ Session tracking documents use the session TOPIC ID. This decouples them from th
 
 ## Tracking IDs (BG, FT, PR, FX, FL)
 
-For session and project tracking in PROBLEMS.md, FAILS.md, _REVIEW.md, and backlog documents.
+For session and project tracking in PROBLEMS.md, FAILS.md, critique/fact-check review files, and backlog documents.
 
 **Format:** `[TOPIC]-[TYPE]-[NNNN]` (4-digit number)
 

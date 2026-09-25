@@ -25,7 +25,7 @@ Robust pattern replacement across files with analysis, planning, execution, and 
   - Context (surrounding text)
 
 4. **Identify special cases**:
-  - Protected files (e.g., `.devin/`, `node_modules/`)
+  - Protected files (e.g., `[AGENT_FOLDER]/`, `node_modules/`)
   - Binary files (skip)
   - Case sensitivity issues (would changing casing break integrity?)
 

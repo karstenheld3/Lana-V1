@@ -15,23 +15,23 @@ Pragmatic review of critique and fact-check findings with actionable improvement
 ## Required Skills
 
 Invoke based on context:
-- @write-documents for reading FAILS.md and _REVIEW.md (use FAILS_TEMPLATE.md, CRITIQUE_REVIEW_TEMPLATE.md, FACT-CHECK_REVIEW_TEMPLATE.md)
+- @write-documents for reading FAILS.md and critique/fact-check reviews (use FAILS_TEMPLATE.md, CRITIQUE_TEMPLATE.md, FACT-CHECK_TEMPLATE.md)
 - @coding-conventions for code improvements
 
 ## Input Files
 
 Read all review findings:
 - **`FAILS.md`** - Actual failures and mistakes discovered
-- **`*_REVIEW.md`** - Review documents (two formats):
+- **`*_CRITIQUE.md` / `*_FACT-CHECK.md`** - Review documents (two formats):
   - Critique reviews (from `/critique`): findings with Location/What/Risk/Evidence/Suggested action
   - Fact-check reviews (from `/fact-check`): source/fact/conclusion verdicts with evidence
 
 ## Workflow
 
 1. Read `FAILS.md` (if exists)
-2. Find and read all `*_REVIEW.md` files in scope
+2. Find and read all `*_CRITIQUE.md` and `*_FACT-CHECK.md` files in scope
 3. **Detect review type**: Check for "Fact-Check Summary" section (fact-check review) or "Critical Issues" section (critique review). Apply the matching verification questions below.
-4. **If no FAILS.md or _REVIEW.md files exist**: Re-read all `[NOTES]` files and apply the same review questions to conversation context
+4. **If no FAILS.md or critique/fact-check review files exist**: Re-read all `[NOTES]` files and apply the same review questions to conversation context
 5. Read relevant conversation, code, and documents
 6. **Create internal MUST-NOT-FORGET list** - key constraints, user decisions, existing solutions
 7. For each finding, verify:
@@ -191,7 +191,7 @@ Present in chat:
 # Pragmatic Review of [Critique / Fact-Check] Findings
 
 **Reviewed**: [Date] [Time]
-**Sources**: FAILS.md, [list of _REVIEW files]
+**Sources**: FAILS.md, [list of critique/fact-check review files]
 **Review Type**: [Critique / Fact-Check]
 
 ## Verified Findings
@@ -199,15 +199,15 @@ Present in chat:
 ### For Critique Reviews:
 
 ### 1. [Finding Title]
-- **Source**: [FAILS.md or specific _REVIEW file]
+- **Source**: [FAILS.md or specific review file]
 - **Severity**: [CRITICAL/HIGH/MEDIUM/LOW]
 - **Status**: [✅ CONFIRMED / ❌ DISMISSED / ⚠️ DISPUTED]
 
 **Original Finding**:
-> [Copy the exact "What" and "Risk" from the _REVIEW file]
+> [Copy the exact "What" and "Risk" from the critique review file]
 
 **Proposed Fix from Review**:
-> [Copy the exact "Suggested action" from the _REVIEW file]
+> [Copy the exact "Suggested action" from the critique review file]
 
 **Pragmatic Assessment**:
 - **Evidence**: [Why this is/isn't a real problem in practice]
@@ -222,7 +222,7 @@ Present in chat:
 ### For Fact-Check Reviews:
 
 ### 1. [Fact/Source/Conclusion ID] - [Verdict]
-- **Source**: [specific _REVIEW file]
+- **Source**: [specific review file]
 - **Original Verdict**: [refuted / weakened / unsourced / unverifiable]
 - **Status**: [✅ VERDICT CONFIRMED / ❌ VERDICT OVERTURNED / ⚠️ NEEDS RE-CHECK]
 
@@ -279,7 +279,7 @@ When followed by `/implement` workflow:
 1. User selects which improvements to implement
 2. Agent implements selected options
 3. Updates `FAILS.md` entries as `[RESOLVED]`
-4. Removes or archives addressed `_REVIEW` files
+4. Removes or archives addressed critique/fact-check review files
 
 **Without `/implement`**: All output remains in chat. No files modified.
 
@@ -288,7 +288,7 @@ When followed by `/implement` workflow:
 Before finishing, verify:
 
 - [ ] All FAILS.md entries reviewed
-- [ ] All *_REVIEW.md files in scope reviewed
+- [ ] All `*_CRITIQUE.md` and `*_FACT-CHECK.md` files in scope reviewed
 - [ ] Each finding verified against existing code/docs/conversation
 - [ ] Improvement options provided for confirmed findings
 - [ ] Dismissed findings have clear justification

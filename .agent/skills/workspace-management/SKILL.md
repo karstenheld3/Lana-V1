@@ -102,7 +102,7 @@ Use when sync introduced errors or unwanted changes. IG-07: rollback on shared b
 1. Determine area to check (WORKSPACE, PROMPTSYSTEM, KNOWLEDGE)
 2. Detect workspace type (SOFTWARE-DEV or GENERAL) and mode (SINGLE-PROJECT, MONOREPO, WORKSPACE)
 3. For WORKSPACE: verify required constants in DevRepo NOTES.md, required files exist, workspace structure matches declared mode
-4. For PROMPTSYSTEM: verify agent folder has specs/, workflows/, skills/ subfolders, no deprecated files
+4. For PROMPTSYSTEM: verify agent folder has rules/, workflows/, skills/ subfolders, no deprecated files
 5. For KNOWLEDGE: verify knowledge folder exists if [DEV_KNOWLEDGE_FOLDER] set, all bundles in promptsystem-sync.json exist, no empty bundles
 6. If GENERAL: verify dev-only constants and sections are absent (WS-CT-09). Do not report missing product repo, Build/Test, Runtime, or Release Configuration as gaps. Dimension 1 = N/A.
 7. Report sync relationship state (SYNCED or SELF-CONTAINED)
@@ -117,7 +117,7 @@ Note: When called from /workspace-setup verify, also reads schema fields from WO
 ### 5. Multi-Repo Commit
 
 ```
-1. Detect WORKSPACE mode (main.code-workspace exists)
+1. Detect WORKSPACE mode (*.code-workspace file exists)
 2. Detect changes across all git repos in workspace
 3. Commit order: 1) product repo, 2) dev repo, 3) all other workspace repos
 4. For each repo with changes:
@@ -175,11 +175,13 @@ Always required workspace constants in DevRepo NOTES.md:
 
 ```
 ## Workspace Constants
-- [WORKSPACE_FOLDER]: [WORKSPACE_FOLDER]
+- [WORKSPACE_FOLDER]: [current workspace root path]
 - [PRODUCT_REPO_FOLDER]: [WORKSPACE_FOLDER]\..\[product-repo-name]
-- [KNOWLEDGE_FOLDER]: [WORKSPACE_FOLDER]\knowledge
-- [SPECS_FOLDER]: [WORKSPACE_FOLDER]\specs
+- [DEV_KNOWLEDGE_FOLDER]: [WORKSPACE_FOLDER]\knowledge
+- [DEV_SPECS_FOLDER]: [WORKSPACE_FOLDER]\specs
 - [PRODUCT_DOCS_FOLDER]: [PRODUCT_REPO_FOLDER]\docs
+- [AGENT_FOLDER]: [WORKSPACE_FOLDER]\[AGENT_FOLDER_NAME] (e.g., .devin, .claude)
+- [SESSIONS_FOLDER]: [WORKSPACE_FOLDER]\_sessions
 ```
 
 Required for SYNCED only (remove if SELF-CONTAINED):

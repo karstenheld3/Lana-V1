@@ -167,14 +167,14 @@ Download scripts (`Download-Youtube-To-Mp3.ps1`, `Download-Youtube-To-Video.ps1`
 - Pipeline input support
 - Playlist support
 
-## Parallel Downloads (Cascade)
+## Parallel Downloads (agent terminals)
 
-When user provides multiple URLs, Cascade spawns multiple terminals:
+When user provides multiple URLs, the agent spawns multiple terminals:
 - 2 URLs → 2 terminals
 - 10 URLs → 10 terminals
 - 50 URLs → 10 terminals (max), 5 URLs each
 
-Cascade splits URLs and runs non-blocking commands with `-UseCookies $false`.
+The agent splits URLs and runs non-blocking commands with `-UseCookies $false`.
 
 ## Output Locations
 

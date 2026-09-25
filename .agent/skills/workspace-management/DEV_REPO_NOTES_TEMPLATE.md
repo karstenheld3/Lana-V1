@@ -44,8 +44,8 @@
 [WORKSPACE_FOLDER]: `[current workspace root path]`
 - Root folder of the workspace. All other paths compose from this.
 
-[WORKSPACE_FILE]: `[WORKSPACE_FOLDER]\main.code-workspace`
-- WORKSPACE mode only. Omit if SINGLE-PROJECT or MONOREPO.
+[WORKSPACE_FILE]: `[WORKSPACE_FOLDER]\[folder-name].code-workspace`
+- WORKSPACE mode only. Named after workspace folder (e.g., `MyProject-Dev.code-workspace`). Omit if SINGLE-PROJECT or MONOREPO.
 
 <!-- Conditional: Omit the following constants for GENERAL workspaces (WS-CT-09). -->
 
@@ -67,7 +67,7 @@
 [DEV_SPECS_FOLDER]: `[WORKSPACE_FOLDER]\specs`
 - Specs folder containing shared specifications, design guidelines, SOPs.
 
-[AGENT_FOLDER]: `[WORKSPACE_FOLDER]\.devin`
+[AGENT_FOLDER]: `[WORKSPACE_FOLDER]\[AGENT_FOLDER_NAME]` (e.g., .devin, .claude)
 - Agent config folder. Sync target — copy of PromptSystem source content.
 
 [SESSIONS_FOLDER]: `[WORKSPACE_FOLDER]\_PrivateSessions_gitignore`
@@ -105,7 +105,7 @@
 - Replace [product-repo-name] with your product repository folder name
 - Adjust [COMPANY_REPO_FOLDER] if your company folder is in a different location
 - All paths should be relative to [WORKSPACE_FOLDER]
-- [WORKSPACE_FILE] is the main.code-workspace file that defines which repos belong to the workspace
+- [WORKSPACE_FILE] is the .code-workspace file (named after workspace folder) that defines which repos belong to the workspace
 - Repos referenced in it may be physically outside [WORKSPACE_FOLDER] (e.g., ../ProductRepo)
 - Omit [WORKSPACE_FILE] in SINGLE-PROJECT and MONOREPO modes
 - Remove the SYNCED-only constants if your repo is SELF-CONTAINED (no external sync sources)

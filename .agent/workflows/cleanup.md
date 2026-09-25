@@ -26,8 +26,8 @@ Scope: File deletion only. Does NOT uninstall tools, remove sessions, or modify 
 
 - `/cleanup` - infer scope from conversation context (narrowest scope wins), then scan
 - `/cleanup [path]` - scope to specified path directly (recursive scan limited to that path only)
-- `/cleanup review` - delete ONLY `*_REVIEW.md` files (Category 5 only), leave all other categories intact
-- `/cleanup review [path]` - delete ONLY `*_REVIEW.md` files within the specified path
+- `/cleanup review` - delete ONLY `*_CRITIQUE.md` and `*_FACT-CHECK.md` files (Category 5 only), leave all other categories intact
+- `/cleanup review [path]` - delete ONLY `*_CRITIQUE.md` and `*_FACT-CHECK.md` files within the specified path
 - `/cleanup file [path]` - scope to a single file only (strip markers from that file, delete its `_vN` backups)
 
 **Path-scoped mode** (`/cleanup [path]`): When an explicit path is provided, scan is STRICTLY limited to that path. No other workspace locations are scanned. All categories still apply but only within the given path.
@@ -52,7 +52,7 @@ All categories auto-delete after preview. No confirmation needed. User can run `
 - Category 2: Python build artifacts (`__pycache__/`, `*.pyc`) - regenerated automatically
 - Category 3: Improve workflow backups (`_vN.*`) - safety copies after improvement accepted
 - Category 4: MCP config backups - superseded config snapshots
-- Category 5: Critique review files (`*_REVIEW.md`) - findings should be addressed before cleanup
+- Category 5: Review output files (`*_CRITIQUE.md`, `*_FACT-CHECK.md`) - findings should be addressed before cleanup
 - Category 6: Workflow scaffolding (`__*.md`, legacy `STRUT_*`) - consumed process artifacts
 - INFO marker stripping (`[VERIFIED]` labels) - in-place text modification
 
@@ -105,14 +105,15 @@ Delete files and directories matching these patterns:
 ### 4. MCP Config Backups [AUTO-DELETE]
 
 - **Pattern**: `mcp_config.json._beforeRemoving*`, `mcp_config.json._backup_*`
-- **Location**: MCP config directory (resolve from Windsurf/Codeium config path)
+- **Location**: MCP config directory (resolve from agent-specific MCP config path - see @skills:coding-conventions AGENT-SKILL-RULES.md section 3.2.1)
 - **Source**: MCP server install/uninstall scripts (ms-playwright-mcp, playwriter-mcp)
 
-### 5. Critique Review Files [AUTO-DELETE]
+### 5. Review Output Files [AUTO-DELETE]
 
-- **Pattern**: `*_REVIEW.md`, `_PROBLEMS_REVIEW.md`
+- **Pattern**: `*_CRITIQUE.md`, `*_FACT-CHECK.md`, legacy `*_REVIEW.md`
 - **Locations**: `[WORKSPACE_FOLDER]` recursive, `[SESSION_FOLDER]` recursive, excluding `_Archive/` and `_OldDevSystemVersions/`
-- **Source**: `/critique` workflow creates these per review run. Intended to be discarded after findings are addressed.
+- **Source**: `/critique` and `/fact-check` workflows create these per review run. Intended to be discarded after findings are addressed.
+- **Transition note**: `*_REVIEW.md` is the pre-rename convention. Match both old and new conventions.
 
 ### 6. Workflow Scaffolding [AUTO-DELETE]
 
@@ -168,7 +169,7 @@ Six cleanup scopes exist, from narrowest to widest:
 
 **Resolution rules (narrowest scope wins):**
 - **Explicit path overrides everything**: If user provides a path argument, scope is STRICTLY that path. No other locations scanned. Do not broaden.
-- **Category keyword**: If user says "review", scope to Category 5 only (`*_REVIEW.md` files). All other categories skipped.
+- **Category keyword**: If user says "review", scope to Category 5 only (`*_CRITIQUE.md` and `*_FACT-CHECK.md` files). All other categories skipped.
 - **Narrowest scope principle**: Always infer the NARROWEST scope that covers the user's working context. Never broaden beyond what the conversation context requires.
 - If all recent work is within a session subfolder (e.g., `Faro-Autokauf/`): scope = **Folder** (that subfolder), NOT Session
 - If path arg provided: infer scope type from path type (file → Document, directory → Folder)
@@ -210,8 +211,8 @@ Get-ChildItem -Path "[SCOPE]" -Recurse -File -Filter "*_DEFERRED_IMPROVEMENTS.md
 # 4. MCP config backups (resolve MCP config directory first)
 Get-ChildItem -Path "[MCP_CONFIG_DIR]" -File | Where-Object { $_.Name -match '^mcp_config\.json\._' }
 
-# 5. Critique review files
-Get-ChildItem -Path "[SCOPE]" -Recurse -File -Filter "*_REVIEW.md" | Where-Object { $_.DirectoryName -notmatch '_Archive|_OldDevSystemVersions' }
+# 5. Review output files (critique + fact-check, legacy _REVIEW)
+Get-ChildItem -Path "[SCOPE]" -Recurse -File | Where-Object { ($_.Name -like '*_CRITIQUE.md' -or $_.Name -like '*_FACT-CHECK.md' -or $_.Name -like '*_REVIEW.md') -and $_.DirectoryName -notmatch '_Archive|_OldDevSystemVersions' }
 
 # 6. Workflow scaffolding (__ prefix + legacy patterns)
 Get-ChildItem -Path "[SCOPE]" -Recurse -File -Filter "__*.md" | Where-Object { $_.DirectoryName -notmatch '_Archive|_OldDevSystemVersions|skills' }
@@ -254,7 +255,7 @@ Improve Workflow Artifacts (N files):
 MCP Config Backups (N files):
   [full path 1]
 
-Critique Review Files (N files):
+Review Output Files (N files):
   [full path 1]
   [full path 2]
 
@@ -273,7 +274,7 @@ If no items found: report "Workspace is clean - nothing to delete" and exit.
 
 ## Step 4: Execute
 
-**Category-scoped mode**: If user said "review", only delete Category 5 items (`*_REVIEW.md`). Skip all other categories.
+**Category-scoped mode**: If user said "review", only delete Category 5 items (`*_CRITIQUE.md` and `*_FACT-CHECK.md`). Skip all other categories.
 
 Delete all found items immediately after preview (normal mode only):
 - Files: `Remove-Item -Force -Confirm:$false`
@@ -299,7 +300,7 @@ Deleted:
   Python Build Artifacts: N items
   Improve Workflow Artifacts: N files
   MCP Config Backups: N files
-  Critique Review Files: N files
+  Review Output Files: N files
   Workflow Scaffolding: N files
   INFO Markers Stripped: N files
 

@@ -688,7 +688,7 @@ After implementing the fix, make sure to run `/verify` against the spec and then
 **BAD** (execution verb with backticks — looks like reference but is execution):
 `````markdown
 ```
-Use the `/sync` workflow to sync PromptSystemV4.4/ to .devin/.
+Use the `/sync` workflow to sync PromptSystemV4.5/ to [AGENT_FOLDER]/.
 ```
 `````
 
@@ -715,10 +715,10 @@ with conventional format
 **GOOD** (execution verb rewritten as standalone call):
 `````markdown
 ```
-Sync PromptSystemV4.4/ to .devin/:
+Sync PromptSystemV4.5/ to [AGENT_FOLDER]/:
 
 /sync
-PromptSystemV4.4/ to .devin/
+PromptSystemV4.5/ to [AGENT_FOLDER]/
 ```
 `````
 
@@ -787,7 +787,7 @@ The `/sync` workflow handles file synchronization between source and target fold
 The `/sync` workflow handles file synchronization. To sync now:
 
 /sync
-PromptSystemV4.4/ to .devin/
+PromptSystemV4.5/ to [AGENT_FOLDER]/
 ```
 `````
 
@@ -812,14 +812,14 @@ Prompts MUST reference and use existing workflows from `[AGENT_FOLDER]/workflows
 **BAD** (reinvents sync logic in prompt prose):
 `````markdown
 ```
-Sync all changes from DevSystemV4.3/ to .devin/. Run sync.ps1 -diff first, review output, then run sync.ps1 -execute. Check that renamed files appear, new files exist, deprecated files deleted.
+Sync all changes from PromptSystemV4.5/ to [AGENT_FOLDER]/. Run sync.ps1 -diff first, review output, then run sync.ps1 -execute. Check that renamed files appear, new files exist, deprecated files deleted.
 ```
 `````
 
 **GOOD** (uses existing `/sync` workflow):
 `````markdown
 ```
-Use the `/sync` workflow (`[AGENT_FOLDER]/workflows/sync.md`) to sync all changes from DevSystemV4.3/ to .devin/. Follow the sync workflow's GLOBAL-RULES and Workspace Sync section.
+Use the `/sync` workflow (`[AGENT_FOLDER]/workflows/sync.md`) to sync all changes from PromptSystemV4.5/ to [AGENT_FOLDER]/. Follow the sync workflow's GLOBAL-RULES and Workspace Sync section.
 ```
 `````
 

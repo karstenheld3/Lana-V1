@@ -27,7 +27,7 @@
 - Todo actions: `TODO:REPLY`, `TODO:REVIEW`, `TODO:PAY`, `TODO:PLAN`, `TODO:SCHEDULE_CALL` (web), `TODO:SCHEDULE_TRIP`, `TODO:SCHEDULE_MEETING` (in person) - CV-TD-02
 - Attachment folders: binaries in `Attachments_gitignore/YYYY-MM-DD_HH-MM_[Topic]/`, text files in `Attachments/YYYY-MM-DD_HH-MM_[Topic]/` - CV-AT-04, CV-AT-05
 - AUTO-TRANSCRIBE: When enabled, transcribe attachments via `/transcribe` (1 candidate, 120dpi, min-score=4.5) - CV-AT-03
-- All URLs as Markdown clickable links: `[Title](https://...)` - CV-LN-01
+- URLs: Clickable Markdown links only in the "Links and shared documents" section - CV-LN-01. Plain full URLs everywhere else, including email bodies (Markdown link syntax is lost on copy/paste) - CV-LN-05
 - ALL LINKS ABSOLUTE: File paths, attachment references, and source links MUST be full absolute clickable paths. Never use relative paths or `...` abbreviations - CV-LN-04
 - LINKS COMPLETENESS: All attachments, transcriptions, translations recorded in Links section - CV-LN-03
 - CHECK DOWNLOADED IMAGES - After downloading, review each image. Delete signature icons, logos, spacers, and other email template garbage. Keep only real attachments - CV-AT-01

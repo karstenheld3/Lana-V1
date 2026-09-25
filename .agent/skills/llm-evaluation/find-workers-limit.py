@@ -9,8 +9,9 @@ NOTE: This tests BURST capacity (max concurrent requests), not sustained RPM.
 Results are specific to the API key used and may vary based on server load.
 
 Usage:
-  python find-workers-limit.py --model gpt-4o --keys-file ..\.tools\.api-keys.txt
+  python find-workers-limit.py --model gpt-4o --keys-file ../.tools/.api-keys.txt
   python find-workers-limit.py --model claude-3-5-sonnet-20241022 --output-file limits.json --verbose
+  python find-workers-limit.py --model glm-5.3-flash --keys-file ../.tools/.api-keys.txt --verbose
 """
 
 import os, sys, json, time, argparse
@@ -55,6 +56,8 @@ def detect_provider(model_id: str) -> str:
     return 'openai'
   if model_lower.startswith('claude'):
     return 'anthropic'
+  if model_lower.startswith('glm-'):
+    return 'zai'
   print(f"ERROR: Cannot detect provider for model: {model_id}", file=sys.stderr)
   sys.exit(1)
 
@@ -73,6 +76,14 @@ def create_anthropic_client(keys: dict):
     print("ERROR: ANTHROPIC_API_KEY not found in keys file", file=sys.stderr)
     sys.exit(1)
   return Anthropic(api_key=api_key)
+
+def create_zai_client(keys: dict):
+  """Create Z.AI client using OpenAI SDK with base_url swap."""
+  api_key = keys.get('ZAI_API_KEY')
+  if not api_key:
+    print("ERROR: ZAI_API_KEY not found in keys file", file=sys.stderr)
+    sys.exit(1)
+  return OpenAI(api_key=api_key, base_url='https://api.z.ai/api/paas/v4/')
 
 def is_rate_limit_error(e: Exception) -> bool:
   """Check if exception is a rate limit error (FR-21)."""
@@ -102,35 +113,48 @@ def single_call(client, model: str, prompt: str, provider: str,
   Make single LLM call. Returns (success, is_rate_limited, usage).
   Uses retry for non-rate-limit errors (FR-27).
   Timeout: 120 seconds per call (Fix RV-013).
+  Uses system message for cache-friendly prefix (same prompt reused across burst).
   """
   max_retries = 3
   backoff = [1, 2, 4]
     
   for attempt in range(max_retries):
     try:
-      if provider == 'openai':
+      if provider in ('openai', 'zai'):
         token_param = 'max_completion_tokens' if any(x in model for x in ['gpt-5', 'o1-', 'o3-', 'o4-']) else 'max_tokens'
         call_params = {
           'model': model,
-          'messages': [{"role": "user", "content": prompt}],
+          'messages': [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": "Write this now."},
+          ],
           token_param: min_tokens,
-          'timeout': timeout
         }
-        response = client.chat.completions.create(**call_params)
+        response = client.chat.completions.create(**call_params, timeout=timeout)
+        cached = 0
+        if hasattr(response.usage, 'prompt_tokens_details') and response.usage.prompt_tokens_details:
+          cached = getattr(response.usage.prompt_tokens_details, 'cached_tokens', 0) or 0
         usage = {
           'input_tokens': response.usage.prompt_tokens,
-          'output_tokens': response.usage.completion_tokens
+          'output_tokens': response.usage.completion_tokens,
+          'cached_tokens': cached
         }
+        return (True, False, usage)
       else:
+        # Use explicit cache breakpoint on system block (requires min 2048 tokens for Haiku)
+        system_block = [{"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}]
         response = client.messages.create(
           model=model,
           max_tokens=min_tokens,
-          messages=[{"role": "user", "content": prompt}]
+          system=system_block,
+          messages=[{"role": "user", "content": "Write this now."}],
+          timeout=timeout
         )
-        # Correctly access attributes from Anthropic Usage object
+        cached = getattr(response.usage, 'cache_read_input_tokens', 0) or 0
         usage = {
           'input_tokens': response.usage.input_tokens,
-          'output_tokens': response.usage.output_tokens
+          'output_tokens': response.usage.output_tokens,
+          'cached_tokens': cached
         }
         # Check for successful response content
         success = any(hasattr(block, 'text') and block.text for block in response.content)
@@ -160,7 +184,7 @@ def run_test(client, model: str, prompt: str, provider: str,
   start_time = time.time()
   success_count = 0
   rate_limit_count = 0
-  total_usage = {'input_tokens': 0, 'output_tokens': 0}
+  total_usage = {'input_tokens': 0, 'output_tokens': 0, 'cached_tokens': 0}
     
   with ThreadPoolExecutor(max_workers=worker_count) as executor:
     futures = [
@@ -173,8 +197,10 @@ def run_test(client, model: str, prompt: str, provider: str,
         success, is_rate_limited, usage = future.result(timeout=150)
         if success:
           success_count += 1
+        if usage:
           total_usage['input_tokens'] += usage.get('input_tokens', 0)
           total_usage['output_tokens'] += usage.get('output_tokens', 0)
+          total_usage['cached_tokens'] += usage.get('cached_tokens', 0)
         if is_rate_limited:
           rate_limit_count += 1
       except Exception as e:
@@ -186,7 +212,11 @@ def run_test(client, model: str, prompt: str, provider: str,
     
   if verbose:
     status_str = "PASSED" if rate_limit_count == 0 else f"RATE LIMITED ({rate_limit_count})"
-    print(f"  -> {status_str} in {duration_ms}ms", file=sys.stderr)
+    cached_pct = ''
+    if total_usage['input_tokens'] > 0:
+      pct = total_usage['cached_tokens'] / total_usage['input_tokens'] * 100
+      cached_pct = f', cache {pct:.0f}%'
+    print(f"  -> {status_str} in {duration_ms}ms{cached_pct}", file=sys.stderr)
     
   return {
     "workers": worker_count,
@@ -199,14 +229,15 @@ def run_test(client, model: str, prompt: str, provider: str,
   }
 
 def find_limit(client, model: str, prompt: str, provider: str,
-         max_workers: int, min_tokens: int, verbose: bool) -> dict:
+         max_workers: int, min_tokens: int, verbose: bool,
+         start_workers: int = 3) -> dict:
   """
   Discover maximum safe worker count (FR-20, FR-22, FR-23).
   Returns TestResult dict.
   """
   tested_counts = {}
   runs = []
-  current = 3
+  current = start_workers
   highest_passed = 0
     
   if verbose:
@@ -282,9 +313,11 @@ def parse_args():
     epilog='NOTE: Results represent burst capacity, not sustained RPM.')
     
   parser.add_argument('--model', required=True, 
-            help='API model ID (e.g., gpt-4o, claude-3-5-sonnet-20241022)')
+            help='API model ID (e.g., gpt-4o, claude-3-5-sonnet-20241022, glm-5.3-flash)')
   parser.add_argument('--keys-file', type=Path, default=Path('.env'),
             help='API keys file (default: .env)')
+  parser.add_argument('--start-workers', type=int, default=3,
+            help='Initial worker count to test (default: 3). Use higher to skip known-safe levels')
   parser.add_argument('--max-workers', type=int, default=100,
             help='Maximum workers to test (default: 100)')
   parser.add_argument('--prompt-file', type=Path, default=None,
@@ -314,6 +347,8 @@ def main():
     
   if provider == 'openai':
     client = create_openai_client(keys)
+  elif provider == 'zai':
+    client = create_zai_client(keys)
   else:
     client = create_anthropic_client(keys)
     
@@ -326,12 +361,14 @@ def main():
     prompt = DEFAULT_PROMPT
     
   result = find_limit(client, args.model, prompt, provider,
-            args.max_workers, args.min_output_tokens, args.verbose)
+            args.max_workers, args.min_output_tokens, args.verbose,
+            args.start_workers)
     
   result["model"] = args.model
   result["provider"] = provider
   result["timestamp"] = datetime.now(timezone.utc).isoformat()
   result["settings"] = {
+    "start_workers": args.start_workers,
     "max_workers": args.max_workers,
     "min_output_tokens": args.min_output_tokens,
     "prompt_file": str(args.prompt_file) if args.prompt_file else "built-in"
@@ -341,7 +378,7 @@ def main():
     
   if args.output_file:
     args.output_file.write_text(json.dumps(result, indent=2), encoding='utf-8')
-    print(f"Results saved to: '{args.model}'.", file=sys.stderr)
+    print(f"Results saved to: '{args.output_file}'.", file=sys.stderr)
     
   if args.verbose:
     print(f"\n=== Summary ===", file=sys.stderr)

@@ -11,7 +11,7 @@ Run this script and answer with a single character:
 
 # Define what can be removed
 $workspaceRoot = (Get-Location).Path
-$skillDir = Join-Path $workspaceRoot ".devin\skills\llm-transcription"
+$skillDir = Join-Path $workspaceRoot "[AGENT_FOLDER]\skills\llm-transcription"
 $sharedVenv = Join-Path $workspaceRoot "..\.tools\llm-venv"
 $tempOutputDir = Join-Path $workspaceRoot "..\.tools\_transcription_output"
 
@@ -22,8 +22,8 @@ $hasTempOutput = Test-Path $tempOutputDir
 
 # Check if other skills use the shared venv
 $otherSkillsUsingVenv = @()
-$llmEvalSkill = Join-Path $workspaceRoot ".devin\skills\llm-evaluation"
-$llmComputerUse = Join-Path $workspaceRoot ".devin\skills\llm-computer-use"
+$llmEvalSkill = Join-Path $workspaceRoot "[AGENT_FOLDER]\skills\llm-evaluation"
+$llmComputerUse = Join-Path $workspaceRoot "[AGENT_FOLDER]\skills\llm-computer-use"
 if (Test-Path $llmEvalSkill) { $otherSkillsUsingVenv += "llm-evaluation" }
 if (Test-Path $llmComputerUse) { $otherSkillsUsingVenv += "llm-computer-use" }
 
@@ -138,7 +138,7 @@ Write-Host "=== Done ===" -ForegroundColor Cyan
 - **Option 3 (Full)** - Skill folder + temp output + shared venv
 
 **Components:**
-- **Skill folder**: `.devin/skills/llm-transcription/` (~50KB)
+- **Skill folder**: `[AGENT_FOLDER]/skills/llm-transcription/` (~50KB)
 - **Temp output**: `../.tools/_transcription_output/` (variable size)
 - **Shared venv**: `../.tools/llm-venv/` (~200MB, shared with llm-evaluation, llm-computer-use)
 
@@ -149,7 +149,7 @@ If the script fails, remove manually:
 ### 1. Skill Folder
 
 ```powershell
-Remove-Item ".devin\skills\llm-transcription" -Recurse -Force
+Remove-Item "[AGENT_FOLDER]\skills\llm-transcription" -Recurse -Force
 ```
 
 ### 2. Temp Output

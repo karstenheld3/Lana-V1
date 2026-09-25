@@ -46,11 +46,11 @@ Default: [1] SOFTWARE-DEV
 Question 1b: What workspace mode do you need? (SOFTWARE-DEV only)
 
 1) SINGLE-PROJECT - One repo with everything (code, specs, sessions, knowledge)
-   Impact: Single git repo. No main.code-workspace. Agent folder, sessions,
+   Impact: Single git repo. No .code-workspace file. Agent folder, sessions,
    knowledge, SOPs all in one folder. Simplest setup.
 
 2) WORKSPACE - Dev repo + product repo, separate git repos
-   Impact: Two git repos. main.code-workspace links them. Dev repo has specs,
+   Impact: Two git repos. .code-workspace file links them. Dev repo has specs,
    sessions, knowledge, SOPs. Product repo has shipped code, tests, docs.
    Keeps proprietary IP out of product repo. More setup but better separation.
 
@@ -97,10 +97,10 @@ Questions for WORKSPACE mode:
 3b) Project goal (one sentence): [Describe what this project does]
     Impact: Recorded in NOTES.md. Guides agent context and release notes.
 
-3c) Agent folder name: [.devin]
-    Default: [.devin]
-    Impact: Folder where specs, workflows, skills are synced from PromptSystem source.
-    Some projects use a custom name (e.g., .agent) for product-bundled prompt systems.
+3c) Agent folder name: [.devin or .claude - per agent]
+    Default: [.devin for Devin, .claude for Claude Code]
+    Impact: Folder where rules, workflows, skills are synced from PromptSystem source.
+    Some projects use a custom name (e.g., .lana) for product-bundled prompt systems.
 
 3d) Sessions folder name: [_sessions]
     Default: [_sessions]
@@ -147,7 +147,7 @@ Questions for WORKSPACE mode:
 
 4c) Post-release bump strategy:
     1) promptsystem_rename - Rename PromptSystemVX.Y to PromptSystemVX.Y+1
-       Impact: Folder rename + NOTES.md update + sync to .devin/. 
+       Impact: Folder rename + NOTES.md update + sync to [AGENT_FOLDER]/. 
        Only valid with promptsystem_folder version source.
     
     2) patch_bump - Increment patch (X.Y.Z -> X.Y.Z+1)
@@ -185,8 +185,8 @@ Questions for WORKSPACE mode:
 
 5b) PromptSystem source path: [WORKSPACE_FOLDER]\..\[promptsystem-source-name]\PromptSystemV*
     Default: [WORKSPACE_FOLDER]\..\IPPS\PromptSystemV*
-    Impact: Where specs, workflows, skills are synced FROM. Agent folder
-    (.devin) is the sync TARGET. /sync workspace updates agent folder
+    Impact: Where rules, workflows, skills are synced FROM. Agent folder
+    (agent folder, e.g., .devin) is the sync TARGET. /sync workspace updates agent folder
     from this source. Configured as a source entry in promptsystem-sync.json.
     Skip if SELF-CONTAINED.
 
@@ -279,13 +279,17 @@ After all sections answered, generate these files:
   SOPS.md                     <- from SOPS template or minimal
   FAILS.md                    <- empty tracking file
   _WORKSPACE_SETUP_QUESTIONNAIRE.md <- questionnaire for remaining sections
+  Devin.bat                   <- IDE launcher (single-repo variant)
+  DevinNext.bat               <- IDE launcher Next (single-repo variant)
   [AGENT_FOLDER]\             <- sync from PromptSystem source
-    specs\
+    rules\
     workflows\
     skills\
+  specs\                      <- empty folder (verifiable agent instructions)
+  docs\                       <- empty folder (explanatory knowledge)
+  docs\ReleaseNotes\          <- empty folder (if release configured)
   _sessions\                 <- empty folder
   _sessions\_archive\        <- empty folder (session archive)
-  docs\ReleaseNotes\          <- empty folder (if release configured)
 ```
 
 ### GENERAL Mode
@@ -299,10 +303,14 @@ After all sections answered, generate these files:
   SOPS.md                     <- from SOPS template or minimal
   FAILS.md                    <- empty tracking file
   _WORKSPACE_SETUP_QUESTIONNAIRE.md <- questionnaire for remaining sections
+  Devin.bat                   <- IDE launcher (single-repo variant)
+  DevinNext.bat               <- IDE launcher Next (single-repo variant)
   [AGENT_FOLDER]\             <- sync from PromptSystem source
-    specs\
+    rules\
     workflows\
     skills\
+  specs\                      <- empty folder (verifiable agent instructions)
+  docs\                       <- empty folder (explanatory knowledge)
   _sessions\                 <- empty folder
   _sessions\_archive\        <- empty folder (session archive)
 ```
@@ -316,7 +324,7 @@ After all sections answered, generate these files:
 
 ```
 [WORKSPACE_FOLDER]\
-  main.code-workspace         <- references product repo
+  [folder-name].code-workspace  <- references product repo (named after workspace folder)
   !NOTES.md                   <- from DEV_REPO_NOTES_TEMPLATE.md (adapted)
   !PROBLEMS.md                <- empty tracking file
   !PROGRESS.md                <- empty tracking file
@@ -324,12 +332,15 @@ After all sections answered, generate these files:
   _SOPS.md                    <- from SOPS template or minimal
   FAILS.md                    <- empty tracking file
   _WORKSPACE_SETUP_QUESTIONNAIRE.md <- questionnaire for remaining sections
+  Devin.bat                   <- IDE launcher (multi-repo variant)
+  DevinNext.bat               <- IDE launcher Next (multi-repo variant)
   [AGENT_FOLDER]\             <- sync from PromptSystem source
-    specs\
+    rules\
     workflows\
     skills\
   knowledge\                  <- empty folder
-  specs\                      <- empty folder
+  specs\                      <- empty folder (verifiable agent instructions)
+  docs\                       <- empty folder (explanatory knowledge)
   _sessions\                 <- empty folder
   _sessions\_archive\        <- empty folder (session archive)
   promptsystem-sync.json         <- sync config (if SYNCED)
@@ -415,7 +426,7 @@ Status values for analysis: OK, GAP, STALE, DEVIATION, N/A.
 - id: agent_folder_name
   type: single
   condition: (always)
-  default: .devin
+  default: .devin (Devin) / .claude (Claude Code)
   report_label: Agent Folder Name
 
 - id: sessions_folder_name

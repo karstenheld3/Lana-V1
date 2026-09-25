@@ -46,7 +46,7 @@ OK: [N] | GAP: [N] | STALE: [N] | DEVIATION: [N] | N/A: [N]
 |----------|---------|---------|--------|--------------|
 | project_name | [value] | myapp | [status] | [fix or none] |
 | project_goal | [value] | Describe what this project does | [status] | [fix or none] |
-| agent_folder_name | [value] | .devin | [status] | [fix or none] |
+| agent_folder_name | [value] | .devin / .claude | [status] | [fix or none] |
 | sessions_folder_name | [value] | _sessions | [status] | [fix or none] |
 | sops_file_name | [value] | SOPS.md | [status] | [fix or none] |
 

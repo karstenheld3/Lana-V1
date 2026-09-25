@@ -191,7 +191,7 @@ python llm-evaluation-selftest.py [--skip-api-calls]
 
 ```powershell
 $venv = "..\.tools\llm-venv\Scripts\python.exe"
-$skill = ".devin\skills\llm-evaluation"
+$skill = "[AGENT_FOLDER]\skills\llm-evaluation"
 
 # 1. Transcribe images
 & $venv "$skill\call-llm-batch.py" --model gpt-4o --input-folder images/ --output-folder transcriptions/ --prompt-file "$skill\prompts\transcribe-page.md" --runs 3

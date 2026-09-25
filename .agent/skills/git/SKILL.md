@@ -299,7 +299,7 @@ git log --diff-filter=D --name-status -3
 git log --diff-filter=D -- "**/*.md" --name-only -5
 
 # 3. Recover from parent of deletion commit
-git checkout <commit>^ -- .devin/workflows/filename.md
+git checkout <commit>^ -- [AGENT_FOLDER]/workflows/filename.md
 ```
 
 ### Compare What Changed Between Sessions

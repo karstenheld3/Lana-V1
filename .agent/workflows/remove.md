@@ -5,7 +5,7 @@ auto_execution_mode: 3
 
 # Remove Workflow
 
-Remove session artifacts, Cascade conversations, or specified files from disk. Handles dependency cleanup. ALWAYS previews before removal.
+Remove session artifacts, agent conversations (Devin), or specified files from disk. Handles dependency cleanup. ALWAYS previews before removal.
 
 **Goal**: Remove specified content with full preview and dependency cleanup
 
@@ -18,15 +18,15 @@ Scope: Destructive file deletion. User can run `/commit` before `/remove` if bac
 - ALWAYS preview before deleting - no silent deletions
 - NEVER delete active session files without user explicitly naming them
 - Check dependencies (references from other files) before deleting documents
-- Cascade .pb files are encrypted - identification by date/size only
-- Close Windsurf before deleting cascade conversations to avoid file handle conflicts
-- NEVER delete `.devin/`, `DevSystemV4.1/`, or `_OldDevSystemVersions/`
+- Devin (Cascade) .pb files are encrypted - identification by date/size only
+- Close Devin before deleting Cascade conversations to avoid file handle conflicts
+- NEVER delete `[AGENT_FOLDER]/`, `DevSystemV4.1/`, or `_OldDevSystemVersions/`
 - NEVER delete `ID-REGISTRY.md`, `FAILS.md`, `LEARNINGS.md`, `!NOTES.md`, `PROBLEMS.md`, `!PROGRESS.md`
 
 ## Trigger
 
 - `/remove session content` - remove session folder and clean up references
-- `/remove conversation` - remove Cascade conversation .pb files from disk
+- `/remove conversation` - remove Devin (Cascade) conversation .pb files from disk
 - `/remove [path]` - remove specific file or folder
 
 ## GLOBAL-RULES
@@ -80,8 +80,9 @@ Deleting session folder and cleaning 2 outbound references.
 
 **Applies**: `/remove conversation` or when user mentions Cascade conversation removal
 
-Cascade conversations are stored as encrypted .pb files in `~/.codeium/windsurf/cascade/`.
-Files are encrypted on disk but the agent has access to conversation content via `trajectory_search` tool.
+**Agent scope**: Devin only. Claude Code and Codex manage conversations differently - this mode does not apply to them.
+
+Devin (Cascade) conversations are stored as encrypted .pb files in `~/.codeium/windsurf/cascade/` (legacy Windsurf path, verify current location on new Devin versions). Files are encrypted on disk but the agent has access to conversation content via `trajectory_search` tool.
 
 **Scripts**: `[PROMPTSYSTEM_FOLDER]/skills/session-management/cascade-search.ps1` and `cascade-delete.ps1`
 
@@ -93,7 +94,7 @@ Files are encrypted on disk but the agent has access to conversation content via
 4. Match conversations to user's selection criteria (from trigger args)
 5. Run cascade-delete.ps1 with specified parameters (uses -DryRun first)
 6. Execute deletion
-7. Report results, advise Windsurf restart
+7. Report results, advise Devin restart
 
 **Correlation strategy**: Match .pb file LastWriteTime with conversation timestamps from `trajectory_search`. The cascade ID from the trajectory metadata maps to the .pb filename UUID.
 
@@ -236,7 +237,7 @@ OK. Deletion complete.
       ID-REGISTRY.md:142 - removed CRAWLENG entry
       !PROGRESS.md:28 - removed line
 
-HINT: Restart Windsurf for conversation changes to take effect.
+HINT: Restart Devin for conversation changes to take effect.
 ```
 
 # FINALIZATION

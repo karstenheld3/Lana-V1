@@ -86,7 +86,7 @@ For each source, extract requirements and assign:
 
 **Additional sources** (read BEFORE default sources):
 
-1. **DEEP_RESEARCH_RULES.md** - from `@skills:deep-research` skill
+1. **DEEP_RESEARCH_RULES.md** - from `@skills:research-methods` skill
 2. **STRUT plan** - if `__STRUT_[TOPIC].md` exists, extract unchecked deliverables
 3. **Research brief/prompt** - the original research question and scope
 

@@ -195,7 +195,7 @@ Do NOT modify Source. If Source appears outdated, note at end of plan: `Source i
 
 Detect by: folder contains `_INFO_[TOPIC]-01_Summary.md` + `_INFO_[TOPIC]-02_Sources.md` + topic files + `__STRUT_[TOPIC].md`.
 
-**Read**: @skills:deep-research `RESEARCH_RULES.md` - contains all RS-*, SC-*, SM-*, TF-*, ST-*, QA-* rules with verification procedure.
+**Read**: @skills:research-methods `RESEARCH_RULES.md` - contains all RS-*, SC-*, SM-*, TF-*, ST-*, QA-* rules with verification procedure.
 
 Execute the 6-step verification procedure from `RESEARCH_RULES.md`:
 1. **Structure Check** (RS-01 through RS-06) - file set completeness
@@ -206,7 +206,7 @@ Execute the 6-step verification procedure from `RESEARCH_RULES.md`:
 6. **Quality Check** (QA-01 through QA-11) - cross-cutting quality
 
 After SM-* checks pass, verify summary content depth:
-7. **Summary Depth Check** (SD-CD-01 through SD-CD-07, SD-ES-* conditionals): Read @skills:deep-research `RESEARCH_SUMMARY_RULES.md`. Execute the Verification Procedure from that file.
+7. **Summary Depth Check** (SD-CD-01 through SD-CD-07, SD-ES-* conditionals): Read @skills:research-methods `RESEARCH_SUMMARY_RULES.md`. Execute the Verification Procedure from that file.
 
 Additionally:
 - Verify against @skills:write-documents `APAPALAN_RULES.md` (precision, brevity, structure, naming)

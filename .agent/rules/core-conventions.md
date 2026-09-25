@@ -182,7 +182,7 @@ Reference skills using `@skills:skill-name` format. The skill name must match a 
 
 - `@skills:write-documents` - Document writing skill
 - `@skills:coding-conventions` - Coding conventions skill
-- `@skills:deep-research` - Deep research skill
+- `@skills:research-methods` - Research methods skill
 
 **BAD:** `(write-documents skill)`, `write-documents skill`, `the writing skill`
 **GOOD:** `@skills:write-documents`

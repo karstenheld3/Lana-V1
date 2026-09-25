@@ -50,7 +50,7 @@ DESIGN:
 UNDERSTANDING:
 - `workflows/research.md` - Research principles (MEPI/MCPI)
 - `workflows/deep-research.md` - Deep investigation
-- `skills/deep-research/SKILL.md` - Strategies
+- `skills/research-methods/SKILL.md` - Strategies
 
 PROCESS:
 - `workflows/write-spec.md` - Specification patterns

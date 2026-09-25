@@ -79,7 +79,7 @@ Location:
 Management:
 - Most recent entries at top
 - Never delete entries - mark as [RESOLVED] with date and solution
-- Link to _REVIEW files containing detailed analysis
+- Link to critique/fact-check review files containing detailed analysis
 - Include in /prime workflow to load lessons learned
 -->
 

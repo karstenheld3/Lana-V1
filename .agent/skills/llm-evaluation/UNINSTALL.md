@@ -109,7 +109,7 @@ if ($removeEnv -and $hasEnv) {
 Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Note: Skill files in .devin/skills/llm-evaluation/ are not removed." -ForegroundColor White
+Write-Host "Note: Skill files in [AGENT_FOLDER]/skills/llm-evaluation/ are not removed." -ForegroundColor White
 Write-Host "To completely remove the skill, delete that folder manually." -ForegroundColor White
 ```
 
@@ -131,7 +131,7 @@ Write-Host "To completely remove the skill, delete that folder manually." -Foreg
 
 ## What Is NOT Removed
 
-- **Skill files**: `.devin/skills/llm-evaluation/` (scripts, prompts, configs)
+- **Skill files**: `[AGENT_FOLDER]/skills/llm-evaluation/` (scripts, prompts, configs)
 - **Test outputs**: Any generated JSON files from running the scripts
 - **Token usage files**: `_token_usage__*.json` files in output folders
 
@@ -139,7 +139,7 @@ To completely remove the skill:
 
 ```powershell
 # After running uninstall script with option 2:
-Remove-Item ".devin\skills\llm-evaluation" -Recurse -Force
+Remove-Item "[AGENT_FOLDER]\skills\llm-evaluation" -Recurse -Force
 ```
 
 ## Reinstalling

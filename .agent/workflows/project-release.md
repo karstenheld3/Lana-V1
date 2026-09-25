@@ -32,7 +32,7 @@ Create a config-driven project release supporting single-repo and multi-repo wor
 
 Before any release steps, detect workspace context:
 
-1. Detect workspace mode: `main.code-workspace` exists in workspace root → WORKSPACE mode (multi-repo), else → SINGLE-PROJECT or MONOREPO
+1. Detect workspace mode: `*.code-workspace` file exists in workspace root → WORKSPACE mode (multi-repo), else → SINGLE-PROJECT or MONOREPO
 2. Read `[RELEASE_CONFIG]` from workspace NOTES.md (or `!NOTES.md`)
 3. If no `[RELEASE_CONFIG]` section: error and halt. Guide user to add config using `DEV_REPO_NOTES_TEMPLATE.md` from `@skills:workspace-management`
 4. Count `[RELEASE_REPO]` blocks: 1 → single-repo flow, 2+ → multi-repo flow
@@ -249,7 +249,7 @@ After all tags pushed and GitHub releases created (or skipped), execute post-rel
 
 Bump strategy per repo:
 
-- `promptsystem_rename`: Read current version from NOTES.md, increment minor, rename `PromptSystemVX.Y` folder to `PromptSystemVX.Y+1`, update NOTES.md, sync to `.devin/`, commit, push. Follow SOPS SOP 7 or equivalent procedure in workspace's SOPS file
+- `promptsystem_rename`: Read current version from NOTES.md, increment minor, rename `PromptSystemVX.Y` folder to `PromptSystemVX.Y+1`, update NOTES.md, sync to `[AGENT_FOLDER]/`, commit, push. Follow SOPS SOP 7 or equivalent procedure in workspace's SOPS file
 - `patch_bump`: Read version from `version_file`, increment patch, write back, commit, push
 - `minor_bump`: Read version from `version_file`, increment minor, reset patch to 0, write back, commit, push
 - `none`: Skip

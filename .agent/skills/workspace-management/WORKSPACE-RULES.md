@@ -86,7 +86,7 @@ GOOD: [PRODUCT_REPO_FOLDER]: [WORKSPACE_FOLDER]\..\MyProject
 
 ## WS-CT-04: [WORKSPACE_FOLDER] vs [WORKSPACE_FILE] Distinction
 
-[WORKSPACE_FOLDER] is the filesystem path of the workspace root. [WORKSPACE_FILE] is the main.code-workspace file that defines workspace membership. These must not be conflated.
+[WORKSPACE_FOLDER] is the filesystem path of the workspace root. [WORKSPACE_FILE] is the .code-workspace file (named after the workspace folder) that defines workspace membership. These must not be conflated.
 
 - [WORKSPACE_FOLDER]: always present, the directory path
 - [WORKSPACE_FILE]: only in WORKSPACE mode, the .code-workspace file
@@ -126,11 +126,11 @@ GOOD: Agent folder has all three subfolders (rules/, workflows/, skills/) with c
 ## WS-ST-02: Workspace Structure Matches Declared Mode
 
 Workspace structure must match the declared mode in NOTES.md Project Info:
-- SINGLE-PROJECT: One project, no main.code-workspace file
-- MONOREPO: Multiple projects in subfolders, no main.code-workspace file
-- WORKSPACE: main.code-workspace file present, references repos that may be outside [WORKSPACE_FOLDER]
+- SINGLE-PROJECT: One project, no .code-workspace file
+- MONOREPO: Multiple projects in subfolders, no .code-workspace file
+- WORKSPACE: .code-workspace file present (named after workspace folder), references repos that may be outside [WORKSPACE_FOLDER]
 
-BAD: NOTES.md declares WORKSPACE mode but no main.code-workspace file exists
+BAD: NOTES.md declares WORKSPACE mode but no .code-workspace file exists
 GOOD: Declared mode matches actual workspace structure
 
 ## WS-SY-01: Relative Source Paths in promptsystem-sync.json

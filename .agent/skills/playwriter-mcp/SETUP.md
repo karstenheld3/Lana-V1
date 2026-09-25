@@ -64,12 +64,16 @@ This teaches AI agents how to use Playwriter:
 npx -y skills add remorses/playwriter
 ```
 
-## 6. Add to Windsurf MCP Config (Optional)
+## 6. Add to Your Agent's MCP Config (Optional)
 
-If you prefer direct MCP configuration instead of skill-based:
+If you prefer direct MCP configuration instead of skill-based - branch by target agent:
+
+- Claude Code: `claude mcp add playwriter -- npx playwriter@latest`
+- Codex: `[mcp_servers.playwriter]` block in `~/.codex/config.toml`
+- Devin: JSON config at `~/.codeium/windsurf/mcp_config.json` (legacy Windsurf path, verify current location on new Devin versions):
 
 ```powershell
-# === Add Playwriter to Windsurf MCP Config ===
+# === Add Playwriter to Devin MCP Config ===
 
 # Pre-flight checks
 Write-Host "=== Pre-flight Checks ===" -ForegroundColor Cyan
@@ -155,7 +159,7 @@ if (Test-Path $configPath) {
 }
 
 $config | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
-Write-Host "Added Playwriter to Windsurf MCP config" -ForegroundColor Green
+Write-Host "Added Playwriter to Devin MCP config" -ForegroundColor Green
 
 # === Installation Summary ===
 Write-Host ""
@@ -183,7 +187,7 @@ Write-Host "      Path: ~/.playwriter/relay-server.log" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor White
 Write-Host "  1. Install Chrome extension from Web Store" -ForegroundColor White
-Write-Host "  2. Restart Windsurf" -ForegroundColor White
+Write-Host "  2. Restart Devin" -ForegroundColor White
 Write-Host "  3. Click extension icon on a tab (turns green)" -ForegroundColor White
 Write-Host "  4. Test: playwriter session new" -ForegroundColor White
 Write-Host ""
@@ -191,7 +195,7 @@ Write-Host ""
 
 ## 7. Verify Setup
 
-After configuration, restart Windsurf.
+After configuration, restart Devin.
 
 **Check MCP server status:**
 - View > Command Palette > "MCP: Show Servers"

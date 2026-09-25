@@ -267,7 +267,7 @@ For grepping and file search in large folder structures, use `rg.exe` (ripgrep) 
 - Handles binary files gracefully (skips them, never hangs)
 - Completes in milliseconds where `Get-ChildItem -Recurse` takes minutes
 
-`rg.exe` is bundled with VS Code-based editors (Devin, Cursor, Windsurf, etc.) at `[EDITOR_INSTALL]\resources\app\node_modules\@vscode\ripgrep-universal\bin\[platform]\rg.exe` where `[platform]` is `win32-x64`, `darwin-x64`, `darwin-arm64`, or `linux-x64`.
+`rg.exe` is bundled with VS Code-based editors (Devin, Cursor, etc.) at `[EDITOR_INSTALL]\resources\app\node_modules\@vscode\ripgrep-universal\bin\[platform]\rg.exe` where `[platform]` is `win32-x64`, `darwin-x64`, `darwin-arm64`, or `linux-x64`.
 
 **Why not `Get-ChildItem -Recurse`**: PowerShell's `Get-ChildItem -Recurse` enumerates every file in the tree before returning results. On large projects (10k+ files) or network shares, this can take minutes or hang. `Select-String -Recurse` has the same problem — it enumerates first, then searches. Ripgrep walks the tree lazily and returns matches as it finds them.
 

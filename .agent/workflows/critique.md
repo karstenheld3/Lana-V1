@@ -9,14 +9,14 @@ Find flawed assumptions, logic errors, and hidden risks.
 
 **Profile**: Senior engineer who hunts for flawed assumptions, flawed design and logic errors. Focuses on what could go wrong due to incorrect thinking, not formatting or convention violations.
 
-**Golden Rule**: NEVER touch existing code or documents. ALWAYS create or update separate versions with `_REVIEW` suffix.
+**Golden Rule**: NEVER touch existing code or documents. ALWAYS create or update separate versions with `_CRITIQUE` suffix.
 
 **Scope Boundary**: This workflow finds **assumptions and logic / design flaws**. Use `/verify` for rule violations and convention compliance. Zero overlap.
 
 ## Required Skills
 
 Invoke based on context:
-- @write-documents for document review (use CRITIQUE_REVIEW_TEMPLATE.md, FAILS_TEMPLATE.md)
+- @write-documents for document review (use CRITIQUE_TEMPLATE.md, FAILS_TEMPLATE.md)
 
 **Note**: Code review against rules/conventions is done by `/verify`. This workflow focuses on logic, strategy, and goal alignment.
 
@@ -24,15 +24,15 @@ Invoke based on context:
 
 **Two distinct output files with different purposes:**
 
-- **`[filename]_REVIEW.md`** - Problems found in specific document/code
-  - For document review: `_INFO_CRAWLER_REVIEW.md`, `_SPEC_AUTH_REVIEW.md`
-  - For code review: `auth_handler_REVIEW.md`
+- **`[filename]_CRITIQUE.md`** - Problems found in specific document/code
+  - For document review: `_INFO_CRAWLER_CRITIQUE.md`, `_SPEC_AUTH_CRITIQUE.md`
+  - For code review: `auth_handler_CRITIQUE.md`
   - Potential risks, concerns, edge cases not yet triggered
   - Hypothetical failure scenarios
   - Questions that need answers
   - Created fresh each review, can be discarded after addressing
 
-- **`_PROBLEMS_REVIEW.md`** - Problems found in conversation/logs (no specific file)
+- **`_PROBLEMS_CRITIQUE.md`** - Problems found in conversation/logs (no specific file)
   - Use when reviewing conversation history without specific document
   - General issues spanning multiple files
 
@@ -56,7 +56,7 @@ Invoke based on context:
 7. **Execute research** - search for industry patterns, alternatives, known pitfalls
 8. Create Devil's Advocate task list (informed by research)
 9. Work through task list:
-   - Update `_PROBLEMS_REVIEW.md` with potential issues found
+   - Update `_PROBLEMS_CRITIQUE.md` with potential issues found
    - Update `FAILS.md` with actual failures/mistakes discovered
    - **Check MUST-NOT-FORGET list after each major finding**
    - **Include research findings** in issue analysis
@@ -83,14 +83,14 @@ Invoke based on context:
 - Naming conventions
 
 **Working Rules**:
-- **Never edit originals** - Create `_REVIEW` suffix copies for suggestions
+- **Never edit originals** - Create `_CRITIQUE` suffix copies for suggestions
 - **Research before assuming** - Do web searches to verify claims and find failure examples
 - **Question assumptions** - What are we taking for granted that could be wrong?
 - **Be specific** - Vague concerns are useless. Cite line numbers, exact scenarios
 - **Prioritize by impact** - Critical logic flaws first
 - **Apply SOCAS** - Use @write-documents `SOCAS_RULES.md` for systematic quality evaluation. Report findings with SOCAS IDs and severity.
 
-**Categories and Labels**: See FAILS_TEMPLATE.md and CRITIQUE_REVIEW_TEMPLATE.md in @write-documents skill.
+**Categories and Labels**: See FAILS_TEMPLATE.md and CRITIQUE_TEMPLATE.md in @write-documents skill.
 
 **FAILS.md Location and Format**: See FAILS_TEMPLATE.md in @write-documents skill.
 
@@ -128,7 +128,7 @@ For each topic:
 
 ### Adding Research to Review
 
-Add "Industry Research Findings" section to `_REVIEW.md` - see CRITIQUE_REVIEW_TEMPLATE.md for format.
+Add "Industry Research Findings" section to `[filename]_CRITIQUE.md` - see CRITIQUE_TEMPLATE.md for format.
 
 ## Context-Specific Sections
 
@@ -144,7 +144,7 @@ When called without specific document, review the entire conversation:
    - Logic that works in happy path but fails on edge cases
    - Contradictions between what was said and what was done
    - Decisions based on incomplete information
-3. **Create/Update** `_PROBLEMS_REVIEW.md`:
+3. **Create/Update** `_PROBLEMS_CRITIQUE.md`:
    ```markdown
    # Problems Found - Devil's Advocate Review
    
@@ -265,7 +265,7 @@ Evaluate design fitness, not rule compliance (use `/verify` for TMPL-* rules).
 
 **Meta-principle behind everything**: Where is the complexity hiding, and who will pay for it in the long-term?
 
-Create `[filename]_REVIEW.md` with findings.
+Create `[filename]_CRITIQUE.md` with findings.
 
 **First, read all relevant context and answer these architectural questions:**
 
@@ -334,7 +334,7 @@ When reviewing error logs or console output:
    - Timing patterns = race condition or resource exhaustion
    - Cascading errors = missing error boundaries
 
-4. **Update** `_PROBLEMS_REVIEW.md` and `FAILS.md` with root causes found
+4. **Update** `_PROBLEMS_CRITIQUE.md` and `FAILS.md` with root causes found
 
 ### Minto Documents
 
@@ -375,8 +375,8 @@ Ask these for EVERY review:
 Before finishing, verify:
 
 - [ ] `FAILS.md` updated with actual failures discovered (categorized by severity)
-- [ ] `[filename]_REVIEW.md` created for specific document/code review
-- [ ] `_PROBLEMS_REVIEW.md` created only for conversation/logs review (no specific file)
+- [ ] `[filename]_CRITIQUE.md` created for specific document/code review
+- [ ] `_PROBLEMS_CRITIQUE.md` created only for conversation/logs review (no specific file)
 - [ ] No original files were modified
 - [ ] Each finding has: What, Where, Why it went wrong, Suggested fix
 - [ ] Critical issues highlighted at top
@@ -419,7 +419,7 @@ End every Devil's Advocate review with:
 
 **Files Created/Updated**:
 - `FAILS.md` - [X] new entries
-- `[filename]_REVIEW.md` - Detailed findings + Industry Research
+- `[filename]_CRITIQUE.md` - Detailed findings + Industry Research
 
 **Recommendation**: [PROCEED / PROCEED WITH CAUTION / STOP AND FIX]
 ```

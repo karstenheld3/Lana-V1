@@ -2,6 +2,14 @@
 
 Remove Microsoft Playwright MCP server from your system.
 
+**Config removal differs per agent** - branch by target agent:
+
+- Claude Code: `claude mcp remove playwright`
+- Codex: remove the `[mcp_servers.playwright]` block from `~/.codex/config.toml`
+- Devin: the script below removes the entry from the JSON config (legacy Windsurf path, verify current location on new Devin versions)
+
+The profile, auth, browser, and npm-cache cleanup steps below are agent-independent.
+
 ## Quick Uninstall
 
 Run this script and answer with a single character:
@@ -177,7 +185,7 @@ if ($removeNpmCache -and $hasNpmCache) {
 
 Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Cyan
-Write-Host "Restart Windsurf to apply changes" -ForegroundColor White
+Write-Host "Restart Devin to apply changes" -ForegroundColor White
 ```
 
 ## What Gets Removed
@@ -200,7 +208,7 @@ If the script fails, remove manually:
 
 ### 1. Config Entry
 
-Edit `[USER_PROFILE_PATH]\.codeium\windsurf\mcp_config.json`:
+Devin (legacy Windsurf path): edit `[USER_PROFILE_PATH]\.codeium\windsurf\mcp_config.json`. Claude Code: `claude mcp remove playwright`. Codex: remove the `[mcp_servers.playwright]` block from `~/.codex/config.toml`.
 ```json
 {
   "mcpServers": {
@@ -247,7 +255,7 @@ mcp_config.json._beforeRemovingMsPlaywrightMcp_YYYYMMDD_HHMMSS
 
 To restore:
 ```powershell
-# List backups
+# List backups (Devin config path)
 Get-ChildItem "$env:USERPROFILE\.codeium\windsurf\mcp_config.json.*"
 
 # Restore

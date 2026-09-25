@@ -29,7 +29,7 @@ Scope: Production deployment only. Use platform UI for preview/staging deploys.
 
 ## MUST-NOT-FORGET
 
-- **DO NOT USE** Windsurf deploy tool (`deploy_web_app`) or `*.windsurf.build` domains. Always use platform CLI directly.
+- **DO NOT use** agent-proprietary deploy tools (e.g., Devin's `deploy_web_app`) or their proprietary domains (e.g., `*.windsurf.build`). Always use platform CLI directly.
 - Deploy scripts (`deploy.bat` + `deploy.ps1`) MUST exist in project after workflow completes
 - Scripts must install all required tools if not present (self-contained)
 - Never deploy without successful build first

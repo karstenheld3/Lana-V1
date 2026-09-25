@@ -37,12 +37,23 @@ npx @playwright/mcp@latest --help
 
 This downloads the package and shows available options.
 
-## 4. Add to Windsurf Global Config
+## 4. Add to Your Agent's MCP Config
 
-Run this PowerShell script to add Playwright MCP without modifying existing servers:
+MCP server registration differs per agent - branch by target agent:
+
+- Claude Code: `claude mcp add playwright -- npx @playwright/mcp@latest` (user scope: add `-s user`; project scope: `.mcp.json` at project root)
+- Codex: add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest"]
+```
+
+- Devin: JSON config at `~/.codeium/windsurf/mcp_config.json` (legacy Windsurf path, verify current location on new Devin versions) - run this PowerShell script to add Playwright MCP without modifying existing servers:
 
 ```powershell
-# === Add Microsoft Playwright MCP to Windsurf ===
+# === Add Microsoft Playwright MCP to Devin MCP config ===
 
 # Pre-checks
 Write-Host "=== Pre-flight Checks ===" -ForegroundColor Cyan
@@ -169,7 +180,7 @@ if ($needsUpdate) {
     
     try {
         $config | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8 -ErrorAction Stop
-        Write-Host "Added Playwright MCP to Windsurf" -ForegroundColor Green
+        Write-Host "Added Playwright MCP to Devin MCP config" -ForegroundColor Green
     } catch {
         Write-Host "[FAIL] Could not write config: $_" -ForegroundColor Red
         if ($backupPath -and (Test-Path $backupPath)) {
@@ -231,7 +242,7 @@ if (Test-Path $profileDir) {
 
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor White
-Write-Host "  1. Restart Windsurf" -ForegroundColor White
+Write-Host "  1. Restart Devin" -ForegroundColor White
 Write-Host "  2. Check MCP status: Command Palette > 'MCP: Show Servers'" -ForegroundColor White
 Write-Host "  3. Test: Ask AI to 'Navigate to https://example.com'" -ForegroundColor White
 Write-Host ""
@@ -293,7 +304,7 @@ Connect to existing browser with remote debugging:
 
 ## 6. Verify Installation
 
-After configuring, restart Windsurf.
+After configuring, restart Devin.
 
 **Check MCP server status:**
 - View > Command Palette > "MCP: Show Servers"
@@ -337,7 +348,7 @@ Remove-Item "$profileDir\SingletonLock" -Force -ErrorAction SilentlyContinue
 1. Check if npx works in terminal: `npx --version`
 2. Try running MCP manually: `npx @playwright/mcp@latest --help`
 3. Check for error messages in MCP client logs
-4. Restart Windsurf
+4. Restart Devin
 
 ### Extension mode not connecting
 

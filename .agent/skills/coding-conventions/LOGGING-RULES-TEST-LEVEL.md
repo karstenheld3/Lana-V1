@@ -11,6 +11,7 @@ Rules for test output used by Quality Assurance (QA) to verify correctness.
 - [LOG-TS-05](#log-ts-05-status-patterns): Status patterns
 - [LOG-TS-06](#log-ts-06-output-details): Output details
 - [LOG-TS-07](#log-ts-07-summary-and-result): Summary and result
+- [LOG-TS-08](#log-ts-08-terse-output-for-agentic-workflows): Terse output for agentic workflows
 
 ## Philosophy
 
@@ -26,12 +27,15 @@ A QA engineer should understand what failed and why without analyzing additional
 - Consistent status patterns ([LOG-TS-05](#log-ts-05-status-patterns))
 - Detailed output for debugging ([LOG-TS-06](#log-ts-06-output-details))
 - Summary with pass/fail counts ([LOG-TS-07](#log-ts-07-summary-and-result))
+- Terse single-character output endorsed for agent-consumed runs ([LOG-TS-08](#log-ts-08-terse-output-for-agentic-workflows))
 
 ## Related Documents
 
 - `LOGGING-RULES.md` - General rules (LOG-GN-01 to LOG-GN-11)
 - `LOGGING-RULES-USER-FACING.md` - User-facing rules (LOG-UF-01 to LOG-UF-06)
 - `LOGGING-RULES-APP-LEVEL.md` - App-level rules (LOG-AP-01 to LOG-AP-05)
+- `TEST-GUIDES.md` - Language-agnostic test optimization guide (section 1: minimize output)
+- `PYTHON-TEST-RULES.md` - Python-specific test rules (PY-TR-RC-01: quiet-mode flags)
 
 ## Rules
 
@@ -266,6 +270,69 @@ END: sites_security_scan_selftest() (12.0 secs).
 RESULT: FAILED
 =========================================== END: SELFTEST ===========================================
 ```
+
+**Runner-generated summary (e.g., pytest):** When a test runner produces a single summary line with all counts and duration, prefix it with the appropriate status marker per LOG-TS-05 (`PARTIAL FAIL:` when both passes and failures exist).
+```
+PARTIAL FAIL: 5 failed, 348 passed, 1 skipped, 72 xfailed, 16 warnings in 127.47s (0:02:07)
+```
+This format is dense and self-contained: pass count, fail count, skip count, expected-failure count, warnings, and wall time in one line. The `PARTIAL FAIL:` prefix makes the line grep-able and consistent with LOG-TS-05.
+
+### LOG-TS-08: Terse Output for Agentic Workflows
+
+When tests are consumed by an agent (not a human QA engineer), terse single-character-per-test output is **endorsed** (SHOULD, not MUST). Agents can parse position-encoded markers; humans cannot.
+
+**Rationale:** Agent context windows are finite. A 300-test suite in verbose mode produces 300+ lines of output, consuming context tokens that carry no information when tests pass. Terse mode produces approximately 5 lines. Failure tracebacks are still printed at the end, giving the agent the right detail at the right time.
+
+**Scope:** This endorsement applies ONLY when the test consumer is an agent. Human-facing test runs (QA engineers, CI dashboards, selftest endpoints) MUST continue following LOG-TS-01 through LOG-TS-07 with full section structure, test case IDs, status markers, and summaries.
+
+**Why agents can use terse output but humans cannot:**
+- Agents parse output programmatically - they identify the position of `F` in a dot string and read the traceback at the end
+- Humans scan visually - a dot string tells them nothing about which test failed or what it tested
+- Agents process output in a single pass - they do not need section headers for navigation
+- Humans need structure (LOG-TS-02) and IDs (LOG-TS-03) to locate failures in context
+
+*BAD* (verbose output wasting agent context):
+```
+tests/test_03_backend.py::test_tc_023_rate_limit_recovery PASSED
+tests/test_03_backend.py::test_tc_024_server_error_retry PASSED
+tests/test_03_backend.py::test_tc_025_timeout_handling PASSED
+tests/test_03_backend.py::test_tc_026_hang_detection PASSED
+tests/test_03_backend.py::test_tc_027_connection_reset PASSED
+... (295 more lines)
+```
+
+*GOOD* (terse output for agent consumption):
+```
+..........................x.x......xx.x..xx.......F...xxx..xx.xxxF...xxx.x.xx.x...... [ 82%]
+```
+
+*GOOD* (terse summary line - all counts in one line):
+```
+PARTIAL FAIL: 5 failed, 348 passed, 1 skipped, 72 xfailed, 16 warnings in 127.47s (0:02:07)
+```
+
+*GOOD* (detailed output for human consumption - LOG-TS-01 through LOG-TS-07 apply):
+```
+======================================== START: BACKEND FAULT TESTS =========================================
+[ 1 / 18 ] TC-23: Rate limit recovery with Retry-After header...
+  OK.
+[ 2 / 18 ] TC-24: Server error retry with exponential backoff...
+  OK.
+...
+========================================= END: BACKEND FAULT TESTS ==========================================
+18 tests passed, 0 failed.
+```
+
+**Decision flow:**
+```
+Who consumes this test output?
+├─> Agent (agentic workflow, prompt sequence)
+│   └─> Use terse mode (LOG-TS-08). Failures still print tracebacks.
+└─> Human (QA engineer, CI dashboard, selftest endpoint)
+    └─> Use full format (LOG-TS-01 through LOG-TS-07).
+```
+
+**Cross-reference:** See `TEST-GUIDES.md` section 1 for the language-agnostic rationale. See PY-TR-RC-01 in `PYTHON-TEST-RULES.md` for the pytest-specific flags.
 
 ## Complete Examples
 

@@ -245,7 +245,7 @@ Read @skills:workspace-management SKILL.md before syncing.
 
 1. Read `promptsystem-sync.json` from target `[WORKSPACE_FOLDER]` root
 2. For each target entry in config:
-   - Read `path` (relative agent folder, e.g., `.devin`), `source` (relative path to source agent folder)
+   - Read `path` (relative agent folder, e.g., `.devin`, `.claude`), `source` (relative path to source agent folder)
    - `include`/`exclude` patterns, `never_overwrite` patterns come from the target entry
    - Deprecated files come from top-level `deprecated` array in promptsystem-sync.json
    - Run `sync.ps1 -diff -config <path> -preview_file <path>` for preview

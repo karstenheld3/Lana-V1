@@ -22,7 +22,7 @@ Apply when automating desktop interactions that require visual understanding:
 
 ```bash
 # Navigate to skill folder first
-cd .devin/skills/llm-computer-use
+cd [AGENT_FOLDER]/skills/llm-computer-use
 
 # Dry-run (safe, no actions executed)
 python -m llm_computer_use "Click the Start button"
@@ -47,7 +47,7 @@ python -m llm_computer_use -x -k ../.tools/.api-keys.txt "Open Calculator"
 
 ```python
 import sys
-sys.path.insert(0, ".devin/skills/llm-computer-use")
+sys.path.insert(0, "[AGENT_FOLDER]/skills/llm-computer-use")
 
 from llm_computer_use import AgentSession
 

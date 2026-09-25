@@ -15,7 +15,7 @@ Autonomous self-improvement in four phases: scan with pre-flight research, fix v
 
 - @skills:write-documents for APAPALAN_RULES, MECT_WRITING_RULES, templates, rules
 - @skills:coding-conventions for MECT_CODING_RULES
-- @skills:deep-research for research enrichment techniques
+- @skills:research-methods for research enrichment techniques
 
 ## MUST-NOT-FORGET
 
@@ -335,9 +335,9 @@ Detection: determine context from file naming and content, then apply matching s
 
 **Lens**: Evidence-Finding Collaborator (Kahneman) - improve through constructive challenge backed by new evidence. Not fault-finding; evidence-finding.
 
-**Phase 1 reads**: `INFO_TEMPLATE.md` (@skills:write-documents), `RESEARCH_STRATEGY_MEPI.md` or `RESEARCH_STRATEGY_MCPI.md` (@skills:deep-research), `RESEARCH_RULES.md` (@skills:deep-research), `RESEARCH_SUMMARY_RULES.md` (@skills:deep-research)
+**Phase 1 reads**: `INFO_TEMPLATE.md` (@skills:write-documents), `RESEARCH_STRATEGY_MEPI.md` or `RESEARCH_STRATEGY_MCPI.md` (@skills:research-methods), `RESEARCH_RULES.md` (@skills:research-methods), `RESEARCH_SUMMARY_RULES.md` (@skills:research-methods)
 
-**Multi-file research sets** (folder with Summary + Sources + topic files): Read @skills:deep-research `RESEARCH_RULES.md` for depth indicators and enrichment techniques. Apply the "Improvement Procedure" and "Priority Order" sections from that file in addition to the techniques below. For Summary-specific improvements, also read @skills:deep-research `RESEARCH_SUMMARY_RULES.md` - each SD-* rule maps to one improvement candidate for Phase 3 selection. Execute enrichment techniques from that file's Improvement Procedure in priority order.
+**Multi-file research sets** (folder with Summary + Sources + topic files): Read @skills:research-methods `RESEARCH_RULES.md` for depth indicators and enrichment techniques. Apply the "Improvement Procedure" and "Priority Order" sections from that file in addition to the techniques below. For Summary-specific improvements, also read @skills:research-methods `RESEARCH_SUMMARY_RULES.md` - each SD-* rule maps to one improvement candidate for Phase 3 selection. Execute enrichment techniques from that file's Improvement Procedure in priority order.
 
 **Specialized issues** (in addition to GLOBAL):
 - Sources concentrated on single search engine or database

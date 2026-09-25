@@ -112,7 +112,7 @@ Five dimensions define how the agent should behave:
 
 - **SINGLE-PROJECT** - Workspace contains one project
 - **MONOREPO** - Workspace contains multiple independent projects
-- **WORKSPACE** - Workspace root with multiple independent repos (not monorepo). Detected by presence of `main.code-workspace` file
+- **WORKSPACE** - Workspace root with multiple independent repos (not monorepo). Detected by presence of a `*.code-workspace` file
 
 ### Dimension 2: Version Strategy
 
@@ -208,7 +208,7 @@ Five dimensions define how the agent should behave:
 ├── _[SESSION_FOLDER]/       # Session folders start with underscore
 ├── specs/                   # Workspace-level specs ([DEV_SPECS_FOLDER])
 ├── docs/                    # Explanatory knowledge (INFO, research, how-tos)
-├── main.code-workspace      # References ProductRepo (may be outside [WORKSPACE_FOLDER])
+├── [folder-name].code-workspace  # References ProductRepo (may be outside [WORKSPACE_FOLDER])
 ├── !NOTES.md               # Workspace notes (priority file)
 ├── PROBLEMS.md            # Known problems
 ├── !PROGRESS.md            # Overall progress
@@ -350,7 +350,7 @@ Patterns in `.gitignore`: `*_gitignore.*` and `*_gitignore/`
 **Fact-check-Reconcile-Implement-Verify (FACRIV)** - factual claim verification:
 `/fact-check` → `/reconcile` → `/implement` → `/verify`
 
-**Roles:** `/critique` and `/fact-check` = JUDGE (produce `*_REVIEW.md` only, never modify originals). `/reconcile` = TRIAGE (chat output only). `/implement` = EXECUTOR (applies approved corrections to source documents).
+**Roles:** `/critique` and `/fact-check` = JUDGE (produce `*_CRITIQUE.md` / `*_FACT-CHECK.md` only, never modify originals). `/reconcile` = TRIAGE (chat output only). `/implement` = EXECUTOR (applies approved corrections to source documents).
 
 **Rules:** Sequential execution. When user says "run VCRIV" or "run FACRIV", execute full pipeline in order.
 

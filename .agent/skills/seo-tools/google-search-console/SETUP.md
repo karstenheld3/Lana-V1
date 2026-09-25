@@ -57,7 +57,7 @@ SQLite cache, 20+ analysis tools, content decay detection.
 
 ## Verify Connection
 
-After MCP config, restart Windsurf/Claude. Test by asking:
+After MCP config, restart Devin. Test by asking:
 "Check GSC for quick wins on yourdomain.com"
 
 Expected: Tool call to `quick_wins` returning keywords at positions 4-15.

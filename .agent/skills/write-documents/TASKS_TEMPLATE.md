@@ -44,7 +44,7 @@ Created from partitioned IMPL/TEST plans.
 Required: Task ID, description, Files, Done when, Est.
 Optional: Verify, Guardrails, Depends, Parallel, Model.
 
-Model hints from !NOTES.md "Cascade Model Switching". Recommendations only.
+Model hints from !NOTES.md (model switching section; Devin: `## Cascade Model Switching`). Recommendations only.
 -->
 
 ### [Category]

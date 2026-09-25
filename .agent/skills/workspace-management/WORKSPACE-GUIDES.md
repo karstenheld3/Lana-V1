@@ -18,19 +18,20 @@ Do not use when:
 
 A WORKSPACE mode workspace has:
 
-- DevRepo (workspace root) - contains main.code-workspace, specs, sessions, knowledge, SOPs, agent folder
-- ProductRepo - contains shipped code, tests, config, product docs. Referenced in main.code-workspace
+- DevRepo (workspace root) - contains .code-workspace file, specs, sessions, knowledge, SOPs, agent folder
+- ProductRepo - contains shipped code, tests, config, product docs. Referenced in .code-workspace file
 - CompanyRepo (optional) - central source folder for knowledge and specs shared across multiple workspaces
 
-Detection: WORKSPACE mode is detected by presence of main.code-workspace file in workspace root.
+Detection: WORKSPACE mode is detected by presence of a `*.code-workspace` file in workspace root. The file is named after the workspace folder (e.g., `MyProject-Dev.code-workspace` for a folder named `MyProject-Dev`).
 
 DevRepo structure:
-- main.code-workspace (references ProductRepo and other repos)
+- [folder-name].code-workspace (references ProductRepo and other repos)
 - NOTES.md (workspace constants, project info, build/test rules)
 - PROBLEMS.md, PROGRESS.md, ID-REGISTRY.md, SOPS.md, FAILS.md
 - [AGENT_FOLDER]/ (rules, workflows, skills)
 - knowledge/ (knowledge bundles)
-- specs/ (specs bundles from Company)
+- specs/ (shared specifications, design guidelines, SOPs)
+- docs/ (explanatory knowledge documents)
 - _sessions/ (session folders)
 
 ProductRepo structure:
@@ -56,7 +57,7 @@ Three sync sources, each with downstream and upstream directions:
 1. Prompt System
    - Source: PromptSystem source (latest PromptSystemV* folder)
    - Target: [AGENT_FOLDER] in DevRepo and/or ProductRepo
-   - Content: specs, workflows, skills
+   - Content: rules, workflows, skills
    - Filter: include/exclude glob patterns per target entry in promptsystem-sync.json
 
 2. Knowledge
@@ -77,12 +78,12 @@ Sync config lookup:
 
 promptsystem-sync.json structure:
 - Top-level: `last_sync` (timestamp), `deprecated` (array, shared), `targets` (array)
-- Each target entry: `path` (relative, e.g., `.devin`), `source` (relative path), `include`, `exclude`, `never_overwrite`
+- Each target entry: `path` (relative, e.g., `.devin`, `.claude`), `source` (relative path), `include`, `exclude`, `never_overwrite`
 - No `bundles` or `selected_bundles` — include/exclude is the single filter layer
 
 ## How to Manage Knowledge Bundles
 
-A knowledge bundle is a folder of reference documents for a specific topic (e.g., Windsurf/, AI-Standards/, OpenAI/).
+A knowledge bundle is a folder of reference documents for a specific topic (e.g., Devin/, AI-Standards/, OpenAI/).
 
 To add a new knowledge bundle:
 1. Create folder in [KNOWLEDGE_SOURCE_FOLDER] (CompanyRepo)
@@ -95,7 +96,7 @@ To remove a knowledge bundle:
 2. Run sync - bundle will be marked for deletion in downstream repos
 3. Confirm deletion during sync preview
 
-Sub-bundles (nested folders) are supported (e.g., Windsurf/HowCascadeWorks/).
+Sub-bundles (nested folders) are supported (e.g., Devin/HowCascadeWorks/).
 
 ## [WORKSPACE_FOLDER] vs [WORKSPACE_FILE]
 
@@ -103,7 +104,7 @@ These two concepts are distinct and must not be conflated:
 
 - **[WORKSPACE_FOLDER]**: The filesystem path of the workspace root directory. This is where the DevRepo lives. Example: `e:\Dev\MyProject`. All workspace constants are relative to this path.
 
-- **[WORKSPACE_FILE]**: The `main.code-workspace` file inside [WORKSPACE_FOLDER]. This JSON file defines which repos belong to the workspace by referencing their folder paths. Repos referenced in this file may be physically outside [WORKSPACE_FOLDER] (e.g., `../ProductRepo`). The file is the authority for multi-repo commit scope.
+- **[WORKSPACE_FILE]**: The `[folder-name].code-workspace` file inside [WORKSPACE_FOLDER], named after the workspace folder (e.g., `MyProject-Dev.code-workspace`). This JSON file defines which repos belong to the workspace by referencing their folder paths. Repos referenced in this file may be physically outside [WORKSPACE_FOLDER] (e.g., `../ProductRepo`). The file is the authority for multi-repo commit scope.
 
 **Why the distinction matters:**
 - Filtering repos by physical location inside [WORKSPACE_FOLDER] would incorrectly exclude ProductRepo and CompanyRepo in WORKSPACE mode, because they are typically siblings (`../ProductRepo`), not subdirectories
@@ -112,12 +113,41 @@ These two concepts are distinct and must not be conflated:
 
 **Detection:**
 - [WORKSPACE_FOLDER] is always the current workspace root (where the agent operates)
-- [WORKSPACE_FILE] exists only in WORKSPACE mode (detected by presence of `main.code-workspace`)
+- [WORKSPACE_FILE] exists only in WORKSPACE mode (detected by presence of a `*.code-workspace` file)
 
 **Commit scope:**
 - WORKSPACE mode: commit repos referenced in [WORKSPACE_FILE], regardless of physical location
 - SINGLE-PROJECT/MONOREPO: commit only the repo at [WORKSPACE_FOLDER]
 - Never commit linked repos or deploy targets unless [ACTOR] explicitly requests
+
+## IDE Launcher Scripts
+
+Each workspace gets `Devin.bat` and `DevinNext.bat` at workspace root to launch the IDE from Explorer.
+
+Two variants based on workspace mode:
+
+**Single-repo** (SINGLE-PROJECT, GENERAL) - opens the folder directly:
+```bat
+@echo off
+set "DIR=%~dp0"
+set "DIR=%DIR:~0,-1%"
+start "" "%LOCALAPPDATA%\Programs\Devin\Devin.exe" "%DIR%"
+```
+
+**Multi-repo** (WORKSPACE) - finds and opens the .code-workspace file:
+```bat
+@echo off
+set "DIR=%~dp0"
+set "DIR=%DIR:~0,-1%"
+for %%f in ("%DIR%\*.code-workspace") do (
+    start "" "%LOCALAPPDATA%\Programs\Devin\Devin.exe" "%%f"
+    exit /b
+)
+```
+
+For `DevinNext.bat`, replace the exe path with `%LOCALAPPDATA%\Programs\Devin Next\Devin - Next.exe`.
+
+These files are generated during `/workspace-setup create` and are workspace-mode-aware.
 
 ## When to Use Sync vs Self-Contained
 
@@ -154,12 +184,13 @@ Always required workspace constants in DevRepo NOTES.md:
 ```
 ## Workspace Constants
 - [WORKSPACE_FOLDER]: [current workspace root path]
-- [WORKSPACE_FILE]: [WORKSPACE_FOLDER]\main.code-workspace (WORKSPACE mode only)
-- [WORKSPACE_FOLDER]: [WORKSPACE_FOLDER]
+- [WORKSPACE_FILE]: [WORKSPACE_FOLDER]\[folder-name].code-workspace (WORKSPACE mode only)
 - [PRODUCT_REPO_FOLDER]: [WORKSPACE_FOLDER]\..\[product-repo-name]
-- [KNOWLEDGE_FOLDER]: [WORKSPACE_FOLDER]\knowledge
-- [SPECS_FOLDER]: [WORKSPACE_FOLDER]\specs
+- [DEV_KNOWLEDGE_FOLDER]: [WORKSPACE_FOLDER]\knowledge
+- [DEV_SPECS_FOLDER]: [WORKSPACE_FOLDER]\specs
 - [PRODUCT_DOCS_FOLDER]: [PRODUCT_REPO_FOLDER]\docs
+- [AGENT_FOLDER]: [WORKSPACE_FOLDER]\[AGENT_FOLDER_NAME] (e.g., .devin, .claude)
+- [SESSIONS_FOLDER]: [WORKSPACE_FOLDER]\_sessions
 ```
 
 Required for SYNCED only (remove if SELF-CONTAINED):
@@ -170,7 +201,7 @@ Required for SYNCED only (remove if SELF-CONTAINED):
 - [SPECS_SOURCE_FOLDER]: [COMPANY_REPO_FOLDER]\specs
 ```
 
-[WORKSPACE_FOLDER] is the filesystem path. [WORKSPACE_FILE] is the main.code-workspace file that defines which repos belong to the workspace (WORKSPACE mode only). Repos in the workspace file may be outside [WORKSPACE_FOLDER].
+[WORKSPACE_FOLDER] is the filesystem path. [WORKSPACE_FILE] is the .code-workspace file (named after the workspace folder) that defines which repos belong to the workspace (WORKSPACE mode only). Repos in the workspace file may be outside [WORKSPACE_FOLDER].
 
 ## Workspace Mode Detection Logic
 
@@ -179,7 +210,7 @@ Workspace root
 ├─> Has src/ folder or build infrastructure (Build/Test, Runtime)?
 │   ├─> Yes -> SOFTWARE-DEV (Dimension 5)
 │   │   └─> Detect Dimension 1 (Project Structure):
-│   │       ├─> main.code-workspace exists?
+│   │       ├─> *.code-workspace file exists?
 │   │       │   ├─> Yes -> WORKSPACE mode
 │   │       │   └─> No
 │   │       │       ├─> Multiple project subfolders?

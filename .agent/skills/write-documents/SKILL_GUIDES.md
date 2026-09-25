@@ -7,7 +7,7 @@ Step-by-step guide for creating well-structured agent skills.
 Before writing any skill:
 
 1. Understand the technology - how does it actually work?
-2. Verify compatibility - does it work with the target agent (Windsurf/Cascade)?
+2. Verify compatibility - does it work with the target agent (Devin, Claude Code, Codex)?
 3. Identify dependencies - what must be installed? What versions?
 4. Find known issues - check GitHub issues, forums, community reports
 5. Test manually first - run commands yourself before documenting them
@@ -41,6 +41,16 @@ Follow `SKILL_TEMPLATE.md` structure. Key decisions:
 **Intent Lookup**: Map user goals to procedures. Think "user wants to..." then arrow to action.
 
 **Core Procedures**: Numbered steps with tool invocations. One procedure per common task.
+
+**Technical Depth** (for tool/MCP skills): Include sufficient detail for the agent to use the skill without external docs:
+- Architecture: how components connect (diagram preferred)
+- Tool actions/API: all available actions with parameters
+- Dependencies: what libraries/tools are used under the hood
+- Platform specifics: OS-specific behavior (Windows, macOS, Linux)
+- Capabilities and Limitations: what the skill enables and what it cannot do
+- Sources: links to official docs, repos, research
+
+Without sufficient technical detail, the agent cannot know which actions are available, anticipate limitations, or troubleshoot failures.
 
 **Gotchas**: Non-obvious behavior. Format: `**Short label** - explanation and fix`
 
@@ -101,9 +111,15 @@ Expected: [what success looks like]
 3. Provide rollback instructions inline
 4. Show expected results after each step
 
-### 5.3 MCP Config Modification Pattern (Windsurf)
+### 5.3 MCP Config Modification Pattern (per agent)
 
-For skills modifying `~/.codeium/windsurf/mcp_config.json`:
+MCP server registration differs per agent - branch by target agent:
+
+- Devin: `~/.codeium/windsurf/mcp_config.json` (legacy Windsurf path, verify current location on new Devin versions)
+- Claude Code: `claude mcp add <name> -- npx package-name` (CLI-managed; or `.mcp.json` at project root for project scope)
+- Codex: `~/.codex/config.toml` under `[mcp_servers.<name>]`
+
+For JSON-config agents (Devin), use this PowerShell pattern:
 
 ```powershell
 $configPath = "$env:USERPROFILE\.codeium\windsurf\mcp_config.json"

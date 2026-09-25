@@ -141,4 +141,4 @@ python query.py balance
 python query.py --sandbox keywords "test"
 ```
 
-Script locations: `E:\Dev\KarstensWorkspace\.devin\skills\seo-tools\dataforseo\`
+Script locations: `[AGENT_FOLDER]/skills/seo-tools/dataforseo/`

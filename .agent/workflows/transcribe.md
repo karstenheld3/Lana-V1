@@ -65,7 +65,7 @@ Prepare source first (see Source Preparation Reference), then run script. Script
 
 ```powershell
 $venv = "../.tools/llm-venv/Scripts/python.exe"
-$skill = ".devin/skills/llm-transcription"
+$skill = "[AGENT_FOLDER]/skills/llm-transcription"
 
 # Single page transcription
 & $venv "$skill/transcribe-image-to-markdown.py" `
@@ -89,9 +89,9 @@ After script completes, proceed to Step 3 (Stitch).
 
 ## TRANSCRIBE_SCRIPT + TRANSCRIBE_MULTI
 
-Process multiple independent PDFs in parallel across Cascade terminals.
+Process multiple independent PDFs in parallel across agent terminals.
 
-**Limits**: Max 4 concurrent Cascade terminals. Each runs `--workers 30`.
+**Limits**: Max 4 concurrent agent terminals (Devin limit). Each runs `--workers 30`.
 
 ### Process
 
@@ -177,7 +177,7 @@ If method or scope is unclear, ask user:
 
 ```powershell
 # Check for llm-transcription skill
-$skillPath = ".devin/skills/llm-transcription/transcribe-image-to-markdown.py"
+$skillPath = "[AGENT_FOLDER]/skills/llm-transcription/transcribe-image-to-markdown.py"
 $keysFile = "[WORKSPACE_FOLDER]\..\.tools\.api-keys.txt"
 $hasSkill = Test-Path $skillPath
 $hasKeys = Test-Path $keysFile
@@ -492,7 +492,7 @@ Conversion and download commands used by context-specific sections.
 
 ### For Local PDF
 ```powershell
-python .devin/skills/pdf-tools/convert-pdf-to-jpg.py "path/to/document.pdf" --dpi 120  # 120 DPI - optimal for transcription
+python [AGENT_FOLDER]/skills/pdf-tools/convert-pdf-to-jpg.py "path/to/document.pdf" --dpi 120  # 120 DPI - optimal for transcription
 ```
 
 ### For URL to PDF
@@ -503,7 +503,7 @@ $filename = [System.IO.Path]::GetFileName($url)
 New-Item -ItemType Directory -Path "[SESSION_FOLDER]/_DOWNLOADS_gitignore" -Force | Out-Null
 Invoke-WebRequest -Uri $url -OutFile "[SESSION_FOLDER]/_DOWNLOADS_gitignore/$filename"
 # Then convert to JPG
-python .devin/skills/pdf-tools/convert-pdf-to-jpg.py "[SESSION_FOLDER]/_DOWNLOADS_gitignore/$filename" --dpi 120
+python [AGENT_FOLDER]/skills/pdf-tools/convert-pdf-to-jpg.py "[SESSION_FOLDER]/_DOWNLOADS_gitignore/$filename" --dpi 120
 ```
 
 ### For Web Page

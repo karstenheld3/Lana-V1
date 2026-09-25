@@ -67,7 +67,7 @@ Strategy sections may include model hints for auto model switching:
 │   - Opus for analysis, Sonnet for implementation
 ```
 
-**Source:** Model definitions and activity mappings are in `!NOTES.md` under `## Cascade Model Switching`.
+**Source:** Model definitions and activity mappings are in `!NOTES.md` under the model switching section (Devin: `## Cascade Model Switching`).
 
 Model hints are recommendations - agent decides based on actual task.
 

@@ -37,7 +37,7 @@ Exception: SETUP.md and UNINSTALL.md may use richer formatting because they guid
 Before writing any skill documentation:
 
 1. Understand the technology - how does it actually work?
-2. Verify compatibility - does it work with the target agent (Windsurf/Cascade)?
+2. Verify compatibility - does it work with the target agent (Devin, Claude Code, Codex)?
 3. Identify dependencies - what must be installed? What versions?
 4. Find known issues - check GitHub issues, forums, community reports
 5. Test manually first - run commands yourself before documenting them
@@ -142,9 +142,15 @@ Only AFTER pre-installation verification passes:
 3. Provide rollback instructions inline
 4. Show expected results after each step
 
-### 3.2.1 MCP Config Modification Pattern (Windsurf)
+### 3.2.1 MCP Config Modification Pattern (per agent)
 
-For skills that modify `~/.codeium/windsurf/mcp_config.json`, use this PowerShell pattern:
+MCP server registration differs per agent - branch by target agent:
+
+- Devin: `~/.codeium/windsurf/mcp_config.json` (legacy Windsurf path, verify current location on new Devin versions)
+- Claude Code: `claude mcp add <name> -- npx package-name` (CLI-managed; or `.mcp.json` at project root for project scope)
+- Codex: `~/.codex/config.toml` under `[mcp_servers.<name>]`
+
+For JSON-config agents (Devin), use this PowerShell pattern:
 
 ```powershell
 $configPath = "$env:USERPROFILE\.codeium\windsurf\mcp_config.json"
@@ -261,7 +267,7 @@ CRITICAL: Test all code snippets WITHOUT modifying the system before including t
 
 ```powershell
 # GOOD: Test package works before adding to config
-npx -y some-mcp-server --help  # Downloads and tests, doesn't modify Windsurf
+npx -y some-mcp-server --help  # Downloads and tests, doesn't modify agent config
 
 # GOOD: Check config state before modifying
 $configPath = "$env:USERPROFILE\.codeium\windsurf\mcp_config.json"
@@ -293,7 +299,7 @@ Example of applying these rules when building the `computer-use-mcp` skill:
 
 1. Web search - found domdomegg/computer-use-mcp repository
 2. Read documentation - GitHub README, nut.js docs, Anthropic Computer Use docs
-3. Identify compatibility gap - repo lists Claude Desktop, Cursor, Cline but NOT Windsurf
+3. Identify compatibility gap - repo lists Claude Desktop, Cursor, Cline but NOT Devin
 4. Document finding - added compatibility note: "expected to work but not officially verified"
 
 ### 7.2 Initial SETUP.md (What We Did Wrong)
@@ -308,7 +314,7 @@ Add to config...  # BAD: No verification first
 
 Devil's Advocate review identified:
 - No pre-installation verification
-- Untested assumption that it works with Windsurf
+- Untested assumption that it works with Devin
 - No nut.js dependency testing
 - Vague test instructions
 

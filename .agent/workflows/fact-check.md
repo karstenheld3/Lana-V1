@@ -7,7 +7,7 @@ auto_execution_mode: 3
 
 Verify factual claims in documents by extracting sources, facts, and conclusions, then checking each against external reality.
 
-**Goal**: Review document with all factual claims verified, verdicts assigned, and findings reported in `[filename]_REVIEW.md`
+**Goal**: Review document with all factual claims verified, verdicts assigned, and findings reported in `[filename]_FACT-CHECK.md`
 
 **Why**: AI agents trust all text unconditionally. No existing workflow crosses the gap from claims-about-reality to observed-reality. `/verify` checks conformance but trusts upstream documents as correct. A fabricated claim in a SPEC propagates through IMPL to code without detection.
 
@@ -15,15 +15,15 @@ Verify factual claims in documents by extracting sources, facts, and conclusions
 
 ## Required Skills
 
-- @skills:write-documents for review document output (use `FACT-CHECK_REVIEW_TEMPLATE.md`)
-- @skills:deep-research for source collection tools (use `RESEARCH_TOOLS.md`)
+- @skills:write-documents for review document output (use `FACT-CHECK_TEMPLATE.md`)
+- @skills:research-methods for source collection tools (use `RESEARCH_TOOLS.md`)
 - @skills:pdf-tools for PDF processing pipeline
 - @skills:llm-transcription for image and scanned document transcription
 - @skills:ms-playwright-mcp for web page access and full-page capture
 
 ## MUST-NOT-FORGET
 
-- **NEVER modify the original document, code, or any file other than the review output** - produce `[filename]_REVIEW.md` only. This workflow is a JUDGE, not a fixer. Corrections happen in `/implement` after `/reconcile` approval. If you feel the urge to fix something, write it as a finding instead.
+- **NEVER modify the original document, code, or any file other than the review output** - produce `[filename]_FACT-CHECK.md` only. This workflow is a JUDGE, not a fixer. Corrections happen in `/implement` after `/reconcile` approval. If you feel the urge to fix something, write it as a finding instead.
 - Consensus is not evidence - multiple sources agreeing adds zero value unless they independently observed the actual system
 - Documentation is secondary, not primary - the shipped product (running API, source code, test output) is the primary source
 - Trust hierarchy: observed behavior > source code > official docs > community sources > LLM output
@@ -49,7 +49,7 @@ Verify factual claims in documents by extracting sources, facts, and conclusions
 Apply to ALL input types before context-specific steps.
 
 1. Trust hierarchy governs ALL verification: observed behavior > source code > official docs > community sources > LLM output. Every verification must push toward the left of this chain
-2. Non-destructive: never modify the original. All output goes to `[filename]_REVIEW.md` and source folders
+2. Non-destructive: never modify the original. All output goes to `[filename]_FACT-CHECK.md` and source folders
 3. Source-first order: verify sources BEFORE facts, facts BEFORE conclusions. One source failure cascades to all citing facts
 4. Autonomous execution: no confirmation gates. Extract, materialize, verify, and report without pausing
 5. Graceful degradation: if a source is inaccessible, assign `inaccessible` verdict and continue. Never abort because one source failed
@@ -183,7 +183,7 @@ For each conclusion, evaluate based on supporting fact verdicts:
 
 ## Phase 4: Report
 
-Generate `[filename]_REVIEW.md` following @skills:write-documents `FACT-CHECK_REVIEW_TEMPLATE.md`.
+Generate `[filename]_FACT-CHECK.md` following @skills:write-documents `FACT-CHECK_TEMPLATE.md`.
 
 1. Header: Doc ID (`[SOURCE-DOC-ID]-RV[NN]`), review date, context summary (document type, source/fact/conclusion counts)
 2. Fact-Check Summary: verdict counts per category, overall recommendation
@@ -225,14 +225,14 @@ If 3 consecutive verification attempts fail for the same source or fact:
 
 ## Verification
 
-Run `/verify` on generated `[filename]_REVIEW.md` to check:
-1. Review follows `FACT-CHECK_REVIEW_TEMPLATE.md` structure
+Run `/verify` on generated `[filename]_FACT-CHECK.md` to check:
+1. Review follows `FACT-CHECK_TEMPLATE.md` structure
 2. All verdict categories used correctly
 3. No original files modified
 4. MUST-NOT-FORGET (MNF) items addressed
 
 ## Output
 
-- `[filename]_REVIEW.md` - fact-check review with all verdicts and recommendations
+- `[filename]_FACT-CHECK.md` - fact-check review with all verdicts and recommendations
 - `_SOURCES/` - transcribed source content (checked in, naming: `[SOURCE_ID]_[descriptive-name].md`)
 - `_DOWNLOADS_gitignore/` - raw downloads (not checked in, naming: `[SOURCE_ID]_[original-name].[ext]`)

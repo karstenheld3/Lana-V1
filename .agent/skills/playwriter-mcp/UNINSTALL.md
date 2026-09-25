@@ -2,10 +2,16 @@
 
 Remove Playwriter components from your system.
 
-## 1. Remove from Windsurf MCP Config
+## 1. Remove from Your Agent's MCP Config
+
+Branch by target agent:
+
+- Claude Code: `claude mcp remove playwriter`
+- Codex: remove the `[mcp_servers.playwriter]` block from `~/.codex/config.toml`
+- Devin: script below (JSON config, legacy Windsurf path, verify current location on new Devin versions)
 
 ```powershell
-# === Remove Playwriter from Windsurf MCP Config ===
+# === Remove Playwriter from Devin MCP Config ===
 
 $configPath = "$env:USERPROFILE\.codeium\windsurf\mcp_config.json"
 
@@ -46,8 +52,8 @@ $config.mcpServers.Remove("playwriter")
 
 # Write updated config
 $config | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
-Write-Host "Removed Playwriter from Windsurf MCP config" -ForegroundColor Green
-Write-Host "Restart Windsurf to complete" -ForegroundColor Yellow
+Write-Host "Removed Playwriter from Devin MCP config" -ForegroundColor Green
+Write-Host "Restart Devin to complete" -ForegroundColor Yellow
 ```
 
 ## 2. Uninstall CLI
@@ -95,7 +101,7 @@ npx -y skills remove remorses/playwriter
 - [ ] Chrome extension removed
 - [ ] (Optional) Data directory cleaned up
 - [ ] (Optional) Skill removed
-- [ ] Windsurf restarted
+- [ ] Devin restarted
 
 ## Verify Complete Removal
 
@@ -104,7 +110,7 @@ npx -y skills remove remorses/playwriter
 Get-Command playwriter -ErrorAction SilentlyContinue
 
 # Check MCP config
-$config = Get-Content "$env:USERPROFILE\.codeium\windsurf\mcp_config.json" | ConvertFrom-Json
+$config = Get-Content "$env:USERPROFILE\.codeium\windsurf\mcp_config.json" | ConvertFrom-Json  # Devin config path
 $config.mcpServers | Get-Member -Name playwriter
 
 # Check data directory
